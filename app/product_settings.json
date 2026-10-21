@@ -1,0 +1,116 @@
+{
+  "schema": "hrs-product-settings-v1",
+  "render_profiles": {
+    "default": "free",
+    "choices": [
+      {
+        "id": "free",
+        "label": "自由笔记"
+      },
+      {
+        "id": "engineering",
+        "label": "工程报告"
+      }
+    ]
+  },
+  "render_options": {
+    "show_object_numbers": {
+      "label": "图表编号",
+      "default": true,
+      "new_free": false
+    },
+    "show_heading_numbers": {
+      "label": "章节编号",
+      "default": false,
+      "new_free": false
+    },
+    "preserve_blank_lines": {
+      "label": "保留连续空行",
+      "default": false,
+      "new_free": true
+    }
+  },
+  "color_themes": {
+    "default": "blue",
+    "choices": [
+      {
+        "id": "blue",
+        "label": "默认蓝",
+        "stylesheet": "theme.css"
+      },
+      {
+        "id": "celadon",
+        "label": "青瓷轻雾",
+        "stylesheet": "theme-celadon.css"
+      },
+      {
+        "id": "violet",
+        "label": "暮山黛紫",
+        "stylesheet": "theme-violet.css"
+      },
+      {
+        "id": "azure",
+        "label": "石墨天青",
+        "stylesheet": "theme-azure.css"
+      },
+      {
+        "id": "navy",
+        "label": "藏青云母",
+        "stylesheet": "theme-navy.css"
+      },
+      {
+        "id": "warm",
+        "label": "暖纸赭石",
+        "stylesheet": "theme-warm.css"
+      }
+    ]
+  },
+  "highlights": {
+    "default": "yellow",
+    "choices": [
+      {
+        "id": "yellow",
+        "label": "黄色",
+        "color": "#fff1a8"
+      },
+      {
+        "id": "orange",
+        "label": "橙色",
+        "color": "#ffe0b2"
+      },
+      {
+        "id": "red",
+        "label": "红色",
+        "color": "#ffd7d7",
+        "marker": "🔴"
+      },
+      {
+        "id": "pink",
+        "label": "粉色",
+        "color": "#fbd5e8"
+      },
+      {
+        "id": "purple",
+        "label": "紫色",
+        "color": "#e7d7fa"
+      },
+      {
+        "id": "blue",
+        "label": "蓝色",
+        "color": "#d9eaff",
+        "marker": "🔵"
+      },
+      {
+        "id": "cyan",
+        "label": "青色",
+        "color": "#c9f2f3"
+      },
+      {
+        "id": "green",
+        "label": "绿色",
+        "color": "#d8f3dc",
+        "marker": "🟢"
+      }
+    ]
+  }
+}

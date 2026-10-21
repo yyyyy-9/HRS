@@ -1,0 +1,6 @@
+{
+  "canonicalCaption": "| A | B |\n| --- | ---: |\n| 1 | 2 |\n: 相邻表题 {#tbl-adjacent}\n",
+  "legacyCaption": "| A | B |\n| --- | ---: |\n| 1 | 2 |\n\n: 旧版表题 {#tbl-legacy}\n",
+  "notACaption": "| A | B |\n| --- | ---: |\n| 1 | 2 |\n\n\n: 分离段落 {#tbl-nope}\n",
+  "referenceMath": "See @tbl:tbl-adjacent; $@tbl:tbl-hidden$; \\(@tbl:tbl-hidden\\); \\[\n@tbl:tbl-hidden\n\\]\n`@tbl:tbl-hidden`\n"
+}

@@ -1,0 +1,87 @@
+{
+  "origin": "newly authored synthetic math regression set; no article content",
+  "source_sha256": "d97b2f54b5e48c8203c0d6b30d0d36725315e8555e52f944880c0c6427c2ae06",
+  "math_nodes": 20,
+  "formulas": [
+    {
+      "tex": "\\boldsymbol{x}+\\boldsymbol{\\phi}",
+      "display": true
+    },
+    {
+      "tex": "\\boldsymbol{\\mathcal{M}}\\boldsymbol{x}=\\boldsymbol{b}",
+      "display": true
+    },
+    {
+      "tex": "\\frac{a+b}{c+d}",
+      "display": true
+    },
+    {
+      "tex": "\\sum_{j=1}^{n} x_j",
+      "display": true
+    },
+    {
+      "tex": "\\int_0^1 x^2\\,dx",
+      "display": true
+    },
+    {
+      "tex": "\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}",
+      "display": true
+    },
+    {
+      "tex": "\\hat{x}+\\bar{y}+\\overline{AB}",
+      "display": true
+    },
+    {
+      "tex": "\\left\\lVert\\boldsymbol{v}\\right\\rVert^2",
+      "display": true
+    },
+    {
+      "tex": "\\alpha+\\beta+\\gamma",
+      "display": true
+    },
+    {
+      "tex": "\\nabla\\cdot\\boldsymbol{E}=\\rho",
+      "display": true
+    },
+    {
+      "tex": "\\mathrm{diag}(a,b,c)",
+      "display": true
+    },
+    {
+      "tex": "\\begin{aligned}u&=a+b\\\\v&=c-d\\end{aligned}",
+      "display": true
+    },
+    {
+      "tex": "\\frac{\\partial f}{\\partial x}+\\frac{\\partial f}{\\partial y}",
+      "display": true
+    },
+    {
+      "tex": "\\sqrt{x^2+y^2}",
+      "display": true
+    },
+    {
+      "tex": "\\lim_{n\\to\\infty}\\frac{1}{n}",
+      "display": true
+    },
+    {
+      "tex": "\\mathbf{A}^{\\mathsf{T}}\\mathbf{A}",
+      "display": true
+    },
+    {
+      "tex": "\\boldsymbol{\\omega}\\times\\boldsymbol{r}",
+      "display": true
+    },
+    {
+      "tex": "\\underbrace{a+\\cdots+a}_{n}",
+      "display": true
+    },
+    {
+      "tex": "\\overset{\\triangle}{=}",
+      "display": true
+    },
+    {
+      "tex": "e^{i\\theta}=\\cos\\theta+i\\sin\\theta",
+      "display": true
+    }
+  ]
+}

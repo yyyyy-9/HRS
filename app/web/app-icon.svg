@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="HRS outline tree mark">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4160DB"/>
+      <stop offset="1" stop-color="#2C41B0"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#tile)"/>
+  <rect x="166" y="126" width="10" height="260" rx="5" fill="#FFFFFF" opacity=".45"/>
+  <rect x="166" y="166" width="36" height="10" rx="5" fill="#FFFFFF"/>
+  <rect x="206" y="152" width="140" height="24" rx="12" fill="#FFFFFF"/>
+  <rect x="166" y="252" width="36" height="10" rx="5" fill="#FFFFFF" opacity=".8"/>
+  <rect x="206" y="238" width="110" height="24" rx="12" fill="#FFFFFF" opacity=".8"/>
+  <rect x="166" y="338" width="36" height="10" rx="5" fill="#FFFFFF" opacity=".6"/>
+  <rect x="206" y="324" width="80" height="24" rx="12" fill="#FFFFFF" opacity=".6"/>
+</svg>

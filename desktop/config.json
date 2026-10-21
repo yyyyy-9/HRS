@@ -1,0 +1,7 @@
+{
+  "schema": "hrs-desktop-host-v1",
+  "protocol": 1,
+  "product_name": "HTML Report Studio",
+  "data_directory": "HTMLReportStudioDesktop",
+  "app_user_model_id": "HTMLReportStudio.Desktop"
+}

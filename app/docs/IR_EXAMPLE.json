@@ -1,0 +1,346 @@
+{
+  "schema": "engineering-report-ir-v1",
+  "source_format": "engineering-report-v1",
+  "offset_unit": "utf16",
+  "source_snapshot": {
+    "text_utf8_sha256": "6e82856fbf14ea38f3956b609bbe97a49bcaa6b35aef4876661fff43e87b3b64",
+    "utf16_length": 1234,
+    "newline_mode": "preserved",
+    "bom_preserved": false
+  },
+  "blocks": [
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "模拟项目（数据只为演示）",
+      "source": "# 模拟项目（数据只为演示）\n",
+      "line": 1,
+      "start": 0,
+      "end": 15
+    },
+    {
+      "type": "markdown",
+      "source": "\n",
+      "line": 2,
+      "start": 15,
+      "end": 16
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "结果",
+      "source": "## 结果 {#sec-results}\n",
+      "line": 3,
+      "id": "sec-results",
+      "start": 16,
+      "end": 37
+    },
+    {
+      "type": "markdown",
+      "source": "\n强度为 $I=|E|^2$。请见 @fig:fig-beam、@tbl:tbl-sample 和 @sec:sec-results。\n\n",
+      "line": 4,
+      "start": 37,
+      "end": 106
+    },
+    {
+      "type": "equation",
+      "line": 7,
+      "source": "<!-- hrs:eq id=eq-energy -->\n$$\nE=mc^2\n$$\n",
+      "latex": "\nE=mc^2\n",
+      "id": "eq-energy",
+      "numbered": true,
+      "delimiter": "dollar",
+      "number": 1,
+      "start": 106,
+      "end": 148
+    },
+    {
+      "type": "markdown",
+      "source": "\n由 @eq:eq-energy 可得。\n\n<!-- hrs:list style=paren-decimal -->\n1. 建立模型\n1. 记录参数\n\n",
+      "line": 11,
+      "start": 148,
+      "end": 225
+    },
+    {
+      "type": "figure",
+      "id": "fig-beam",
+      "numbered": true,
+      "data": {
+        "schema": "report-figure-v1",
+        "id": "fig-beam",
+        "caption": "原波前强度图",
+        "kind": "image",
+        "src": "assets/0123456789abcdef.png",
+        "alt": "光斑强度分布",
+        "sourceAsset": "assets/0123456789abcdef.emf",
+        "rendition": {
+          "format": "png",
+          "dpi": 300,
+          "page": 1,
+          "engine": "win-gdi"
+        }
+      },
+      "source": "```report-figure\n{\n  \"schema\": \"report-figure-v1\",\n  \"kind\": \"image\",\n  \"id\": \"fig-beam\",\n  \"caption\": \"原波前强度图\",\n  \"src\": \"assets/0123456789abcdef.png\",\n  \"sourceAsset\": \"assets/0123456789abcdef.emf\",\n  \"alt\": \"光斑强度分布\",\n  \"rendition\": {\n    \"format\": \"png\",\n    \"dpi\": 300,\n    \"page\": 1,\n    \"engine\": \"win-gdi\"\n  }\n}\n```\n",
+      "line": 18,
+      "start": 225,
+      "end": 548,
+      "number": 1
+    },
+    {
+      "type": "markdown",
+      "source": "\n",
+      "line": 35,
+      "start": 548,
+      "end": 549
+    },
+    {
+      "type": "table",
+      "id": "tbl-sample",
+      "sourceKind": "enhanced",
+      "numbered": true,
+      "data": {
+        "schema": "report-table-v1",
+        "id": "tbl-sample",
+        "caption": "实验条件",
+        "rows": [
+          [
+            {
+              "text": "参数",
+              "rowspan": 1,
+              "colspan": 1
+            },
+            {
+              "text": "数值",
+              "rowspan": 1,
+              "colspan": 1
+            }
+          ],
+          [
+            {
+              "text": "波长",
+              "rowspan": 1,
+              "colspan": 1
+            },
+            {
+              "text": "193.35 nm",
+              "rowspan": 1,
+              "colspan": 1
+            }
+          ]
+        ],
+        "columnWidths": [
+          45,
+          55
+        ]
+      },
+      "source": "```report-table\n{\n  \"schema\": \"report-table-v1\",\n  \"id\": \"tbl-sample\",\n  \"caption\": \"实验条件\",\n  \"rows\": [\n    [\n      {\n        \"text\": \"参数\",\n        \"rowspan\": 1,\n        \"colspan\": 1\n      },\n      {\n        \"text\": \"数值\",\n        \"rowspan\": 1,\n        \"colspan\": 1\n      }\n    ],\n    [\n      {\n        \"text\": \"波长\",\n        \"rowspan\": 1,\n        \"colspan\": 1\n      },\n      {\n        \"text\": \"193.35 nm\",\n        \"rowspan\": 1,\n        \"colspan\": 1\n      }\n    ]\n  ],\n  \"columnWidths\": [\n    45,\n    55\n  ]\n}\n```\n",
+      "line": 36,
+      "start": 549,
+      "end": 1061,
+      "number": 1
+    },
+    {
+      "type": "markdown",
+      "source": "\n",
+      "line": 73,
+      "start": 1061,
+      "end": 1062
+    },
+    {
+      "type": "image-group",
+      "id": "fig-comparison",
+      "numbered": true,
+      "data": {
+        "schema": "report-image-group-v1",
+        "id": "fig-comparison",
+        "columns": 2,
+        "rows": 1,
+        "showSubfigureLabels": false,
+        "caption": "两个情形的对比",
+        "images": [
+          {
+            "src": "assets/sample-a.png",
+            "caption": "情形 A"
+          },
+          {
+            "src": "assets/sample-b.png",
+            "caption": "情形 B"
+          }
+        ]
+      },
+      "source": "::: {#fig-comparison layout-ncol=2 layout-nrow=1 subfig-labels=off}\n\n![情形 A](assets/sample-a.png)\n\n![情形 B](assets/sample-b.png)\n\n两个情形的对比\n\n:::\n",
+      "line": 74,
+      "start": 1062,
+      "end": 1204,
+      "number": 2
+    },
+    {
+      "type": "markdown",
+      "source": "\n",
+      "line": 83,
+      "start": 1204,
+      "end": 1205
+    },
+    {
+      "type": "code",
+      "language": "python",
+      "source": "```python\nprint(\"hello\")\n```\n",
+      "body": "print(\"hello\")\n",
+      "line": 84,
+      "start": 1205,
+      "end": 1234
+    }
+  ],
+  "objects": {
+    "ids": {
+      "sec-results": 3,
+      "eq-energy": 7,
+      "fig-beam": 18,
+      "tbl-sample": 36,
+      "fig-comparison": 74
+    },
+    "entries": [
+      {
+        "id": "sec-results",
+        "kind": "section",
+        "line": 3,
+        "start": 16,
+        "end": 37,
+        "numbered": false,
+        "number": null,
+        "sequence": null,
+        "scope": null,
+        "level": 2,
+        "referencedBy": [
+          {
+            "kind": "sec",
+            "start": 87,
+            "end": 103
+          }
+        ]
+      },
+      {
+        "id": "eq-energy",
+        "kind": "equation",
+        "line": 7,
+        "start": 106,
+        "end": 148,
+        "numbered": true,
+        "number": 1,
+        "sequence": "equation",
+        "scope": "document",
+        "referencedBy": [
+          {
+            "kind": "eq",
+            "start": 151,
+            "end": 164
+          }
+        ]
+      },
+      {
+        "id": "fig-beam",
+        "kind": "figure",
+        "line": 18,
+        "start": 225,
+        "end": 548,
+        "numbered": true,
+        "number": 1,
+        "sequence": "figure",
+        "scope": "document",
+        "referencedBy": [
+          {
+            "kind": "fig",
+            "start": 55,
+            "end": 68
+          }
+        ]
+      },
+      {
+        "id": "tbl-sample",
+        "kind": "table",
+        "line": 36,
+        "start": 549,
+        "end": 1061,
+        "numbered": true,
+        "number": 1,
+        "sequence": "table",
+        "scope": "document",
+        "sourceKind": "enhanced",
+        "referencedBy": [
+          {
+            "kind": "tbl",
+            "start": 69,
+            "end": 84
+          }
+        ]
+      },
+      {
+        "id": "fig-comparison",
+        "kind": "figure",
+        "line": 74,
+        "start": 1062,
+        "end": 1204,
+        "numbered": true,
+        "number": 2,
+        "sequence": "figure",
+        "scope": "document",
+        "referencedBy": []
+      }
+    ]
+  },
+  "references": [
+    {
+      "kind": "fig",
+      "target": "fig-beam",
+      "line": 5,
+      "start": 55,
+      "end": 68
+    },
+    {
+      "kind": "tbl",
+      "target": "tbl-sample",
+      "line": 5,
+      "start": 69,
+      "end": 84
+    },
+    {
+      "kind": "sec",
+      "target": "sec-results",
+      "line": 5,
+      "start": 87,
+      "end": 103
+    },
+    {
+      "kind": "eq",
+      "target": "eq-energy",
+      "line": 12,
+      "start": 151,
+      "end": 164
+    }
+  ],
+  "assets": [
+    "assets/0123456789abcdef.emf",
+    "assets/0123456789abcdef.png",
+    "assets/sample-a.png",
+    "assets/sample-b.png"
+  ],
+  "list_styles": [
+    {
+      "style": "paren-decimal",
+      "line": 14,
+      "start": 170,
+      "end": 207
+    }
+  ],
+  "diagnostics": [],
+  "ok": true,
+  "stats": {
+    "heading": 2,
+    "markdown": 6,
+    "equation": 1,
+    "figure": 1,
+    "table": 1,
+    "image-group": 1,
+    "code": 1
+  }
+}

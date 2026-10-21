@@ -1,0 +1,177 @@
+{
+  "description": "Explicit conformance cases for the existing string ID contract; shared by Python and JavaScript",
+  "cases": [
+    {
+      "name": "one_ascii",
+      "tableId": "tbl-a",
+      "figureId": "fig-a",
+      "valid": true
+    },
+    {
+      "name": "one_digit",
+      "tableId": "tbl-0",
+      "figureId": "fig-0",
+      "valid": true
+    },
+    {
+      "name": "underscore",
+      "tableId": "tbl-_",
+      "figureId": "fig-_",
+      "valid": true
+    },
+    {
+      "name": "hyphen",
+      "tableId": "tbl--",
+      "figureId": "fig--",
+      "valid": true
+    },
+    {
+      "name": "mixed_ascii",
+      "tableId": "tbl-A_0-z",
+      "figureId": "fig-A_0-z",
+      "valid": true
+    },
+    {
+      "name": "max_60",
+      "tableId": "tbl-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "figureId": "fig-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "valid": true
+    },
+    {
+      "name": "empty_suffix",
+      "tableId": "tbl-",
+      "figureId": "fig-",
+      "valid": false
+    },
+    {
+      "name": "too_long_61",
+      "tableId": "tbl-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "figureId": "fig-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "valid": false
+    },
+    {
+      "name": "space",
+      "tableId": "tbl-a b",
+      "figureId": "fig-a b",
+      "valid": false
+    },
+    {
+      "name": "tab",
+      "tableId": "tbl-a\tb",
+      "figureId": "fig-a\tb",
+      "valid": false
+    },
+    {
+      "name": "newline",
+      "tableId": "tbl-a\nb",
+      "figureId": "fig-a\nb",
+      "valid": false
+    },
+    {
+      "name": "trailing_lf",
+      "tableId": "tbl-a\n",
+      "figureId": "fig-a\n",
+      "valid": false
+    },
+    {
+      "name": "trailing_cr",
+      "tableId": "tbl-a\r",
+      "figureId": "fig-a\r",
+      "valid": false
+    },
+    {
+      "name": "slash",
+      "tableId": "tbl-a/b",
+      "figureId": "fig-a/b",
+      "valid": false
+    },
+    {
+      "name": "backslash",
+      "tableId": "tbl-a\\b",
+      "figureId": "fig-a\\b",
+      "valid": false
+    },
+    {
+      "name": "dot",
+      "tableId": "tbl-a.b",
+      "figureId": "fig-a.b",
+      "valid": false
+    },
+    {
+      "name": "colon",
+      "tableId": "tbl-a:b",
+      "figureId": "fig-a:b",
+      "valid": false
+    },
+    {
+      "name": "unicode",
+      "tableId": "tbl-中文",
+      "figureId": "fig-中文",
+      "valid": false
+    },
+    {
+      "name": "emoji",
+      "tableId": "tbl-😀",
+      "figureId": "fig-😀",
+      "valid": false
+    },
+    {
+      "name": "wrong_prefix",
+      "tableId": "fig-a",
+      "figureId": "tbl-a",
+      "valid": false
+    },
+    {
+      "name": "missing_hyphen",
+      "tableId": "tbla",
+      "figureId": "figa",
+      "valid": false
+    },
+    {
+      "name": "uppercase_prefix",
+      "tableId": "Tbl-a",
+      "figureId": "Fig-a",
+      "valid": false
+    },
+    {
+      "name": "null",
+      "tableId": null,
+      "figureId": null,
+      "valid": false
+    },
+    {
+      "name": "boolean",
+      "tableId": true,
+      "figureId": true,
+      "valid": false
+    },
+    {
+      "name": "number",
+      "tableId": 1,
+      "figureId": 1,
+      "valid": false
+    },
+    {
+      "name": "empty_array",
+      "tableId": [],
+      "figureId": [],
+      "valid": false
+    },
+    {
+      "name": "single_id_array",
+      "tableId": [
+        "tbl-a"
+      ],
+      "figureId": [
+        "fig-a"
+      ],
+      "valid": false
+    },
+    {
+      "name": "object",
+      "tableId": {},
+      "figureId": {},
+      "valid": false
+    }
+  ]
+}

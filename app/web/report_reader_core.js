@@ -1,0 +1,537 @@
+/* HF8 PF3 — shared OFFLINE read-only HTML report / help reader.
+ * Only DOM presentation: headings, navigation, code copy/fold, find, image
+ * zoom, back to top. NEVER changes Markdown, source JSON, assets or IR.
+ * This exact first-party script is SHA-256 authenticated by the Python exporter
+ * before an HTML document is saved or imported. It uses no external services.
+ */
+(function(root){
+'use strict';
+const VERSION='hrs-report-reader-v1';
+const MAX_NAV=500;
+const catalog=root.ReportObjectCatalog;
+function headingOutline(article){
+ const headings=[...article.querySelectorAll('h1,h2,h3,h4,h5,h6')].filter(node=>!node.closest('pre,code,.report-table-wrap,.report-figure-wrap'));
+ return headings.slice(0,MAX_NAV).map((node,index)=>({node,id:node.id||'hrs-section-'+(index+1),title:node.textContent.trim().slice(0,190)||'未命名章节',level:+node.tagName.slice(1)}));
+}
+/** A single semantic view over figure, table and numbered equation DOM.
+ * Nav modes share this array and the same original target anchors.
+ * No body reordering, numbering writes or report-source changes.
+ */
+function objectOutline(article){
+ // The same policy powers editor numbers, fold summaries and offline navigation.
+ const records=catalog.indexDOM(article).items.slice(0,MAX_NAV);
+ return records.map((entry,index)=>{
+  const element=entry.node,{kind:type,number}=entry,pipe=entry.sourceKind==='gfm-pipe';
+  let title='';
+  if(pipe&&!element.id)element.id='hrs-md-table-'+(index+1);
+  if(type==='equation'){
+   title='公式（'+number+'）';
+   const description=element.getAttribute('data-equation-description')||element.querySelector('.equation-description')?.textContent?.trim();
+   if(description)title+=' '+description.slice(0,150);
+  }else{
+   const label=element.querySelector(type==='table'?'caption,.report-table-caption':'figcaption,.report-figure-caption');
+   title=catalog.objectTitle(entry,article.dataset.hrsShowObjectNumbers!=='0',article.dataset.hrsRenderProfile||'engineering');
+  }
+  return {element,type,title:title.slice(0,190),number,id:element.id||'',caption:{figure:'图',table:'表',equation:'公式'}[type]};
+ });
+}
+function makeButton(doc,label,className,title){
+ const btn=doc.createElement('button');btn.type='button';btn.textContent=label;btn.className=className;
+ if(title)btn.title=title;return btn;
+}
+function docElement(doc,tag,className){const el=doc.createElement(tag);if(className)el.className=className;return el;}
+function installCodeCards(doc,article){
+ for(const pre of article.querySelectorAll('pre')){
+  const code=pre.querySelector('code');if(!code||pre.closest('.hrs-code-panel,.docs-code,.hrs-table-source'))continue;
+  const card=docElement(doc,'div','hrs-code-panel');const head=docElement(doc,'div','hrs-code-head');
+  const language=docElement(doc,'span','hrs-code-language');
+  const lang=(code.className.match(/(?:^|\s)language-([a-z0-9_+-]+)/i)||[])[1]||'text';
+  language.textContent=lang.toUpperCase();head.append(language);pre.before(card);card.append(head,pre);
+ }
+ for(const panel of article.querySelectorAll('.hrs-code-panel,.docs-code')){
+  let header=panel.querySelector('.hrs-code-head,.docs-code-head');if(!header){header=docElement(doc,'div','hrs-code-head');panel.prepend(header);}
+  if(!header.querySelector('.hrs-code-copy,.copy-snippet')){
+   const copy=makeButton(doc,'复制','hrs-code-copy','复制这段代码到剪贴板');header.append(copy);
+  }
+  if(!header.querySelector('.hrs-code-fold')){
+   const fold=makeButton(doc,'折叠','hrs-code-fold','收起或展开代码块');fold.setAttribute('aria-expanded','true');header.append(fold);
+  }
+  // Exactly two groups: language on the left, copy/fold on the right.
+  // Old generated code panels (which already contain a copy button) also use
+  // this grouping, so the HTML report and offline help cannot diverge.
+  let actions=header.querySelector('.hrs-code-actions');
+  if(!actions){actions=docElement(doc,'span','hrs-code-actions');header.append(actions);}
+  for(const control of [...header.querySelectorAll('.hrs-code-copy,.copy-snippet,.hrs-code-fold')])actions.append(control);
+ }
+}
+/** Copy table cells, never HTML layout. All rows get a rectangular TSV grid.
+ * Quoted values with embedded newlines or tabs use Excel-compatible quoting.
+ * This helper is also exported for offline safety / integration testing. */
+function tableToTSV(table){
+ const grid=[];let width=0;
+ for(const [r,tr] of [...table.rows].entries()){
+  grid[r]??=[];let col=0;
+  for(const cell of [...tr.cells]){
+   while(grid[r][col]!==undefined)col++;
+   const rowspan=Math.max(1,cell.rowSpan||1),colspan=Math.max(1,cell.colSpan||1);
+   const value=cell.dataset.cellRaw??cell.innerText??cell.textContent??'';
+   for(let y=r;y<r+rowspan;y++){
+    grid[y]??=[];
+    for(let x=col;x<col+colspan;x++)grid[y][x]=(y===r&&x===col)?value:'';
+   }
+   col+=colspan;width=Math.max(width,col);
+  }
+ }
+ const quote=value=>/[\t\r\n"]/.test(value)?'"'+String(value).replace(/"/g,'""')+'"':String(value);
+ return grid.map(row=>Array.from({length:width},(_,i)=>quote(row?.[i]??'')).join('\t')).join('\n');
+}
+function installTableCards(doc,article){
+ for(const wrap of article.querySelectorAll('.report-table-wrap')){
+  const table=wrap.querySelector('table');if(!table)continue;
+  table.classList.add('hrs-table-rendered');
+  let tools=wrap.querySelector('.hrs-table-tools');if(tools){catalog.tableHeading(wrap);continue;}
+  tools=docElement(doc,'div','hrs-table-tools');
+  const kind=docElement(doc,'span','hrs-table-kind');kind.textContent=wrap.hasAttribute('data-pipe-table')?'Markdown 表格 · 不编号':'增强表格';
+  const controls=docElement(doc,'div','hrs-table-actions');
+  const source=wrap.querySelector('.hrs-table-source');
+  if(source){const toggle=makeButton(doc,'查看 MD','hrs-table-toggle','切换原始 Markdown 与可视表格');toggle.dataset.tableToggle='1';toggle.setAttribute('aria-pressed','false');controls.append(toggle);}
+  const copy=makeButton(doc,'复制表格','hrs-table-copy','复制为 TSV，粘贴 Excel/WPS 自动分列');copy.dataset.tableCopy='1';
+  controls.append(copy);tools.append(kind,controls);wrap.prepend(tools);catalog.tableHeading(wrap);
+ }
+}
+function copyText(doc,value){
+ const plain=String(value);
+ const fallback=()=>{
+  const area=doc.createElement('textarea');area.value=plain;area.readOnly=true;
+  area.style.cssText='position:fixed;left:-9999px;top:0;width:1px;height:1px;';
+  doc.body.append(area);area.focus();area.select();
+  let ok=false;try{ok=!!doc.execCommand('copy');}finally{area.remove();}return ok;
+ };
+ if(root.navigator?.clipboard?.writeText)return root.navigator.clipboard.writeText(plain).then(()=>true,()=>fallback());
+ return Promise.resolve(fallback());
+}
+/** PF11: read-only, lazy PDF resolver. Re-compilable exports reuse the v2
+ * archive blob; pure-reading and historical exports keep the old PDF script.
+ * A click opens a blank viewer synchronously to avoid popup blocking while
+ * we decompress / hash-check, and the PDF is not expanded until requested.
+ */
+function pdfAssetStore(doc,host=root){
+ const direct=doc.getElementById('hrs-pdf-originals');
+ const source=doc.getElementById('report-source');
+ const urls=new Map(),pending=new Map();let decoded=0,archive=null,legacy=null;
+ const validName=name=>/^[a-f0-9]{16}\.pdf$/i.test(name);
+ function safe64(text){
+  if(typeof text!=='string'||text.length>16*1024*1024||text.length%4!==0||!/^[A-Za-z0-9+/]*={0,2}$/.test(text))throw Error('PDF Base64 不合法');
+  const str=host.atob(text);return Uint8Array.from(str,c=>c.charCodeAt(0));
+ }
+ async function sha(bytes){
+  if(!host.crypto?.subtle)throw Error('当前浏览器无法校验 PDF 附件');
+  return [...new Uint8Array(await host.crypto.subtle.digest('SHA-256',bytes))].map(v=>v.toString(16).padStart(2,'0')).join('');
+ }
+ function pdfStructure(bytes){
+  if(bytes.length<32||bytes.length>12*1024*1024)throw Error('PDF 附件大小不合法');
+  const text=new TextDecoder();
+  if(!text.decode(bytes.subarray(0,1024)).trimStart().startsWith('%PDF-')||!text.decode(bytes.subarray(-4096)).includes('%%EOF'))throw Error('PDF 附件不完整');
+ }
+ function readMeta(name){
+  if(!validName(name))throw Error('PDF 路径不合法');
+  // Reject duplicate legacy entries even when an archive exists; PF10 reading
+  // output uses this script, while new recompilable output has no direct copy.
+  if(direct){
+   if(!legacy){legacy=JSON.parse(direct.textContent);if(!legacy||typeof legacy!=='object'||Array.isArray(legacy)||Object.keys(legacy).length>100)throw Error('PDF 清单无效');}
+   const record=legacy[name];
+   if(!record||!Number.isInteger(record.bytes)||record.bytes<32||record.bytes>12*1024*1024||!/^[a-f0-9]{64}$/.test(record.sha256)||typeof record.base64!=='string')throw Error('PDF 清单中的附件无效');
+   return {length:record.bytes,hash:record.sha256,encoded:record.base64,codec:null};
+  }
+  if(!source)throw Error('当前 HTML 没有携带 PDF 原件');
+  if(!archive){archive=JSON.parse(source.textContent);if(archive?.format!=='html-report-studio-v2'||archive?.profile?.sourceMode!=='recompilable')throw Error('不是可回编 PDF 资源索引');}
+  const items=archive.assetIndex,blobs=archive.blobs;
+  if(!items||typeof items!=='object'||!blobs||typeof blobs!=='object'||Array.isArray(items)||Array.isArray(blobs)||Object.keys(items).length>100||Object.keys(blobs).length>100)throw Error('资源归档索引无效');
+  const item=items['assets/'+name],id=item?.blobId;
+  if(!/^sha256:[a-f0-9]{64}$/.test(id||''))throw Error('PDF 原件索引不存在或哈希无效');
+  const blob=blobs[id];
+  if(!blob||blob.mime!=='application/pdf'||!Number.isSafeInteger(blob.bytes)||blob.bytes<32||blob.bytes>12*1024*1024||blob.domRef!==undefined||typeof blob.base64!=='string'||(blob.codec!==undefined&&blob.codec!=='deflate'))throw Error('归档 PDF 类型或长度无效');
+  return {length:blob.bytes,hash:id.slice(7),encoded:blob.base64,codec:blob.codec||null};
+ }
+ async function inflate(input,length){
+  if(typeof host.DecompressionStream!=='function')throw Error('浏览器不支持离线 Deflate 解压，请使用最新版 Edge');
+  const reader=new Blob([input]).stream().pipeThrough(new host.DecompressionStream('deflate')).getReader();
+  let size=0;const chunks=[];
+  try{
+   for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;
+    if(size>length||size>12*1024*1024)throw Error('PDF 解压超过大小限制');chunks.push(value);}
+  }catch(e){try{await reader.cancel();}catch{}throw Error('PDF 无损解压失败：'+e.message);}
+  const bytes=new Uint8Array(size);let pos=0;for(const v of chunks){bytes.set(v,pos);pos+=v.byteLength;}return bytes;
+ }
+ async function get(name){
+  if(urls.has(name))return urls.get(name);
+  if(pending.has(name))return pending.get(name);
+  const task=(async()=>{
+   const item=readMeta(name),packed=safe64(item.encoded);
+   const bytes=item.codec==='deflate'?await inflate(packed,item.length):packed;
+   if(bytes.length!==item.length)throw Error('PDF 原件长度校验失败');
+   pdfStructure(bytes);
+   if(await sha(bytes)!==item.hash)throw Error('PDF 原件 SHA-256 校验失败');
+   if(decoded+bytes.byteLength>30*1024*1024)throw Error('PDF 原件总量超限');
+   decoded+=bytes.byteLength;
+   const uri=host.URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));urls.set(name,uri);
+   return uri;
+  })();pending.set(name,task);
+  try{return await task;}finally{pending.delete(name);}
+ }
+ function revoke(){for(const uri of urls.values())host.URL.revokeObjectURL(uri);urls.clear();}
+ return {get,revoke,readMeta};
+}
+function installPDFOriginals(doc,article){
+ const links=[...article.querySelectorAll('a[data-figure-source="pdf"]')];
+ const pictures=[...article.querySelectorAll('img[data-pdf-asset]')];
+ if(!links.length&&!pictures.length)return;
+ const store=pdfAssetStore(doc);
+ const open=async(name,event)=>{
+  if(event){event.preventDefault();event.stopPropagation();}
+  // Browser popup policies require the new tab to be allocated synchronously.
+  let viewer=root.open('about:blank','_blank');
+  if(viewer){try{viewer.opener=null;viewer.document.title='PDF 原件校验中…';}catch{}}
+  try{const pdf=await store.get(name);
+   if(viewer&&!viewer.closed)viewer.location.replace(pdf);
+   else root.open(pdf,'_blank','noopener,noreferrer');
+  }catch(error){
+   if(viewer&&!viewer.closed){try{viewer.document.body.textContent='PDF 原件打开失败：'+error.message;}catch{viewer.close();}}
+   for(const link of links)if(link.dataset.pdfAsset===name){link.title='PDF 原件不可用：'+error.message;link.classList.add('pdf-source-error');}
+  }
+ };
+ for(const link of links){
+  const name=link.dataset.pdfAsset;
+  try{store.readMeta(name);}catch(e){link.title='PDF 原件不可用：'+e.message;link.classList.add('pdf-source-error');continue;}
+  link.href='#';link.setAttribute('role','button');link.title='点击校验并打开离线 PDF 原件';
+  link.addEventListener('click',event=>open(name,event));
+ }
+ article.addEventListener('dblclick',event=>{const picture=event.target.closest('img[data-pdf-asset]');if(picture)open(picture.dataset.pdfAsset,event);});
+ root.addEventListener('pagehide',store.revoke,{once:true});
+}
+function taskInteraction(article,profile){
+ const snapshot=article.dataset.hrsTaskSnapshot;
+ for(const box of article.querySelectorAll('input[type="checkbox"]')){
+  const key=box.dataset.hrsTaskKey;
+  const interactive=profile==='free'&&box.classList.contains('hrs-task-checkbox')&&/^[a-f0-9]{64}$/.test(snapshot||'')&&/^\d+$/.test(key||'');
+  box.disabled=!interactive;if(!interactive)continue;
+  const storageKey='hrs-task-v2:'+(root.location?.pathname||'')+':'+snapshot+':'+key;
+  try{const checked=root.localStorage.getItem(storageKey);if(checked==='0'||checked==='1')box.checked=checked==='1';}catch{/* Local reading state is optional. */}
+  box.addEventListener('change',()=>{try{root.localStorage.setItem(storageKey,box.checked?'1':'0');}catch{/* Do not block reading without storage. */}});
+ }
+}
+function mount(doc=root.document){
+ if(!doc)return null;
+ const article=doc.querySelector('[data-hrs-reader-root]');
+ if(!article||article.dataset.hrsReaderReady==='1')return null;
+ article.dataset.hrsReaderReady='1';
+ for(const anchor of article.querySelectorAll('a[href]')){
+  if(/^https?:\/\//i.test(anchor.getAttribute('href'))){anchor.target='_blank';anchor.rel='noopener noreferrer';}
+ }
+ installPDFOriginals(doc,article);
+ const originalDocs=!!article.closest('.docs-shell');
+ let profile='engineering',show=article.dataset.hrsShowObjectNumbers!=='0';
+ if(!originalDocs){
+  const declared=doc.documentElement.dataset.hrsRenderProfile;
+  profile=declared==='engineering'?'engineering':declared==='free'?'free':null;
+  const archiveNode=doc.getElementById('report-source');
+  if(archiveNode){try{const saved=JSON.parse(archiveNode.textContent);profile=profile||(saved.renderProfile==='engineering'?'engineering':'free');show=saved.renderOptions?.show_object_numbers!==false;}catch{/* Archive validity belongs to the existing inert reader. */}}
+  profile=profile||'engineering';
+  doc.body.dataset.renderProfile=profile;article.dataset.hrsRenderProfile=profile;
+  installTableCards(doc,article);catalog.applyDisplay(article,profile==='engineering'||show);catalog.tableChrome(article,profile);
+  taskInteraction(article,profile);
+ }
+ const shell=article.closest('.docs-shell');
+ let sidebar,nav,layout;
+ if(originalDocs){
+  sidebar=shell.querySelector('.docs-nav');nav=sidebar;
+ }else{
+  layout=docElement(doc,'div','hrs-reader-layout');
+  sidebar=docElement(doc,'aside','hrs-reader-sidebar');sidebar.setAttribute('aria-label','报告导航');
+  const heading=docElement(doc,'div','hrs-reader-brand');heading.textContent=profile==='free'?'笔记阅读':'报告阅读';sidebar.append(heading);
+  const desc=docElement(doc,'p','hrs-reader-subtitle');desc.textContent=(profile==='free'?'自由笔记':'工程报告')+' · 离线 HTML';sidebar.append(desc);
+  const links=docElement(doc,'nav','hrs-reader-links');links.setAttribute('aria-label','章节与图表目录');sidebar.append(links);
+  nav=links;
+  const parent=article.parentNode;parent.insertBefore(layout,article);layout.append(sidebar,article);
+  doc.body.classList.add('hrs-reader-mode');article.classList.add('hrs-reader-main');
+ }
+ const tools=docElement(doc,'div','hrs-reader-tools');
+ const search=docElement(doc,'input','hrs-reader-search');search.type='search';search.placeholder='查找正文（回车定位）';
+ search.setAttribute('aria-label','在报告正文中查找文字');search.maxLength=120;
+ const result=docElement(doc,'span','hrs-reader-result');result.setAttribute('role','status');result.setAttribute('aria-live','polite');
+ const back=makeButton(doc,'↑ 返回顶部','hrs-reader-top','返回报告顶部');
+ tools.append(search,result,back);
+ if(originalDocs){const actions=sidebar.querySelector('.docs-actions');if(actions)actions.after(tools);else sidebar.prepend(tools);}
+ else sidebar.insertBefore(tools,nav);
+ const outline=headingOutline(article),seen=new Set();
+ const ensureId=(element,proposed)=>{
+  let id=proposed||'hrs-anchor';let n=1;
+  while(seen.has(id)||(doc.getElementById(id)&&doc.getElementById(id)!==element))id=proposed+'-'+(++n);
+  element.id=id;seen.add(id);return id;
+ };
+ const nodes=[];
+ for(const entry of outline){
+  entry.id=ensureId(entry.node,entry.id);
+  if(originalDocs&&entry.level===1)continue;
+  if(originalDocs){
+   const old=sidebar.querySelector('a[href="#'+entry.id+'"]');if(old){nodes.push(old);continue;}
+  }
+  const link=docElement(doc,'a',`hrs-reader-nav-link hrs-reader-level-${entry.level}`);link.href='#'+entry.id;
+  link.textContent=entry.title;link.title=entry.title;nav.append(link);nodes.push(link);
+ }
+ let objectNav=null;
+ if(!originalDocs){
+  const objects=objectOutline(article);
+  if(objects.length){
+   const section=docElement(doc,'section','hrs-reader-object-section');
+   section.setAttribute('aria-label','图表与公式导航');nav.append(section);
+   const group=docElement(doc,'div','hrs-reader-group-title');group.textContent='图表与公式导航';section.append(group);
+   // Small, neutral segmented switch matching the existing light sidebar.
+   const tabs=docElement(doc,'div','hrs-reader-object-tabs');
+   tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','图表与公式的排列方式');section.append(tabs);
+   const orderBtn=makeButton(doc,'按正文顺序','hrs-reader-object-tab');
+   const typeBtn=makeButton(doc,'按类型分类','hrs-reader-object-tab');
+   const panels=[docElement(doc,'div','hrs-reader-object-panel hrs-reader-object-order'),
+                 docElement(doc,'div','hrs-reader-object-panel hrs-reader-object-types')];
+   const names=['order','type'];
+   for(let i=0;i<2;i++){
+    const button=[orderBtn,typeBtn][i];button.setAttribute('role','tab');
+    button.id='hrs-reader-tab-'+names[i];button.setAttribute('aria-controls','hrs-reader-panel-'+names[i]);
+    panels[i].id='hrs-reader-panel-'+names[i];panels[i].setAttribute('role','tabpanel');
+    panels[i].setAttribute('aria-labelledby',button.id);
+    tabs.append(button);section.append(panels[i]);
+   }
+   const typeGroups={};
+   for(const [type,title] of [['figure','图'],['table','表'],['equation','公式']]){
+    const detail=docElement(doc,'details','hrs-reader-type-group');detail.dataset.readerType=type;detail.open=true;
+    const summary=docElement(doc,'summary','hrs-reader-type-summary');
+    const count=objects.filter(item=>item.type===type).length;
+    summary.textContent=title+'（'+count+'）';detail.append(summary);
+    const entries=docElement(doc,'div','hrs-reader-type-entries');detail.append(entries);
+    panels[1].append(detail);typeGroups[type]={detail,entries};
+   }
+   objects.forEach((item,index)=>{
+    const id=ensureId(item.element,item.id||'hrs-object-'+(index+1));item.id=id;
+    for(const [place,parent] of [['order',panels[0]],['type',typeGroups[item.type].entries]]){
+     const link=docElement(doc,'a','hrs-reader-nav-link hrs-reader-object hrs-reader-object-'+item.type);
+     link.href='#'+id;link.textContent=item.title;link.title=item.title;
+     link.dataset.readerType=item.type;link.dataset.readerMode=place;parent.append(link);
+    }
+   });
+   let active='order';
+   const switchMode=(mode,focus=false)=>{
+    active=mode;
+    for(let i=0;i<2;i++){
+     const on=names[i]===mode,button=[orderBtn,typeBtn][i];
+     button.setAttribute('aria-selected',String(on));button.tabIndex=on?0:-1;
+     panels[i].hidden=!on;
+     if(on&&focus)button.focus();
+    }
+    if(objectNav?.refreshSearch)objectNav.refreshSearch();
+   };
+   orderBtn.addEventListener('click',()=>switchMode('order'));
+   typeBtn.addEventListener('click',()=>switchMode('type'));
+   tabs.addEventListener('keydown',event=>{
+    if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+    event.preventDefault();
+    const mode=event.key==='Home'?'order':event.key==='End'?'type':active==='order'?'type':'order';
+    switchMode(mode,true);
+   });
+   objectNav={objects,tabs,panels,typeGroups,get mode(){return active;},switchMode,refreshSearch:null};
+   switchMode('order');
+  }
+ }
+ const navLinks=[...sidebar.querySelectorAll('a[href^="#"]')];
+ // An explicit user navigation is more authoritative than IntersectionObserver.
+ // An observer may see a nearby long table *after* a short equation scrolls into
+ // view; it must never steal the just-clicked equation highlight. This selection
+ // persists until a REAL user scroll gesture, not an arbitrary timer.
+ let clickedTarget=null;
+ let readingObserver=null;
+ const visibleReadingTargets=new Map();
+ const updateActive=id=>{
+  for(const link of navLinks)link.classList.toggle('hrs-reader-active',!!id&&link.getAttribute('href')==='#'+id);
+ };
+ const syncReadingPosition=()=>{
+  if(clickedTarget||!visibleReadingTargets.size)return;
+  const guide=root.innerHeight*.15;
+  const candidates=[];
+  for(const [element] of visibleReadingTargets){
+   if(!element.isConnected||!element.id)continue;
+   const box=element.getBoundingClientRect();
+   if(box.bottom<guide-5||box.top>root.innerHeight*.34)continue;
+   // Prefer the object closest to the reader's top reading line, with stable
+   // DOM order as tie break rather than callback delivery order.
+   const distance=box.top<=guide?guide-box.top:box.top-guide;
+   candidates.push({id:element.id,distance});
+  }
+  candidates.sort((a,b)=>a.distance-b.distance);
+  if(candidates.length)updateActive(candidates[0].id);
+ };
+ const releaseClickedTarget=event=>{
+  if(!clickedTarget)return;
+  if(event?.target&&sidebar.contains(event.target))return; // scrolling the nav is not reading the article
+  clickedTarget=null;
+  // Scroll / IntersectionObserver will resume automatic following. A current
+  // visible object can also be chosen now even without a fresh IO entry.
+  if(root.requestAnimationFrame)root.requestAnimationFrame(syncReadingPosition);
+  else syncReadingPosition();
+ };
+ sidebar.addEventListener('click',event=>{
+  const link=event.target.closest('a[href^="#"]');
+  if(!link||!sidebar.contains(link))return;
+  const id=link.getAttribute('href').slice(1);
+  if(doc.getElementById(id)){clickedTarget=id;updateActive(id);}
+ });
+ // Only physical user input cancels an explicit navigation. Programmatic smooth
+ // scroll, hash updates and IO callbacks do NOT. This works without scrollend
+ // support and avoids a brittle 300/800ms selection timeout.
+ doc.addEventListener('wheel',releaseClickedTarget,{passive:true,capture:true});
+ doc.addEventListener('touchmove',releaseClickedTarget,{passive:true,capture:true});
+ doc.addEventListener('pointerdown',event=>{
+  if(event.isPrimary&&event.pointerType==='mouse')releaseClickedTarget(event);
+ },{passive:true,capture:true});
+ doc.addEventListener('keydown',event=>{
+  if(event.altKey||event.ctrlKey||event.metaKey)return;
+  if(!['PageDown','PageUp','ArrowDown','ArrowUp','Home','End',' '].includes(event.key))return;
+  if(event.target?.closest?.('input,textarea,select,[contenteditable="true"]'))return;
+  // Space on a link/button activates that control; do not mistake it for page scroll.
+  if(event.key===' '&&event.target?.closest?.('a,button,summary'))return;
+  releaseClickedTarget(event);
+ },{capture:true});
+ back.addEventListener('click',()=>{clickedTarget=null;root.scrollTo({top:0,behavior:'smooth'});});
+ let priorTypeOpen=null;
+ const refreshSearch=()=>{
+  const query=search.value.trim().toLocaleLowerCase();
+  const active=objectNav?.mode||'order';
+  let hits=new Set();
+  for(const link of navLinks){
+   const show=!query||link.textContent.toLocaleLowerCase().includes(query);
+   link.hidden=!show;
+   if(show&&query&&(!link.dataset.readerMode||link.dataset.readerMode===active))hits.add(link.getAttribute('href'));
+  }
+  if(objectNav){
+   if(query&&priorTypeOpen===null)priorTypeOpen=Object.fromEntries(Object.entries(objectNav.typeGroups).map(([name,group])=>[name,group.detail.open]));
+   for(const [type,group] of Object.entries(objectNav.typeGroups)){
+    const any=[...group.entries.querySelectorAll('a')].some(link=>!link.hidden);
+    group.detail.hidden=!!query&&!any;
+    if(query&&any)group.detail.open=true;
+    if(!query&&priorTypeOpen!==null)group.detail.open=priorTypeOpen[type];
+   }
+   if(!query)priorTypeOpen=null;
+  }
+  result.textContent=query?hits.size+' 个导航匹配 · 回车查正文':'';
+ };
+ if(objectNav)objectNav.refreshSearch=refreshSearch;
+ search.addEventListener('input',refreshSearch);
+ search.addEventListener('keydown',event=>{
+  if(event.key!=='Enter')return;event.preventDefault();
+  const query=search.value.trim().toLocaleLowerCase();if(!query)return;
+  const walker=doc.createTreeWalker(article,root.NodeFilter.SHOW_TEXT);let found=null,node;
+  while((node=walker.nextNode())){
+   if(node.parentElement?.closest('script,style,svg,.hrs-code-head'))continue;
+   const pos=node.textContent.toLocaleLowerCase().indexOf(query);if(pos>=0){found={node,pos};break;}
+  }
+  if(!found){result.textContent='正文未找到此文字';return;}
+  const selection=root.getSelection?.();if(selection){const range=doc.createRange();
+   range.setStart(found.node,found.pos);range.setEnd(found.node,Math.min(found.node.length,found.pos+query.length));
+   selection.removeAllRanges();selection.addRange(range);}
+  found.node.parentElement?.scrollIntoView({block:'center',behavior:'smooth'});
+  result.textContent='已定位正文匹配项';
+ });
+ installCodeCards(doc,article);
+ installTableCards(doc,article);
+ const overlay=docElement(doc,'div','hrs-reader-lightbox');overlay.hidden=true;
+ overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','查看图片');
+ const close=makeButton(doc,'×','hrs-reader-lightbox-close','关闭图片放大');
+ close.setAttribute('aria-label','关闭图片放大');
+ const light=docElement(doc,'img','hrs-reader-lightbox-image');light.alt='放大查看图片';
+ const name=docElement(doc,'div','hrs-reader-lightbox-caption');name.hidden=true;
+ overlay.append(close,light,name);doc.body.append(overlay);
+ let previousFocus=null,zoomTimer=null;
+ const hide=()=>{clearTimeout(zoomTimer);if(overlay.hidden)return;overlay.hidden=true;light.removeAttribute('src');previousFocus?.focus?.();};
+ close.addEventListener('click',hide);
+ overlay.addEventListener('click',event=>{if(event.target===overlay)hide();});
+ doc.addEventListener('keydown',event=>{if(event.key==='Escape'&&!overlay.hidden){event.preventDefault();hide();}});
+ article.addEventListener('click',async event=>{
+  const action=event.target.closest('[data-table-copy],[data-table-toggle],[data-table-fold]');
+  if(action&&article.contains(action)){
+   event.preventDefault();event.stopPropagation();
+   const wrap=action.closest('.report-table-wrap'),table=wrap?.querySelector('table');if(!table)return;
+   const source=wrap.querySelector('.hrs-table-source');
+   if(action.dataset.tableFold){
+    const pre=source?.querySelector('.hrs-table-source-pre');if(!pre)return;
+    pre.hidden=!pre.hidden;action.textContent=pre.hidden?'展开源码':'折叠源码';
+    action.setAttribute('aria-expanded',String(!pre.hidden));return;
+   }
+   if(action.dataset.tableToggle){
+    if(!source)return;
+    const showing=source.hidden;source.hidden=!showing;table.hidden=showing;
+    action.textContent=showing?'查看表格':'查看 MD';action.setAttribute('aria-pressed',String(showing));
+   }else{
+    try{
+     const ok=await copyText(doc,tableToTSV(table));action.textContent=ok?'已复制 TSV':'复制失败';
+    }catch{action.textContent='复制失败';}
+    root.setTimeout(()=>{if(action.isConnected)action.textContent='复制表格';},1300);
+   }return;
+  }
+  const button=event.target.closest('.hrs-code-copy,.copy-snippet,.hrs-code-fold');
+  if(button&&article.contains(button)){
+   const panel=button.closest('.hrs-code-panel,.docs-code');if(!panel)return;
+   const pre=panel.querySelector('pre');if(!pre)return;
+   if(button.classList.contains('hrs-code-fold')){
+    pre.hidden=!pre.hidden;
+    const lines=(panel.querySelector('pre code')?.textContent||'').split('\n').length;
+    button.textContent=pre.hidden?'展开 · '+lines+' 行':'折叠';
+    button.setAttribute('aria-expanded',String(!pre.hidden));return;
+   }
+   try{
+    const ok=await copyText(doc,panel.querySelector('pre code')?.textContent||'');
+    button.textContent=ok?'已复制':'复制失败';
+   }catch{button.textContent='复制失败';}
+   root.setTimeout(()=>{button.textContent=button.classList.contains('copy-snippet')?'复制代码':'复制';},1300);
+   return;
+  }
+  const image=event.target.closest('img');if(!image||!article.contains(image)||image.closest('a'))return;
+  if(!image.getAttribute('src')||image.naturalWidth===0)return;
+  clearTimeout(zoomTimer);if(event.detail>1)return;zoomTimer=root.setTimeout(()=>{
+  previousFocus=doc.activeElement;light.src=image.src;light.alt=image.alt||'报告图片';
+  name.textContent=image.alt||image.closest('figure')?.querySelector('figcaption')?.textContent||'图片预览';
+  overlay.hidden=false;close.focus();
+  },320);
+ });
+ for(const image of article.querySelectorAll('img')){
+  if(!image.closest('a')){image.classList.add('hrs-reader-zoomable');image.setAttribute('tabindex','0');
+   image.setAttribute('role','button');image.setAttribute('aria-label','放大图片：'+(image.alt||'图片'));
+   image.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();image.click();}});}
+ }
+ if('IntersectionObserver' in root&&(outline.length||objectNav?.objects.length)){
+  readingObserver=new root.IntersectionObserver(entries=>{
+   for(const entry of entries){
+    if(!navLinks.some(link=>link.getAttribute('href')==='#'+entry.target.id))continue;
+    if(entry.isIntersecting)visibleReadingTargets.set(entry.target,true);
+    else visibleReadingTargets.delete(entry.target);
+   }
+   // Both the chronological and type navigation share the same stable anchor.
+   // During programmatic navigation callbacks only refresh the visible set;
+   // the explicit user's choice continues to own the active highlight.
+   syncReadingPosition();
+  },{rootMargin:'-10% 0px -72% 0px'});
+  for(const item of outline)readingObserver.observe(item.node);
+  if(objectNav)for(const item of objectNav.objects)readingObserver.observe(item.element);
+  let scrollQueued=false;
+  root.addEventListener('scroll',()=>{
+   if(clickedTarget||scrollQueued)return;
+   scrollQueued=true;
+   const run=()=>{scrollQueued=false;syncReadingPosition();};
+   if(root.requestAnimationFrame)root.requestAnimationFrame(run);else run();
+  },{passive:true});
+ }
+ return {article,outline,navigation:navLinks.length,tools,lightbox:overlay,objectNav,version:VERSION};
+}
+function init(){return mount(root.document);}
+const api={VERSION,headingOutline,objectOutline,pdfAssetStore,tableToTSV,installTableCards,taskInteraction,mount,init};
+if(typeof module!=='undefined'&&module.exports)module.exports=api;
+root.HRSReportReader=api;
+if(root.document){if(root.document.readyState==='loading')root.document.addEventListener('DOMContentLoaded',init,{once:true});else init();}
+})(typeof window!=='undefined'?window:globalThis);

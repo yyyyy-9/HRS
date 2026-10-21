@@ -1,0 +1,3 @@
+# Browser regression and optional HRS HTML CLI dependency; GUI portable runtime needs no Playwright.
+playwright==1.62.0
+Pillow==12.3.0  # Read browser selection screenshots in SEL-01; no product dependency.

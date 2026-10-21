@@ -1,0 +1,1485 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Word 数据交接 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="52779b6e60069b681a77d288fa7a60053137602f1e60b570829c913a25b9183c"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+/* HRS 单一颜色定义 v1（试行）
+ * 所有组件只引用 var(--hrs-*)，不再写死色值。
+ * 主题切换 = 覆盖本文件的变量。 */
+
+:root {
+  /* 品牌 */
+  --hrs-brand: #344dc3;
+  --hrs-brand-dark: #2b3fa8;
+  --hrs-brand-tint: #e7eaf8;
+  --hrs-on-brand: #ffffff;
+
+  /* 文字 */
+  --hrs-ink: #253653;
+  --hrs-text: #3f4e68;
+  --hrs-muted: #66758d;
+  --hrs-faint: #a3acbb;
+
+  /* 表面 */
+  --hrs-line: #dadff4;
+  --hrs-bg: #f1f3fb;
+  --hrs-canvas: #e9ebf8;
+  --hrs-sidebar: #f3f4fb;
+  --hrs-pane: #eff1fa;
+  --hrs-editor: #ffffff;
+  --hrs-paper: #ffffff;
+  --hrs-surface: #ffffff;
+  --hrs-shadow: #26352a1f;
+  --hrs-scrim: #1c382a9c;
+
+  /* 表格 */
+  --hrs-table-toolbar: #e1e4f6;
+  --hrs-table-heading: #edeffa;
+  --hrs-table-row: #ffffff;
+  --hrs-table-row-alt: #f3f4fb;
+  --hrs-table-grid: #dce1f5;
+
+  /* 代码 */
+  --hrs-code-surface: #f4f5f6;
+  --hrs-code-head: #ebedf0;
+  --hrs-code-border: #dadff4;
+  --hrs-code-ink: #3f4e68;
+
+  /* 引用块 */
+  --hrs-quote-border: #c2caed;
+  --hrs-quote-bg: #edeffa;
+  --hrs-quote-ink: #465670;
+
+  /* 状态 */
+  --hrs-success: #4e7d57;
+  --hrs-warning: #b5762e;
+  --hrs-danger: #9e4a42;
+  --hrs-info: #2f6b45;
+
+  /* 高亮（编辑器/笔记） */
+  --hrs-hl-yellow: #fff1a8;
+  --hrs-hl-green: #d8f3dc;
+  --hrs-hl-blue: #d9eaff;
+  --hrs-hl-red: #ffd7d7;
+  --hrs-hl-orange: #ffe0b2;
+  --hrs-hl-purple: #e7d7fa;
+  --hrs-hl-pink: #fbd5e8;
+  --hrs-hl-cyan: #c9f2f3;
+
+  /* 流程图（diagram.js 读取） */
+  --hrs-diagram-bg: #eef3ff;
+  --hrs-diagram-alt: #e6f5ed;
+  --hrs-diagram-accent: #75ad98;
+  --hrs-diagram-ink: #334664;
+  --hrs-diagram-line: #91a8dd;
+  --hrs-diagram-muted: #91a0b9;
+  --hrs-diagram-note: #8494b3;
+  --hrs-diagram-strong: #64718c;
+  --hrs-diagram-special: #a897d9;
+  --hrs-diagram-soft: #f4efff;
+
+  /* 语法高亮（代码块） */
+  --hrs-code-token-keyword: #7843c6;
+  --hrs-code-token-function: #1c60a3;
+  --hrs-code-token-string: #22774a;
+  --hrs-code-token-comment: #82909b;
+  --hrs-code-token-number: #a75529;
+  --hrs-code-token-variable: #9455a7;
+  --hrs-code-token-property: #ac5d28;
+  --hrs-code-token-heading: #2452ba;
+  --hrs-code-token-fence: #6077c4;
+  --hrs-code-token-language: #327a92;
+  --hrs-code-token-link: #2e6a9b;
+
+  /* Shared component status colors. */
+  --hrs-amber: #d19a31;
+  --hrs-amber-strong: #e5a438;
+  --hrs-danger-soft: #e8bec0;
+  --hrs-danger-pale: #f1b6b6;
+  --hrs-danger-bright: #dd615f;
+  --hrs-success-bright: #21a57d;
+  --hrs-warning-bright: #f7bc59;
+  --hrs-mint: #2bb699;
+
+}
+
+/* Embedded into every exported report. No remote fonts or stylesheets. */
+:root{color-scheme:light}*{box-sizing:border-box}html{scroll-behavior:smooth}body{max-width:920px;margin:0 auto;padding:48px 54px 85px;background:#fff;color:var(--hrs-ink, #34405a);font-family:"Segoe UI","Microsoft YaHei","PingFang SC",Arial,sans-serif;font-size:15px;line-height:1.85;overflow-wrap:anywhere}h1,h2,h3,h4,h5,h6{color:var(--hrs-ink, #23334e);line-height:1.42;break-after:avoid}h1{font-size:30px;margin:0 0 28px}h2{font-size:22px;padding-bottom:9px;border-bottom:1px solid var(--hrs-line, #e2e7ef);margin:32px 0 14px}h3{font-size:17px;margin:25px 0 12px}h4{font-size:15px}p{margin:12px 0 16px}a{color:var(--hrs-brand, #3759c6)}blockquote{border-left:3px solid var(--hrs-quote-border, #aabce6);padding:6px 18px;background:var(--hrs-quote-bg, #f3f8ee);color:var(--hrs-quote-ink, #5d6980);margin:18px 0}blockquote p{margin:5px 0}ol,ul{padding-left:28px}li{margin:5px 0}hr{height:1px;border:0;background:var(--hrs-line, #e6e9ee);margin:26px 0}pre{background:var(--hrs-bg, #f3f6fa);border:1px solid var(--hrs-line, #e4e8f1);padding:15px 18px;border-radius:8px;overflow:auto;line-height:1.65;font-size:12px}code{font-family:Consolas,"Courier New",monospace;font-size:.88em;background:var(--hrs-bg, #f1f3f9);padding:2px 4px;border-radius:4px}pre code{background:none;padding:0}table{width:100%;border-collapse:collapse;margin:18px 0;font-size:13px;line-height:1.5}th,td{border:1px solid var(--hrs-line, #cbd4e2);padding:9px 12px;text-align:left}th{background:var(--hrs-bg, #f0f4fa)}tr:nth-child(even) td{background:var(--hrs-editor, #fafbfd)}img{max-width:100%;height:auto;display:block;margin:16px auto}figure{margin:21px 0}.doc-block{position:relative}.math-display{display:flex;justify-content:center;overflow-x:auto;padding:14px 0;margin:22px 0;min-height:55px}.markdown-math:not(.math-display){display:inline-flex;vertical-align:middle;align-items:center}.markdown-math svg{max-width:100%;height:auto}.mermaid-card{padding:16px;border:1px solid var(--hrs-line, #e5e9f0);border-radius:8px;margin:24px 0;overflow:auto;text-align:center;break-inside:avoid}.mermaid-card svg{max-width:100%;height:auto;display:block;margin:auto}.mermaid-card .chart-note,.edit-hint{display:none}.math-error,.diagram-error{background:var(--hrs-paper, #fff3ef);color:var(--hrs-brand, #9c3e28);padding:12px;border:1px solid var(--hrs-line, #efc8b8);border-radius:7px}.image-caption{color:var(--hrs-muted, #7d8a9e);text-align:center;font-size:12px}.report-footer{border-top:1px solid var(--hrs-line, #e6eaf1);margin-top:60px;padding-top:15px;color:var(--hrs-muted, #8c98a8);font-size:11px}.report-footer::before{content:"单文件离线报告"} @media print{body{max-width:none;margin:0;padding:0;font-size:11.5pt}h1{font-size:20pt}h2{font-size:15pt}h3{font-size:13pt}a{color:inherit}pre,blockquote,.mermaid-card{break-inside:avoid}svg{break-inside:avoid}@page{size:A4;margin:20mm 19mm}}@media(max-width:700px){body{padding:25px 20px;font-size:14px}}
+
+/* v0.2: all six Markdown heading levels + preset styles */
+h4{font-size:1em;margin:19px 0 10px}h5{font-size:1em;margin:16px 0 9px}h6{font-size:1em;margin:15px 0 8px;color:var(--hrs-muted, #536178)}
+body.theme-academic{font-family:Georgia,"Noto Serif CJK SC","SimSun",serif;color:var(--hrs-ink, #202831);line-height:1.95}
+body.theme-academic h1,body.theme-academic h2,body.theme-academic h3,body.theme-academic h4,body.theme-academic h5,body.theme-academic h6{font-family:Georgia,"Noto Serif CJK SC","SimSun",serif;color:var(--hrs-scrim, #182d42)}
+body.theme-academic h2{border-bottom:1px solid var(--hrs-muted, #7f8a9d)}
+body.theme-brief{font-size:14px;line-height:1.7}
+body.theme-brief h1{font-size:27px;border-bottom:3px solid var(--hrs-brand, #3b73a8);padding-bottom:12px}
+body.theme-brief h2{font-size:19px;margin-top:24px}
+@media print{body.theme-brief{font-size:10.5pt}body.theme-academic{font-size:11.5pt}h4,h5,h6{break-after:avoid}}
+
+/* v0.5 engineering captions, figures and print-friendly tables */
+.report-table-wrap{break-inside:avoid-page;page-break-inside:avoid;margin:18px 0 23px}
+.report-table-caption{caption-side:top;text-align:center;font-size:12px;font-weight:bold;padding:4px 5px 9px;break-after:avoid;page-break-after:avoid}
+.report-table-wrap tr,.report-table-wrap td,.report-table-wrap th{break-inside:avoid;page-break-inside:avoid}
+.report-table-wrap thead{display:table-header-group}
+.report-figure-wrap{margin:22px 0;text-align:center;break-inside:avoid;page-break-inside:avoid}
+.report-figure-wrap .chart-note{display:none}
+.report-figure-wrap img,.report-figure-graph svg{max-width:100%;max-height:195mm;height:auto;margin:auto}
+.report-figure-caption{text-align:center;font-size:12px;font-weight:600;margin:8px 0 2px;break-before:avoid}
+.object-xref{color:inherit;text-decoration:none}
+@media print{
+  .report-table-wrap{break-inside:avoid-page;page-break-inside:avoid}
+  .report-table-wrap table{margin:0}
+  .report-table-wrap tr{break-inside:avoid;page-break-inside:avoid}
+  .report-figure-wrap{break-inside:avoid}
+}
+/* The tiny web-delivery footer should not create a nearly empty extra A4 page. */
+@media print{.report-footer{display:none}}
+.structured-table th,.structured-table td{white-space:pre-wrap;overflow-wrap:anywhere;vertical-align:top;height:auto}
+.table-cell-content{white-space:pre-wrap;overflow-wrap:anywhere}
+.table-cell-content .math-display{margin:5px 0;padding:4px 0;min-height:0;max-width:100%}
+.table-cell-content .markdown-math svg{max-width:100%;height:auto}
+.structured-table{table-layout:fixed;width:100%}
+.image-group-grid{display:grid;grid-template-columns:repeat(var(--group-columns),minmax(0,1fr));gap:4mm;align-items:end}
+.image-group-cell{min-width:0;text-align:center}
+.report-image-group .image-group-cell img{display:block;width:100%;height:auto;max-height:100mm;object-fit:contain;margin:0 auto}
+.image-group-subcaption{font-size:11px;margin-top:2mm;white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* HF7: same numbering semantics as the editable preview, included offline. */
+.hrs-list-lower-alpha>ol{list-style-type:lower-alpha}
+.hrs-list-decimal>ol{list-style-type:decimal}
+.hrs-list-paren-decimal>ol,.hrs-list-paren-lower-alpha>ol{list-style:none;counter-reset:hrs-list-item;padding-left:2.6em}
+.hrs-list-paren-decimal>ol>li,.hrs-list-paren-lower-alpha>ol>li{counter-increment:hrs-list-item;position:relative}
+.hrs-list-paren-decimal>ol>li::before{content:'（' counter(hrs-list-item,decimal) '）';position:absolute;right:calc(100% + .3em);white-space:nowrap}
+.hrs-list-paren-lower-alpha>ol>li::before{content:'（' counter(hrs-list-item,lower-alpha) '）';position:absolute;right:calc(100% + .3em);white-space:nowrap}
+.image-group-empty{min-height:3mm}
+
+/* HF8: same compact grid in standalone HTML/print. Real multiline grows. */
+.structured-table{margin:10px 0 12px;line-height:1.35}
+.structured-table th,.structured-table td{padding:4px 7px;line-height:1.35;vertical-align:middle;height:auto}
+.structured-table .table-cell-content{white-space:pre-wrap;line-height:inherit}
+
+/* HF8: offline code cards and lexical token colors; source bytes stay untouched. */
+.hrs-code-panel{margin:13px 0 19px;border:1px solid var(--hrs-line, #dce4ee);border-radius:9px;overflow:hidden;background:var(--hrs-editor, #f8fafd);font-family:"Cascadia Code",Consolas,"Microsoft YaHei UI",monospace}
+.hrs-code-head{display:flex;justify-content:space-between;align-items:center;background:var(--hrs-code-head, #eaf3e1);border-bottom:1px solid var(--hrs-code-border, #dce7d5);padding:5px 11px;min-height:30px;color:var(--hrs-muted, #53637d);font-size:11px;line-height:1.4}
+.hrs-code-language{font-weight:740;letter-spacing:.2px}
+.hrs-code-copy{border:1px solid var(--hrs-line, #c7d3e6);border-radius:5px;padding:3px 8px;font-size:10px;color:var(--hrs-muted, #64736a);background:white;cursor:pointer}
+.hrs-code-copy:hover{background:var(--hrs-brand-tint, #e4edff)}
+.hrs-code-panel .hrs-code-pre{font-size:12px;line-height:1.56;margin:0!important;padding:12px 14px!important;background:transparent!important;border:0!important;border-radius:0!important;overflow:auto;tab-size:4;white-space:pre}
+.hrs-code-panel .hrs-code-content{font:inherit;background:none!important;padding:0!important;white-space:inherit}
+.hrs-syntax-keyword,.cm-hf8-keyword{color:var(--hrs-code-token-keyword);font-weight:660}
+.hrs-syntax-function,.cm-hf8-function{color:var(--hrs-code-token-function)}
+.hrs-syntax-string,.cm-hf8-string{color:var(--hrs-code-token-string)}
+.hrs-syntax-comment,.cm-hf8-comment{color:var(--hrs-code-token-comment);font-style:italic}
+.hrs-syntax-number,.cm-hf8-number{color:var(--hrs-code-token-number)}
+.hrs-syntax-variable,.cm-hf8-variable{color:var(--hrs-code-token-variable)}
+.hrs-syntax-property,.cm-hf8-property{color:var(--hrs-code-token-property)}
+.cm-hf8-heading{color:var(--hrs-code-token-heading);font-weight:780}
+.cm-hf8-fence{color:var(--hrs-code-token-fence);font-weight:700}
+.cm-hf8-language{color:var(--hrs-code-token-language);font-weight:650}
+.cm-hf8-inline{color:var(--hrs-brand, #955d29);background:var(--hrs-pane, #f9f1e5);border-radius:2px}
+.cm-hf8-link{color:var(--hrs-code-token-link);text-decoration:underline;text-decoration-style:dotted}
+.cm-hf8-list,.cm-hf8-quote{color:var(--hrs-brand, #8a6bc1);font-weight:700}
+@media print{.hrs-code-panel{break-inside:avoid;page-break-inside:avoid}.hrs-code-copy{display:none!important}}
+
+/* HF8 PF1: math inside a sentence remains inline in self-contained HTML/PDF. */
+.markdown-math.math-inline{display:inline-flex;vertical-align:-.1em;align-items:center;margin:0 .1em;line-height:1;max-width:100%}
+.markdown-math.math-display{margin:20px auto}
+
+.report-equation{display:flex;align-items:center;gap:1em;position:relative}.report-equation>.math-display{flex:1;min-width:0}.equation-number{flex:none;margin-left:auto;white-space:nowrap}
+
+/* HF8 PF6: print without PDF controls, preserve tight table rows and upright comments. */
+.figure-media-stage{position:relative;display:table;max-width:100%;margin:0 auto}
+@media print{.figure-source-link,.figure-source-chip,[data-figure-source="pdf"]{display:none!important}}
+.hrs-syntax-comment,.cm-hf8-comment{font-style:normal!important}
+.structured-table th,.structured-table td{padding:3px 7px;line-height:1.24;vertical-align:top}
+.structured-table .table-cell-content{line-height:1.24}
+
+
+/* HF8 PF8 — two-sided code header (left: language, right: related actions).
+   The middle floating copy button in PF7 came from space-between on 3 children. */
+.hrs-code-head,.docs-code-head{display:flex;justify-content:flex-start;align-items:center;gap:7px}
+.hrs-code-head>:first-child,.docs-code-head>:first-child{margin-right:auto}
+.hrs-code-actions{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;margin-left:auto}
+.hrs-code-actions .hrs-code-copy,.hrs-code-actions .copy-snippet,.hrs-code-actions .hrs-code-fold{margin:0;border:1px solid transparent;border-radius:5px;background:transparent;color:var(--hrs-muted, #506480);padding:3px 7px;font-size:11px;cursor:pointer}
+.hrs-code-actions button:hover,.hrs-code-actions button:focus-visible{border-color:var(--hrs-line, #cedaee);background:var(--hrs-brand-tint, #e2ebfc);color:var(--hrs-brand, #2454a5)}
+.hrs-code-actions button[aria-expanded="false"]{color:var(--hrs-brand, #305daa)}
+@media print{.hrs-code-actions{display:none!important}}
+
+/* PF8: avoid a second gray, bordered box around a normal fenced code line. */
+.hrs-code-panel>pre:not(.hrs-code-pre){margin:0!important;padding:12px 14px!important;border:0!important;border-radius:0!important;background:transparent!important;line-height:1.55}
+
+/* PF13.10: note-only decoration and native footnote navigation. */
+.hrs-footnotes{margin-top:2em;padding-top:1em;border-top:1px solid var(--hrs-line, #dbe4f0);font-size:.94em}
+.hrs-footnotes-title{font-weight:700;margin-bottom:.5em}
+.hrs-footnotes li{padding-left:.2em;margin:.5em 0;scroll-margin-top:3em}
+.hrs-footnotes li>p{display:inline}
+.hrs-note-link{text-decoration:none;cursor:pointer;scroll-margin-top:3em}
+.hrs-note-back{white-space:nowrap;margin-left:.3em}
+mark{color:inherit;padding:0 .08em;box-decoration-break:clone}
+body.hrs-profile-free .report-footer::before{content:"单文件离线笔记"}
+main .hrs-task-checkbox:not(:disabled){cursor:pointer;accent-color:var(--hrs-brand)}
+
+/* HF8 PF3: shared optional offline reader controls for exported HTML and help.
+   It never changes article content, Markdown, figure/table IDs or IR. */
+body.hrs-reader-mode{max-width:none;margin:0;padding:0;background:var(--hrs-bg, #f1f7ec)}
+.hrs-reader-layout{display:grid;grid-template-columns:258px minmax(0,1fr);min-height:100vh;align-items:start}
+.hrs-reader-sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--hrs-editor, #f7f9fc);border-right:1px solid var(--hrs-line, #dce5f1);padding:22px 14px 30px;z-index:4}
+.hrs-reader-brand{font-size:17px;font-weight:750;color:var(--hrs-ink, #203b62);padding:3px 10px}
+.hrs-reader-subtitle{color:var(--hrs-muted, #72839c);font-size:11px;line-height:1.5;margin:2px 10px 18px}
+.hrs-reader-tools{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 16px;padding:0 7px;align-items:center}
+.hrs-reader-search{width:100%;padding:8px 11px;min-width:0;border:1px solid var(--hrs-line, #d2ddeb);border-radius:8px;background:#fff;color:var(--hrs-ink, #263c5b);font-size:12px}
+.hrs-reader-search:focus{outline:2px solid var(--hrs-line, #9db8ef);outline-offset:1px}
+.hrs-reader-result{flex:1;min-width:82px;font-size:11px;line-height:1.5;color:var(--hrs-text, #667b97)}
+.hrs-reader-top{border:1px solid var(--hrs-line, #cfdbef);padding:5px 8px;color:var(--hrs-brand, #355a96);background:white;border-radius:6px;font-size:11px;cursor:pointer}
+.hrs-reader-links{display:grid;gap:1px}
+.hrs-reader-nav-link{display:block;padding:6px 10px;border-radius:6px;text-decoration:none;color:var(--hrs-text, #526783);font-size:12px;line-height:1.55;overflow-wrap:anywhere}
+.hrs-reader-nav-link:hover,.hrs-reader-nav-link.hrs-reader-active{background:var(--hrs-bg, #e6eeff);color:var(--hrs-brand, #2453a5)}
+.hrs-reader-level-1{font-weight:750;color:var(--hrs-ink, #304762)}
+.hrs-reader-level-3{padding-left:20px;font-size:11.5px}
+.hrs-reader-level-4{padding-left:28px;font-size:11px}
+.hrs-reader-level-5{padding-left:36px;font-size:11px}
+.hrs-reader-level-6{padding-left:44px;font-size:11px}
+.hrs-reader-group-title{padding:14px 10px 5px;margin-top:12px;border-top:1px solid var(--hrs-line, #d8e2ef);font-weight:700;font-size:11px;color:var(--hrs-muted, #7183a0)}
+.hrs-reader-object{font-size:11px;padding-left:13px}
+.hrs-reader-nav-link[hidden],.docs-nav a[href^="#"][hidden]{display:none!important}
+.hrs-reader-main{width:min(1010px,calc(100% - 56px));min-width:0;margin:24px auto 55px;padding:44px clamp(22px,5vw,70px);background:#fff;border-radius:12px;box-shadow:0 5px 31px #1e345115;box-sizing:border-box}
+.hrs-reader-zoomable{cursor:zoom-in}
+.hrs-reader-zoomable:focus{outline:3px solid var(--hrs-line, #93b8e7);outline-offset:3px}
+.hrs-reader-lightbox[hidden]{display:none!important}
+.hrs-reader-lightbox{position:fixed;z-index:100000;inset:0;background:rgba(11,20,36,.91);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:38px 22px;color:#fff}
+.hrs-reader-lightbox-close{position:absolute;top:15px;right:22px;border:1px solid var(--hrs-line, #cbd5e1);border-radius:8px;background:var(--hrs-ink, #223249);color:white;font-size:27px;line-height:1;padding:4px 13px;cursor:pointer}
+.hrs-reader-lightbox-image{object-fit:contain;max-width:94vw;max-height:80vh;width:auto;height:auto;margin:0;cursor:zoom-out}
+.hrs-reader-lightbox-caption{padding:10px;font-size:12px;color:var(--hrs-line, #cbd5e1);text-align:center}
+.hrs-code-fold{margin-left:8px;border:1px solid var(--hrs-line, #c7d3e6);border-radius:5px;padding:3px 8px;font-size:10px;color:var(--hrs-muted, #64736a);background:#fff;cursor:pointer}
+.hrs-code-panel pre[hidden],.docs-code pre[hidden]{display:none!important}
+.docs-nav .hrs-reader-tools{margin:10px 6px 14px}
+@media(max-width:850px){.hrs-reader-layout{display:block}.hrs-reader-sidebar{position:relative;height:auto;max-height:230px;overflow-y:auto;border-right:0;border-bottom:1px solid var(--hrs-line, #dce5f1)}.hrs-reader-main{width:calc(100% - 20px);margin:10px auto 24px;padding:27px 17px}.hrs-reader-tools{margin:5px 0}}
+@media print{
+ body.hrs-reader-mode{max-width:none!important;margin:0!important;padding:0!important;background:#fff!important}
+ .hrs-reader-layout{display:block!important;min-height:0!important}
+ .hrs-reader-sidebar,.hrs-reader-tools,.hrs-reader-lightbox,.hrs-reader-top,.hrs-code-fold,.hrs-code-copy,.copy-snippet{display:none!important}
+ .hrs-reader-main{max-width:none!important;width:auto!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+ .hrs-code-panel pre[hidden],.docs-code pre[hidden]{display:block!important}
+}
+
+[data-figure-source="pdf"]{cursor:pointer}@media print{[data-figure-source],.figure-source-link,.figure-edit-button{display:none!important}}
+
+/* HF8 PF6: maintain a clean enlarged image. The figure caption remains in prose. */
+.hrs-reader-lightbox-caption{display:none!important}
+.hrs-reader-lightbox .hrs-reader-lightbox-image{max-height:88vh}
+.report-figure-wrap .figure-source-chip{position:absolute;top:8px;right:8px;z-index:2;display:inline-flex;align-items:center;padding:4px 8px;border:1px solid var(--hrs-line, #d4dfec);border-radius:6px;background:rgba(255,255,255,.94);color:var(--hrs-brand, #44658d);font-size:10px;font-weight:650;text-decoration:none;line-height:1.3;white-space:nowrap;opacity:.86}
+.report-figure-wrap .figure-source-chip:hover,.report-figure-wrap .figure-source-chip:focus-visible{opacity:1;background:var(--hrs-bg, #edf3ff);color:var(--hrs-brand, #2459a8)}
+.report-figure-wrap .image-group-cell{position:relative}
+.figure-media-stage{position:relative;display:table;max-width:100%;margin:0 auto}
+@media print{.figure-source-chip{display:none!important}}
+
+
+/* HF8 PF8 — two-sided code header (left: language, right: related actions).
+   The middle floating copy button in PF7 came from space-between on 3 children. */
+.hrs-code-head,.docs-code-head{display:flex;justify-content:flex-start;align-items:center;gap:7px}
+.hrs-code-head>:first-child,.docs-code-head>:first-child{margin-right:auto}
+.hrs-code-actions{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;margin-left:auto}
+.hrs-code-actions .hrs-code-copy,.hrs-code-actions .copy-snippet,.hrs-code-actions .hrs-code-fold{margin:0;border:1px solid transparent;border-radius:5px;background:transparent;color:var(--hrs-muted, #506480);padding:3px 7px;font-size:11px;cursor:pointer}
+.hrs-code-actions button:hover,.hrs-code-actions button:focus-visible{border-color:var(--hrs-line, #cedaee);background:var(--hrs-brand-tint, #e2ebfc);color:var(--hrs-brand, #2454a5)}
+.hrs-code-actions button[aria-expanded="false"]{color:var(--hrs-brand, #305daa)}
+@media print{.hrs-code-actions{display:none!important}}
+
+/* PF8: avoid a second gray, bordered box around a normal fenced code line. */
+.hrs-code-panel>pre:not(.hrs-code-pre){margin:0!important;padding:12px 14px!important;border:0!important;border-radius:0!important;background:transparent!important;line-height:1.55}
+
+/* HF8 PF9 — two modes inside the existing pale-blue report sidebar.
+   Tabs are deliberately small and neutral: navigation, not report content. */
+.hrs-reader-object-section{margin-top:2px;min-width:0}
+.hrs-reader-object-section .hrs-reader-group-title{padding-bottom:8px}
+.hrs-reader-object-tabs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px;padding:3px;margin:0 7px 10px;border:1px solid var(--hrs-line, #e3eaf4);border-radius:8px;background:var(--hrs-bg, #edf2f9)}
+.hrs-reader-object-tab{appearance:none;background:transparent;border:1px solid transparent;border-radius:6px;min-width:0;padding:7px 3px;line-height:1.35;white-space:nowrap;color:var(--hrs-text, #6c7d95);font:inherit;font-size:11px;cursor:pointer}
+.hrs-reader-object-tab[aria-selected="true"]{background:#fff;color:var(--hrs-brand, #2b5495);border-color:var(--hrs-line, #dbe5f5);box-shadow:0 1px 4px #2348760d;font-weight:650}
+.hrs-reader-object-tab:hover:not([aria-selected="true"]){color:var(--hrs-brand, #395d94);background:var(--hrs-bg, #e5edf8)}
+.hrs-reader-object-tab:focus-visible{outline:2px solid var(--hrs-line, #7fa3e4);outline-offset:1px}
+.hrs-reader-object-panel[hidden],.hrs-reader-type-group[hidden]{display:none!important}
+.hrs-reader-type-group{margin:0 4px 7px;border:0;min-width:0}
+.hrs-reader-type-summary{list-style:none;cursor:pointer;color:var(--hrs-ink, #3f5a7d);border-radius:6px;padding:8px 7px;font-size:12px;font-weight:650;line-height:1.45}
+.hrs-reader-type-summary::-webkit-details-marker{display:none}
+.hrs-reader-type-summary::before{content:'▸';color:var(--hrs-muted, #8199b8);display:inline-block;width:17px;font-size:12px;transition:transform .12s ease}
+.hrs-reader-type-group[open]>.hrs-reader-type-summary::before{transform:rotate(90deg)}
+.hrs-reader-type-summary:hover{background:var(--hrs-bg, #edf3fc);color:var(--hrs-brand, #295392)}
+.hrs-reader-type-summary:focus-visible{outline:2px solid var(--hrs-line, #a4bce5)}
+.hrs-reader-type-entries{display:grid;gap:1px;padding:1px 0 3px 8px}
+.hrs-reader-object-panel .hrs-reader-nav-link{min-width:0}
+.hrs-reader-type-group+.hrs-reader-type-group{border-top:1px solid var(--hrs-line, #e7edf5);padding-top:4px}
+@media(max-width:850px){.hrs-reader-object-tabs{max-width:280px}}
+@media print{.hrs-reader-object-section,.hrs-reader-object-tabs,.hrs-reader-object-panel{display:none!important}}
+
+/* Preserve explicit quote lines and synthesize Chinese italics consistently. */
+.paper,.reader-paper{font-synthesis:style}
+.paper blockquote p,.reader-paper blockquote p{white-space:pre-line}
+.paper[data-hrs-render-profile="free"] blockquote p,[data-hrs-reader-root][data-hrs-render-profile="free"] blockquote p{margin:0;line-height:1.5}
+.paper[data-hrs-render-profile="free"] blockquote p+p,[data-hrs-reader-root][data-hrs-render-profile="free"] blockquote p+p{margin-top:.7em}
+
+/* PF13.4 help layout only. Shared print, reader and UI component CSS
+ * are assembled by build_readable_docs.js from canonical /web sources. */
+body{max-width:none!important;width:auto;padding:0!important;margin:0!important;color:var(--hrs-doc-ink);background:#eef2f8;font:15px/1.86 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}
+.docs-shell{display:grid;grid-template-columns:260px minmax(0,1fr);min-height:100vh}
+.docs-nav{background:var(--hrs-doc-sidebar);border-right:1px solid var(--hrs-doc-border);padding:21px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;box-sizing:border-box}
+.docs-brand{font-size:14px;font-weight:800;letter-spacing:.02em;padding:8px 10px;color:#263957}
+.docs-desc{font-size:12px;color:#728298;line-height:1.6;margin:0 10px 19px}
+.docs-nav a{display:block;color:#56687d;text-decoration:none;border-radius:7px;padding:5px 10px;margin:1px 0;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+.docs-nav a:hover,.docs-nav a.active{background:#e7efff;color:#2356a7}
+.docs-nav a.level3{padding-left:23px;font-size:12px;color:#8290a3}
+.docs-actions{padding:12px 6px 18px;display:flex;gap:6px;flex-wrap:wrap}
+.docs-actions a{font-size:11px;color:#365ba0;border:1px solid #c8d6ee;background:#fff;padding:4px 9px;border-radius:20px}
+.docs-main{padding:28px clamp(16px,4vw,65px) 55px;min-width:0}
+.docs-paper{max-width:1060px;margin:auto;background:var(--hrs-doc-paper);padding:55px clamp(20px,5vw,76px) 70px;box-sizing:border-box;border-radius:12px;box-shadow:0 4px 32px #15294814}
+.docs-paper h1{font-size:30px;line-height:1.3;color:#1f375d;border:0;padding:0;margin:0 0 18px}
+.docs-paper h2{font-size:21px;line-height:1.35;padding-top:24px;margin-top:34px;border-top:1px solid #e8ecf4;color:#213d64}
+.docs-paper h3{font-size:17px;color:#274568;margin-top:28px}
+.docs-paper p,.docs-paper li{line-height:1.9}
+.docs-paper li{margin:4px 0}.docs-paper code{font-family:Consolas,"Cascadia Code",ui-monospace,monospace;font-size:.91em}
+.docs-paper :not(pre)>code{background:#f1f5fa;color:#9b2a54;padding:2px 4px;border-radius:3px;overflow-wrap:anywhere}
+.docs-paper pre{background:var(--hrs-code-surface);color:var(--hrs-code-ink);white-space:pre;overflow-x:auto;font-size:13px;line-height:1.7;padding:13px 18px;border-radius:0 0 8px 8px;margin:0 0 18px}
+.docs-code{margin:14px 0 22px;border-radius:8px;overflow:hidden;border:1px solid #d8e0ef}
+.docs-code-head{display:flex;align-items:center;justify-content:space-between;padding:7px 13px;background:#e9eef6;font-size:12px;color:#526580;font-weight:600}
+.docs-code button{background:transparent;border:1px solid #c6d3e4;padding:2px 10px;border-radius:5px;cursor:pointer;color:#48638d}
+.docs-paper blockquote{margin:19px 0;border-left:4px solid #7b9ee3;background:#f4f7fe;padding:12px 18px;border-radius:0 8px 8px 0}
+.docs-paper blockquote p{margin:.15em 0}.docs-paper table{display:table;width:100%;border-collapse:collapse;margin:18px 0;font-size:14px;word-break:break-word}
+.docs-paper th,.docs-paper td{border:1px solid #d6e0ee;padding:9px 12px;text-align:left;vertical-align:top}
+.docs-paper th{background:#f1f5fd;color:#365277;font-weight:700}.docs-paper tr:nth-child(even) td{background:#fafcff}
+.docs-paper img{max-width:100%;border:1px solid #dbe3f0;box-shadow:0 3px 14px #20314f0e;border-radius:9px;margin:15px auto;display:block}
+.docs-paper a{color:#2b61ba;text-decoration:none;border-bottom:1px dotted #a2b7dd}
+.docs-paper a:hover{text-decoration:underline}
+.docs-bottom{font-size:12px;color:#8793a5;text-align:center;padding:22px}
+@media(max-width:900px){.docs-shell{display:block}.docs-nav{position:static;height:auto;max-height:290px;border-right:0;border-bottom:1px solid var(--hrs-doc-border)}.docs-main{padding:14px}.docs-paper{padding:26px 18px}}
+@media print{body{background:#fff}.docs-shell{display:block}.docs-nav,.docs-bottom,.docs-code button{display:none!important}.docs-main,.docs-paper{padding:0;margin:0;max-width:none;box-shadow:none}.docs-paper h2{break-after:avoid}.docs-code{break-inside:avoid}}
+:root{--hrs-doc-accent:#3158AE;--hrs-doc-ink:#26354C;--hrs-doc-muted:#66768D;--hrs-doc-paper:#FFFFFF;--hrs-doc-border:#DEE5F0;--hrs-doc-sidebar:#F7F9FC}
+
+﻿/* PF13.4 · single source of truth for reusable UI design tokens.
+ * Future themes should override variables, never patch component selectors.
+ * Included in the editor, self-contained exported HTML and offline help.
+ */
+:root {
+  --hrs-blank-line-height: 1.5em;
+  --hrs-image-placeholder-ratio: 16 / 9;
+  --hrs-table-radius: 8px;
+  --hrs-table-grid-width: 1px;
+  --hrs-table-cell-padx: 7px;
+  --hrs-table-cell-pady: 8px;
+  --hrs-table-row-min-height: 32px;
+  --hrs-table-caption-pady: 8px;
+  --hrs-table-toolbar-padx: 10px;
+  --hrs-table-toolbar-pady: 3px;
+  --hrs-table-block-margin: 17px;
+  --hrs-table-text-size: 12px;
+  --hrs-table-line-height: 1.45;
+  --hrs-table-toolbar-size: 11px;
+  --hrs-table-toolbar-min-height: 30px;
+  --hrs-table-free-title-padx: 12px;
+  --hrs-table-action-pady: 4px;
+  --hrs-table-action-padx: 7px;
+  --hrs-table-action-radius: 5px;
+  --hrs-table-action-gap: 5px;
+  --hrs-table-source-max-height: 540px;
+  --hrs-code-radius: 8px;
+  --hrs-code-header-min-height: 30px;
+  --hrs-code-font-size: 12px;
+  --hrs-code-leading: 1.65;
+  --hrs-code-padding-x: 14px;
+  --hrs-code-padding-y: 12px;
+  /* Semantic role aliases follow the selected palette; no duplicate colors. */
+  --hrs-table-outline: var(--hrs-line);
+  --hrs-table-ink: var(--hrs-ink);
+  --hrs-table-control-ink: var(--hrs-muted);
+  --hrs-table-hover: var(--hrs-brand-tint);
+  --hrs-table-caption-ink: var(--hrs-ink);
+  --hrs-table-caption-size: var(--hrs-table-text-size);
+  --hrs-code-action-ink: var(--hrs-muted);
+}
+
+/* Shared section geometry; palette remains in the existing theme catalog. */
+:root{--hrs-section-font-size:13px;--hrs-section-control-size:24px}
+
+/* PF13.4 · canonical table & source-card components.
+ * These declarations are intentionally shared verbatim by edit preview,
+ * exported single-file HTML and generated help. No JS data/IR mutations.
+ */
+.hrs-blank-space {display:block;height:calc(var(--hrs-blank-lines) * var(--hrs-blank-line-height));margin:0;padding:0;pointer-events:none;}
+img.hrs-image-pending {aspect-ratio:var(--hrs-image-placeholder-ratio);width:100%;object-fit:contain;}
+.report-table-wrap {
+  position: relative;
+  margin: var(--hrs-table-block-margin) 0;
+  padding: 0;
+  overflow: hidden;
+  border: var(--hrs-table-grid-width) solid var(--hrs-table-outline);
+  border-radius: var(--hrs-table-radius);
+  background: var(--hrs-table-row);
+}
+/* Editor discoverability uses outline outside the frame, not a gap between layers. */
+.edit-layout.visual .report-table-wrap:hover {outline: 1px dashed var(--hrs-table-outline);outline-offset: 2px}
+.report-table-wrap .hrs-table-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  min-height: var(--hrs-table-toolbar-min-height);
+  padding: var(--hrs-table-toolbar-pady) var(--hrs-table-toolbar-padx);
+  background: var(--hrs-table-toolbar);
+  color: var(--hrs-table-control-ink);
+  border: 0; /* no rule between the toolbar and the table caption */
+  border-radius: 0;
+  line-height: 1.35;
+}
+.report-table-wrap .hrs-table-kind {color: var(--hrs-table-control-ink);font-size: var(--hrs-table-toolbar-size);font-weight: 700}
+.report-table-wrap .hrs-table-actions {display: inline-flex;align-items:center;gap:var(--hrs-table-action-gap);flex-shrink:0}
+.report-table-wrap .hrs-table-toggle,.report-table-wrap .hrs-table-copy {
+  border: 1px solid transparent;
+  border-radius: var(--hrs-table-action-radius);
+  background: transparent;
+  padding: var(--hrs-table-action-pady) var(--hrs-table-action-padx);
+  color: var(--hrs-table-control-ink);
+  font-size: var(--hrs-table-toolbar-size);
+  line-height: 1.3;
+  cursor: pointer;
+}
+.report-table-wrap .hrs-table-actions button:hover,.report-table-wrap .hrs-table-actions button:focus-visible {
+  background: var(--hrs-table-hover);
+  border-color: var(--hrs-table-outline);
+}
+.report-table-wrap .hrs-table-toggle[aria-pressed=true] {background: var(--hrs-table-heading)}
+/* The title and header share one pale surface, while body rows alternate.
+ * Grid is defined on the TABLE and individual CELLS, never on the caption.
+ */
+.report-table-wrap .hrs-table-rendered {
+  table-layout: fixed;
+  width: 100%;
+  margin: 0 !important;
+  border: 0;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: var(--hrs-table-text-size);
+  line-height: var(--hrs-table-line-height);
+}
+.report-table-wrap .hrs-table-rendered caption.report-table-caption {
+  caption-side: top;
+  display: table-caption;
+  margin: 0;
+  padding: var(--hrs-table-caption-pady) var(--hrs-table-toolbar-padx);
+  border: 0;
+  border-radius: 0;
+  background: var(--hrs-table-heading);
+  color: var(--hrs-table-ink);
+  text-align: center;
+  font-size: var(--hrs-table-text-size);
+  line-height: 1.35;
+  font-weight: 700;
+}
+.report-table-wrap .hrs-table-rendered caption.report-table-caption:empty {display: none}
+.report-table-wrap .hrs-table-rendered th,.report-table-wrap .hrs-table-rendered td {
+  box-sizing: border-box;
+  border: var(--hrs-table-grid-width) solid var(--hrs-table-grid);
+  padding: var(--hrs-table-cell-pady) var(--hrs-table-cell-padx);
+  background: var(--hrs-table-row);
+  line-height: var(--hrs-table-line-height);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  /* Table-cell height is a minimum: empty rows retain a writing line and
+   * multiline or wrapped content still increases the row naturally. */
+  height: var(--hrs-table-row-min-height);
+}
+.report-table-wrap .hrs-table-rendered tr:first-of-type th,
+.report-table-wrap .hrs-table-rendered tr:first-of-type td {background: var(--hrs-table-heading);color: var(--hrs-table-ink);font-weight: 700}
+.report-table-wrap .hrs-table-rendered tr:nth-child(even) td {background: var(--hrs-table-row-alt)}
+.report-table-wrap .chart-note {display:none}
+/* Foldable, syntax-highlighted source view and related actions. */
+.report-table-wrap .hrs-table-source {
+  padding:0!important;margin:0!important;max-height:none!important;overflow:hidden!important;
+  white-space:normal!important;background:var(--hrs-code-surface);
+  color:var(--hrs-code-ink);border:0;border-radius:0;
+}
+.report-table-wrap .hrs-table-source code {font:inherit;white-space:inherit;background:transparent;padding:0}
+.report-table-wrap .hrs-table-source-bar {display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 11px;min-height:var(--hrs-code-header-min-height);background:var(--hrs-code-head);border-bottom:1px solid var(--hrs-code-border)}
+.report-table-wrap .hrs-table-source-language {font:700 11px/1.4 "Segoe UI","Microsoft YaHei",sans-serif;color:var(--hrs-code-action-ink)}
+.report-table-wrap .hrs-table-fold {border:1px solid transparent;border-radius:var(--hrs-table-action-radius);background:transparent;color:var(--hrs-code-action-ink);font:11px/1.3 "Segoe UI","Microsoft YaHei",sans-serif;padding:4px 8px;cursor:pointer}
+.report-table-wrap .hrs-table-fold:hover,.report-table-wrap .hrs-table-fold:focus-visible {background:var(--hrs-table-hover);border-color:var(--hrs-table-outline)}
+.report-table-wrap .hrs-table-source-pre {font:var(--hrs-code-font-size)/var(--hrs-code-leading) Consolas,"Cascadia Code",monospace!important;white-space:pre!important;overflow:auto!important;tab-size:4;margin:0!important;padding:var(--hrs-code-padding-y) var(--hrs-code-padding-x)!important;border:0!important;border-radius:0!important;max-height:var(--hrs-table-source-max-height);background:var(--hrs-code-surface)!important;color:var(--hrs-code-ink)!important}
+.report-table-wrap .hrs-table-source-code {font:inherit!important;white-space:inherit!important;background:transparent!important;padding:0!important;word-break:normal!important}
+.report-table-wrap .hrs-table-source[hidden],.report-table-wrap .hrs-table-rendered[hidden],.report-table-wrap .hrs-table-source-pre[hidden] {display:none!important}
+.hrs-table-syntax-header{color:var(--hrs-brand);font-weight:650}
+.hrs-table-syntax-pipe{color:var(--hrs-code-token-variable);font-weight:700}
+.hrs-table-syntax-delimiter{color:var(--hrs-brand);font-weight:650}
+.hrs-table-syntax-caption{color:var(--hrs-code-token-string)}
+.hrs-table-syntax-inline{color:var(--hrs-code-token-number)}
+/* Code cards share the same light/dark-ink contract everywhere, including
+ * the help pages. A docs-specific pre selector must not force pale text. */
+.hrs-code-panel,.docs-code {overflow:hidden;border:1px solid var(--hrs-code-border);border-radius:var(--hrs-code-radius);background:var(--hrs-code-surface);color:var(--hrs-code-ink)}
+.hrs-code-panel .hrs-code-head,.docs-code .docs-code-head {background:var(--hrs-code-head);color:var(--hrs-code-action-ink);border-bottom:1px solid var(--hrs-code-border)}
+.docs-paper .hrs-code-panel pre,.docs-paper .docs-code pre,
+.hrs-code-panel > pre,.docs-code > pre {
+  color:var(--hrs-code-ink)!important;
+  background:var(--hrs-code-surface)!important;
+  border:0!important;
+  border-radius:0!important;
+  margin:0!important;
+  padding:var(--hrs-code-padding-y) var(--hrs-code-padding-x)!important;
+  font-size:var(--hrs-code-font-size);
+  line-height:var(--hrs-code-leading);
+  white-space:pre;
+  overflow-x:auto;
+}
+.docs-paper .hrs-code-panel pre code,.docs-paper .docs-code pre code,
+.hrs-code-panel pre code,.docs-code pre code {color:inherit;background:transparent}
+@media print {
+  .report-table-wrap {break-inside:avoid-page;page-break-inside:avoid;overflow:visible;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .report-table-wrap .hrs-table-tools,.report-table-wrap .hrs-table-source {display:none!important}
+  .report-table-wrap .hrs-table-rendered[hidden] {display:table!important}
+  .report-table-wrap .hrs-table-rendered caption.report-table-caption {background:var(--hrs-table-heading)!important;color:var(--hrs-table-ink)!important}
+}
+
+/* One caption region: fixed controls, remaining width belongs to the title. */
+.report-table-wrap .hrs-table-tools{display:grid;grid-template-columns:max-content minmax(0,1fr) max-content;align-items:center}
+.hrs-table-heading-caption{text-align:center;font-weight:700;overflow-wrap:anywhere;white-space:normal;min-width:0;color:var(--hrs-table-caption-ink,inherit);font-size:var(--hrs-table-caption-size,inherit)}
+@media screen{.report-table-wrap[data-caption-in-tools="1"] caption.report-table-caption{display:none}}
+@media print{.report-table-wrap[data-caption-in-tools="1"] caption.report-table-caption{display:table-caption!important}}
+
+/* 自由笔记：表头着色，表体纯白，不做斑马纹 */
+body[data-render-profile="free"] .report-table-wrap .hrs-table-rendered tr:not(:first-of-type) td{background:var(--hrs-table-row)}
+@media screen{body[data-render-profile="free"] .report-table-wrap{overflow:visible}}
+
+/* 自由笔记：极简表格栏（题注 + ⋯） */
+.hrs-table-tools.hrs-table-mini{background:transparent;border:0;min-height:26px;padding:0 var(--hrs-table-free-title-padx);margin:0 0 3px;gap:6px;grid-template-columns:minmax(0,1fr) max-content}
+.hrs-table-mini .hrs-table-kind{color:var(--hrs-muted);font-weight:600;font-size:11px;text-align:left;min-width:0;overflow-wrap:anywhere}
+.hrs-table-menu{margin-left:auto;position:relative}
+.hrs-table-menu>summary{list-style:none;cursor:pointer;width:24px;height:22px;display:grid;place-items:center;border:1px solid var(--hrs-line);border-radius:5px;background:var(--hrs-editor);color:var(--hrs-muted);font-size:13px;line-height:1}
+.hrs-table-menu>summary::-webkit-details-marker{display:none}
+.hrs-table-menu-body{position:absolute;right:0;top:26px;z-index:6;background:#fff;border:1px solid var(--hrs-line);border-radius:7px;padding:4px;display:flex;flex-direction:column;gap:2px;box-shadow:0 6px 18px #26352a26;min-width:112px}
+.hrs-table-menu-body button{border:0;background:transparent;text-align:left;padding:6px 8px;border-radius:5px;font-size:11px;color:var(--hrs-ink);cursor:pointer}
+.hrs-table-menu-body button:hover{background:var(--hrs-brand-tint)}
+
+.hrs-table-mini .hrs-table-heading-caption{display:none}
+
+/* 增强表格编辑器：高级操作收进“更多操作” */
+.table-editor-more{position:relative;display:inline-block}
+.table-editor-more>summary{list-style:none;cursor:pointer;border:1px solid var(--hrs-line);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--hrs-muted);background:var(--hrs-editor)}
+.table-editor-more>summary::-webkit-details-marker{display:none}
+.table-editor-more-body{position:absolute;right:0;top:34px;z-index:8;background:#fff;border:1px solid var(--hrs-line);border-radius:8px;padding:5px;display:flex;flex-direction:column;gap:2px;min-width:150px;box-shadow:0 8px 22px #26352a26}
+.table-editor-more-body .btn{justify-content:flex-start;text-align:left;border:0}
+.table-editor-more-body .btn:hover{background:var(--hrs-brand-tint)}
+
+.table-editor-tools{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.table-editor-row{display:flex;gap:6px;flex-wrap:wrap}
+
+/* 增强表格编辑器与渲染表格统一视觉 */
+.hrs-table-rendered th,.hrs-table-rendered td{vertical-align:middle}
+.table-editor-tools .btn{border:1px solid var(--hrs-line);background:var(--hrs-editor);color:var(--hrs-ink);border-radius:7px;padding:6px 10px;font-size:12px;font-weight:600}
+.table-editor-tools .btn:hover{background:var(--hrs-brand-tint);border-color:var(--hrs-line)}
+.table-editor-row{gap:5px}
+.table-editor-alignment{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--hrs-line);border-radius:8px;background:var(--hrs-bg);font-size:12px;color:var(--hrs-muted)}
+.table-editor-alignment label{display:flex;align-items:center;gap:6px}
+.table-editor-alignment select{border:1px solid var(--hrs-line);border-radius:6px;padding:4px 8px;font-size:12px;background:#fff;color:var(--hrs-ink)}
+
+.modal-help{font-size:11px;color:var(--hrs-muted);line-height:1.65;margin:6px 0}
+
+/* 编辑器高亮：默认黄色，颜色族走 --hrs-hl-* */
+mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border-radius:2px}
+
+@media print{.hrs-table-menu{display:none!important}.hrs-table-mini .hrs-table-kind{display:none}.hrs-table-mini .hrs-table-heading-caption{display:none!important}}
+/* GFM tasks use their checkbox as the marker, including loose and nested lists.
+   Shared by the editor, reading packs and exported HTML; no source rewrite. */
+li.hrs-task-item{list-style-type:none}
+li.hrs-task-item>input[type="checkbox"]:first-child,
+li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v1.1.1<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">输出模式与模板角色</a>
+<a class="level2" href="#section-3">编辑入口与源稿提交</a>
+<a class="level2" href="#section-4">笔记降级边界</a>
+<a class="level2" href="#section-5">项目分工与内容来源</a>
+<a class="level2" href="#section-6">当前可调用的读取入口</a>
+<a class="level2" href="#section-7">Agent 调用和提交边界</a>
+<a class="level2" href="#section-8">安全 HTML 与 Word 的边界</a>
+<a class="level2" href="#section-9">可消费的数据及输出责任</a>
+<a class="level3" href="#section-10">完整预检与安装命令</a>
+<a class="level2" href="#section-11">输出检查、模板范围和块提交</a>
+<a class="level2" href="#section-12">编号、题注与表格映射</a>
+<a class="level2" href="#section-13">图形原件、预览与资源</a>
+<a class="level2" href="#section-14">公式、源范围与结构门槛</a>
+<a class="level2" href="#section-15">当前限制与接入验收</a>
+<a class="level2" href="#section-16">Word 输出配置</a>
+<a class="level2" href="#section-17">桌面宿主边界</a>
+<a class="level2" href="#section-18">本机成品与素材操作</a></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">Word/WPS 下游数据接口</h1>
+<h2 id="section-2">输出模式与模板角色</h2>
+<p>HRS自由笔记与工程报告共用源和对象；请求Word时均进入Bridge工程输出规则。外部Word仅由原生结构及已确认上下文重建语义，普通 <code>@fig:</code>、<code>$…$</code>、<code>==…==</code>、双中括号等文字转义后保留；代码示例不激活语法。自身生成Word结合身份映射恢复当前内容与原显示配置，不能恢复旧快照覆盖编辑。</p>
+<p>配套母模板v0.3.11已预置六级Heading原生编号、HRS Abstract和HRS Code。Bridge复用现有编号定义；旧基础模板仍兼容原编号装配路径，但摘要/代码须有相应新样式。摘要仍按源规范的位置与标记识别；当前输出使用正文段落，只加粗“摘要：”标签，不再使用继承Heading1字重的整段摘要样式。普通代码9pt等宽、无首行缩进，保留换行和缩进且允许跨页；图表/Mermaid等已识别对象不进入普通代码分支。</p>
+<p>mark/span装饰可确定地去装饰，复杂HTML仍明确拒绝。任意HTML/CSS到DOCX不在支持范围；修改过的普通代码块或复杂摘要的反向恢复仍受既有受限回编规则约束。</p>
+<p>适用版本以本包 release.json 为准，上游 IR 为 <code>engineering-report-ir-v1</code>。本页面向独立 Word/WPS 编译和逆向识别项目，说明当前可以读取的数据及限制；当前程序各模块的职责见<a href="MODULE_OVERVIEW.html">模块说明</a>。</p>
+<p>Word组图仍用原无边框布局表格；每个逻辑排输出“图片行＋子图题行”，同排题注第一行对齐，图片保持宽高比。IR的rows仍是逻辑图片排数，不因Word物理行翻倍而改写。原组图ID、整组SEQ/REF及子图顺序保持；新布局和旧同单元格布局均可按映射回读子图题，非法新增内容明确拒绝。</p>
+<h2 id="section-3">编辑入口与源稿提交</h2>
+<p>工程稿直接配置Word，单H1/无H1自由稿就地工程检查，多H1台账仍可提取独立稿；可选的独立工程预览保留副本管理。编辑器保存后独立本地图片已成为原report-figure对象，下游复用图题/SEQ/REF规则，不新造编号。临时稿“同步回源稿”是独立的已审查范围提交，复用HRS写锁、备份和资源校验，Word prepare/compile本身不写源。</p>
+<h2 id="section-4">笔记降级边界</h2>
+<p><code>==高亮==</code>由 HRS 共用词法器识别，Word 预检展开为其中的普通文字；安全 mark/span 装饰继续去除。脚注沿共用词法器映射为原生 footnotes.xml，重复引用使用 NOTEREF；脚注关系、公式与实际正文进入来源指纹。题注与单元格使用同一内联转换。未定义、重复定义、嵌套脚注及脚注图片明确拒绝。自身未变 Word 可精确回编，已改脚注或含脚注块明确拒绝不可靠恢复。外来 Word 不因字面出现这些符号就新造笔记对象。</p>
+<p>HRS的Word组件复用Bridge及唯一browser_model.js，装配、数学和母模板规则由下游实现。prepare绑定源、资源、模板及匹配模型，过期或关闭后清理快照。组件使用Python3.13；Pandoc按需提供，办公软件的域刷新与页面呈现由相应集成检查验证。</p>
+<h2 id="section-5">项目分工与内容来源</h2>
+<p>HTML Report Studio 维护 Markdown 编辑、结构校验、HTML 导出/回编及 Agent A0。Word/WPS 的模板映射、原生对象、OMML、域和逆向识别由独立下游实现，由独立下游交付；编辑器的 Word beta 窗口只负责选择模板、冻结源稿和调用该链，不复制转换实现。</p>
+<p>下游应读取 <strong><code>report.md</code>、<code>assets/</code> 和 <code>report_contract.py</code> 派生的 IR</strong>。稳定身份、显示编号与输出样式分别管理；阅读按钮、目录、高亮、代码卡片、折叠和 MathJax SVG 都是显示结果，不能作为 Word 的语义输入。</p>
+<p>双向转换可以共用现行语义契约。自身生成 Word 可由下游保留对象 ID/书签等身份信息；外部规范文档可利用原生样式和对象；混乱排版存在歧义，必须报告或保留无法表达的信息，不承诺任意 Word 布局无损往返。编辑器不为此强制普通段落 JSON 化或增加 ID。</p>
+<p>独立 <code>hrs-wps-bridge</code> 试用包已消费当前 IR/Marked、HTML 薄入口和 WPS Scanner/真实母模板，提供固定样本的受限转换。其 DOCX 伴随派生映射保留 HRS 身份与原策略；当前原生内容发生修改时重新读取，不用旧快照覆盖。WPS 保存会重写样式 ID 并丢弃自定义 XML，具体承载、依赖、运行命令及拒绝边界以该独立包 README 为准，不修改本页上游契约。</p>
+<h2 id="section-6">当前可调用的读取入口</h2>
+<p>在解压包的 <code>app/</code> 目录运行，示例路径替换成真实完整工程：</p>
+<pre><code class="language-powershell">python report_contract.py validate D:\Reports\demo\report.md --json
+python report_contract.py ir D:\Reports\demo\report.md --output D:\Reports\demo\output\report.ir.json
+python agent_readonly.py objects D:\Reports\demo\report.md
+python tools/audit_modules.py --check
+</code></pre>
+<p>前两条校验引用附件；IR 输出是派生文件，不覆盖原 Markdown。A0 的七种读取为 <code>summary/objects/get/references/diagnostics/outline/get-block</code>，输出 <code>hrs-agent-read-v1</code> JSON，不写工程、不执行文稿代码。匿名块读取必须携带同一快照的摘要，重复 ID 拒绝歧义，精确条件见<a href="../工程报告源格式_v1_规范.md">源规范第6节</a>。</p>
+<p>随包 <code>IR_EXAMPLE_SOURCE.md</code> / <code>IR_EXAMPLE.json</code> 是结构示例，未附四个示意附件。可直接运行的结构读取命令见同一规范第6节；不能把示例的结构读取成功当成完整附件验证成功。<code>sourceContractValid</code> 只是结构入场条件，不证明资源齐全、领域参数正确或下游编译成功。</p>
+<p>输出中的output_blockers是“哪些诊断代码在工程输出中会阻断”的策略集合，并不表示当前存在这些错误；当前是否通过应读取valid/safeToCompile、preflight范围与diagnostics。</p>
+<h2 id="section-7">Agent 调用和提交边界</h2>
+<p>A0七种查询保持只读；block_cli plan生成绑定当前源/范围/资源的候选，显式apply必须携带已审查计划摘要。旧快照、篡改计划、附件变化或文件占用明确失败，调用方不得通过整链重试覆盖原稿。HTML CLI export/recover只使用私有快照和新输出；?programmatic=1提供ready/open/exportHTML，拒绝并发open，不是源写入RPC。</p>
+<p>模型只读必要摘要和局部歧义，源文字/文件名/样本内指令均作为数据。Word结构/编号迁移判断继续绑定来源和候选，不能读取测试truth。成熟流程由原程序连续执行到交付/status；确定性转换API调用与AI开发、判断、验收分开，无法取得的精确计量记null/UNAVAILABLE。实际命令参数以各入口--help为准，机器集合与错误保护由test_interfaces_contract验证，测试选择见源码README_TESTS。</p>
+<h2 id="section-8">安全 HTML 与 Word 的边界</h2>
+<p>HRS 可以显示受限 HTML，但它仍保留在原 markdown 源块中，不变成工程图表或一套新 IR。HTML 图片的依赖进入现有 assets 审计；HTML 表格不获得图表号。当前独立桥接不把任意 HTML 卡片/标签当作已支持 Word 结构，不支持的 token 明确拒绝，不能静默去标签或套用旧正文。HRS 单份 HTML CLI 由 html_cli.py 提供，桥接复用该入口；它不负责 Word 编译。</p>
+<h2 id="section-9">可消费的数据及输出责任</h2>
+<table>
+<thead>
+<tr>
+<th>当前上游结构</th>
+<th>可读取的信息</th>
+<th>下游负责</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>heading</code></td>
+<td>H1–H6 层级、文字、可选稳定 ID、源范围</td>
+<td>模板标题样式、书签和章节排版</td>
+</tr>
+<tr>
+<td>普通 <code>markdown</code></td>
+<td>完整原文及源范围；<code>list_styles[]</code> 提供显示样式提示</td>
+<td>行内强调/链接/数学、列表项和层级的安全解析</td>
+</tr>
+<tr>
+<td>增强 <code>table</code></td>
+<td><code>report-table-v1</code> 网格、合并、题注、可选列宽/对齐</td>
+<td>原生 <code>w:tbl</code>、网格合并、表题及模板样式</td>
+</tr>
+<tr>
+<td>GFM <code>table</code></td>
+<td><code>sourceKind:gfm-pipe</code>、原始源码、行、对齐、可选题注/ID</td>
+<td>同一逻辑表格映射、单元格行内结构</td>
+</tr>
+<tr>
+<td><code>figure</code></td>
+<td>图片/流程图、ID、题注、预览、可选原件与元数据</td>
+<td>图形格式选择、尺寸、图题、书签</td>
+</tr>
+<tr>
+<td><code>image-group</code></td>
+<td>行列、图片顺序、说明、原件、子图字母开关</td>
+<td>网格排布、宽度及子图样式</td>
+</tr>
+<tr>
+<td><code>equation</code></td>
+<td>原始 TeX、完整源文、定界符、编号状态、可选 ID</td>
+<td>TeX→OMML、原生公式及引用域</td>
+</tr>
+<tr>
+<td><code>code</code> / 普通 <code>mermaid</code></td>
+<td>语言和原始源码</td>
+<td>代码样式或安全图形呈现，不执行任意代码</td>
+</tr>
+<tr>
+<td><code>invalid-object</code> / diagnostics</td>
+<td>原文、位置、结构错误/不支持字段</td>
+<td>明确拒绝或报告，不静默丢弃</td>
+</tr>
+</tbody></table>
+<p><code>references[]</code> 存目标种类、稳定 ID 和源位置，显示“图 1”不是对象身份。<code>objects.entries[]</code> 提供对象目录；没有稳定 ID 的 GFM 表仍通过块范围读取，不伪造 ID。机器交接索引见 <code>docs/WORD_IR_HANDOFF.json</code>；具体字段和合法性仅以现行源规范与实际解析器为准。</p>
+<h3 id="section-10">完整预检与安装命令</h3>
+<p>标准安装后的hrs capabilities返回命令/副作用/可选依赖。hrs read ACTION SOURCE委托原A0；hrs plan .../hrs apply ...委托原块提交；hrs html export/recover ...委托原HTML引擎。完整预检使用hrs check PROJECT --render-profile engineering --browser BROWSER，复用页面Marked/脚注及输出策略，并检查附件，返回hrs-output-preflight-v1、完整范围、源摘要和diagnostics；失败非零退出，源不写。未安装Playwright/未提供本机浏览器时明确失败，不安装依赖或退回成“检查通过”。</p>
+<p>HTTP /api/validate仅Python源码契约，返回source_contract_valid、preflight.complete=false及保守valid=false/safeToCompile=false。A0相应字段为sourceContractValid。完整页面入口为ReportStudioProgrammatic.check({renderProfile,renderOptions,expectSourceSha256})，仅programmatic=1暴露，返回完整文本检查，互斥/快照约束沿原open/export。页面文本检查本身不扫描磁盘附件，CLI另做附件快照；任何预检都不等于Word装配/Office页面验收。旧客户应迁移结构门槛或调用完整check，不再将旧safeToCompile作为完整检查。</p>
+<h2 id="section-11">输出检查、模板范围和块提交</h2>
+<p>Bridge消费render_profile.py的现行IR标题检查：多个主标题或向下跳级阻止工程输出；手工章号须显式接受当前快照的提醒。自由笔记的隐藏图表编号仅为显示选项，Word始终使用工程模板。</p>
+<p>配套Bridge支持显式选择已准备的母模板，复用WPS正文槽位接口，只替换生成正文，保留封面、目录域、页眉页脚和节设置。派生身份映射只覆盖生成区域，回读不把封面/目录加入HRS正文。自身生成Word的同位置书签在WPS另存后可能重排，边界处理只容忍无正文跨越的等价顺序。Word文件本身可独立编辑；伴随映射用于返回HRS时恢复身份和未变源片段。</p>
+<p>HRS已提供block_cli的显式plan/apply；Bridge委托它，不再另写候选和提交器。A0读取、HTML导出和Word转换仍不改源工程。Bridge已有run-job/v2批量调度及review/resume，WPS已有声明多来源的原生总稿；Markdown/Word混合总稿及通用跨文档引用/编号域合并仍未完成，不能混为一个状态。</p>
+<h2 id="section-12">编号、题注与表格映射</h2>
+<p>图（含组图）、增强表、显式编号公式分别按有效对象的正文顺序派生编号。GFM 表即使含题注和 <code>tbl-</code> ID 也 <code>numbered:false</code>，不能仅依据 <code>type=table</code> 递增。下游装配应保留这一区别，并在对象顺序确定后建立书签及 REF/SEQ 等机制。</p>
+<p>空题注的编号对象仍显示“图 N／表 N”；caption 只存用户文字。增强表的 <code>align[]</code>、<code>verticalAlign</code> 与可选 <code>columnWidths</code> 是布局来源；未提供的值不应擅自强制补成居中。GFM 水平对齐来自分隔行，没有垂直对齐或合并语义。两种表格都应生成可编辑表格，源码视图和复制按钮不改变其类型。</p>
+<h2 id="section-13">图形原件、预览与资源</h2>
+<p><code>src</code> 是显示图，<code>sourceAsset</code> 可指向归档 EMF/PDF 等原件，<code>rendition</code> 记录预览信息。选择 Word 兼容格式时应先检查原件，再决定矢量或栅格降级；不能从 HTML 提取 PNG 后丢掉原件关系。旧 <code>vectorSource/rasterFallback</code> 按现行规范兼容。</p>
+<p>PDF 作为插图导入时保留完整原件，PNG 预览是第一页；DPI 为实际有效值，未知时省略，不假定 300。普通外部 PDF 文献链接只是引用，不自动复制或栅格化整本资料。HTML 的 PDF 打开按钮、附件压缩和阅读索引不是新的 Word 数据类型。</p>
+<p>组图保留 <code>rows/columns/images/showSubfigureLabels</code>；关闭字母仅隐藏前缀，保留子图说明、顺序和整组题注。每组一个图号，目前没有子图稳定 ID 或子图级交叉引用。</p>
+<h2 id="section-14">公式、源范围与结构门槛</h2>
+<p>下游从原始 <code>source</code> / <code>latex</code> 读取 TeX；行内 <code>$...$</code>、<code>\(...\)</code> 与块级 <code>$$...$$</code>、<code>\[...\]</code> 保留原定界符。只有显式标记的 <code>$$</code> 块参与公式编号。MathJax SVG 是离线显示结果，不是 OMML。</p>
+<p>所有 UTF-16 范围只对同一源摘要有效；BOM、CRLF/LF 与非 BMP 字符都参与偏移计算。源文修改后重新解析，不用旧坐标定位。CLI 原始文件摘要与 HTTP 提交文本摘要的区别见源规范。</p>
+<p><code>UNSUPPORTED_OBJECT_FIELDS</code> 保留原始 source，不支持的根扩展还留在派生 <code>data.extensions</code>；A0 据此将 <code>sourceContractValid</code> 置为 false。下游须明确支持或拒绝这些结构，不静默忽略未知字段。</p>
+<h2 id="section-15">当前限制与接入验收</h2>
+<p>当前 IR 不是完整 CommonMark/GFM 行内 AST，也不包含完备的资产 MIME/SHA/物理尺寸索引、母模板样式、页眉页脚、分页和页面方向。复杂嵌套列表、富文本单元格、复杂 TeX 和 Mermaid 需要下游明确处理；多报告合并的命名空间和跨文档重编号尚未实现。</p>
+<p>接入验收应覆盖标题、两类表格、图片/组图、原件、列表、公式和引用，并使用用户授权模板。固定样本通过只证明对应桥接版本和范围；无法表达的结构应报告，模板封面和页眉页脚按授权保留。上游校验不等于下游编译或 WPS 排版通过，实际执行由下游证据单列。</p>
+<p>已实现范围见<a href="CURRENT_STATUS.html">当前状态</a>，未来方向见<a href="LONG_TERM_ROADMAP.html">长期路线</a>，版本变化见<a href="CHANGELOG_READABLE.html">更新记录</a>。</p>
+<h2 id="section-16">Word 输出配置</h2>
+<p>prepare／convert 的 options 包含 notes_mode（footnotes／references）和 preserve_emphasis（布尔值），进入页面模型请求摘要及来源映射。HRS界面默认不保留额外正文强调；原CLI缺省保留以兼容已有调用，可显式 --strip-body-emphasis。文末参考文献是派生输出区域，具备独立书签和内容指纹；未变可精确回编，修改、丢失或额外内容拒绝用旧源恢复。标题采用现有章节样式、outlineLvl=0、numId=0，参与原目录而不消耗章号；引用与条目使用独立SEQ／REF。母模板与WPS编号实现不变。</p>
+<h2 id="section-17">桌面宿主边界</h2>
+<p>桌面与浏览器使用同一App、IR、预检、保存和Word组件。核心声明 <code>host_capabilities.json</code> 的桌面协议，由宿主与离线更新器核对；不是report.md字段。私有preload仅承接退出准备/打印，私有PDF通道只接受所属服务的口令及已审计临时HTML，保留原源/附件前后校验和output提交。<code>/api/health</code>增加App清单摘要与桌面状态，仍不表示文稿可编译。没有任意文件/命令接口，A0及plan/apply范围不变，AI沿原CLI/HTTP契约调用，不模拟桌面控件逐步骤转换。</p>
+<h2 id="section-18">本机成品与素材操作</h2>
+<p>机器交接中的 <code>export_result_ui</code> 和 <code>project_asset_ui</code> 描述编辑器专用同源操作，不是Agent批量写接口。HTML/分册/PDF的成功回执增加 <code>result_token</code>，<code>/api/export/open-folder</code>仅凭该本次成品凭证打开目录；Word继续复用原<code>/api/word/open</code>。素材清空需当前正式revision、扫描得到的<code>trash_revision</code>、明确确认及原用户操作头；只清理已校验的项目回收文件，保护当前源/备注/恢复草稿引用。A0、plan/apply、完整预检与下游编译契约不变。</p>
+</article><div class="docs-bottom">HTML Report Studio · 来自项目 Markdown · 离线 Marked</div></main></div><script id="hrs-reader-runtime">/* Generated by tools/build_reader_bundle.js; DO NOT edit. */
+/* PF13.5: one browser-side contract for object validation and derived numbering.
+ * SourceBlocks, editor preview, reference picker and offline reader all call
+ * these pure functions; numbers are NEVER stored into Markdown or object JSON.
+ * This is separate from Python's independent offline Agent parser, whose
+ * semantics are verified with the same cross-language fixture.
+ */
+(function(root){
+'use strict';
+const ReportTables=(typeof module!=='undefined'&&module.exports ? require('./report_tables.js') : root.ReportTables);
+function tableValidate(obj){
+ if(!obj||obj.schema!=='report-table-v1'||typeof obj.id!=='string'||!/^tbl-[A-Za-z0-9_-]{1,60}$/.test(obj.id)||typeof obj.caption!=='string'||obj.caption.length>300)throw Error('表格数据格式或题名无效');
+ if(!Array.isArray(obj.rows)||obj.rows.length<1||obj.rows.length>100)throw Error('行数超限');
+ const cols=obj.rows[0]?.length;if(!Number.isInteger(cols)||cols<1||cols>30||obj.rows.some(r=>!Array.isArray(r)||r.length!==cols))throw Error('表格必须为规则网格');
+ const occupied=new Set();
+ for(let r=0;r<obj.rows.length;r++)for(let c=0;c<cols;c++){
+  const cell=obj.rows[r][c];if(cell===null){if(!occupied.has(`${r}:${c}`))throw Error('存在未归属的合并单元格');continue;}
+  if(!cell||typeof cell.text!=='string'||cell.text.length>30000||!Number.isInteger(cell.rowspan)||!Number.isInteger(cell.colspan)||cell.rowspan<1||cell.colspan<1||r+cell.rowspan>obj.rows.length||c+cell.colspan>cols)throw Error('无效的表格合并或内容');
+  for(let rr=r;rr<r+cell.rowspan;rr++)for(let cc=c;cc<c+cell.colspan;cc++){
+   const key=`${rr}:${cc}`;if(occupied.has(key))throw Error('合并单元格重叠');occupied.add(key);
+   if((rr!==r||cc!==c)&&obj.rows[rr][cc]!==null)throw Error('合并区域必须使用 null 占位');
+  }
+ }
+ ReportTables.validateWidths(obj.columnWidths,cols);
+ if(obj.align!==undefined&&(!Array.isArray(obj.align)||obj.align.length!==cols||obj.align.some(x=>x!==null&&!['left','right','center'].includes(x))))throw Error('表格对齐属性无效');
+ if(obj.verticalAlign!==undefined&&!['top','middle','bottom'].includes(obj.verticalAlign))throw Error('单元格垂直对齐属性无效');
+ return obj;
+}
+function figureValidate(obj){
+ if(!obj||obj.schema!=='report-figure-v1'||typeof obj.id!=='string'||!/^fig-[A-Za-z0-9_-]{1,60}$/.test(obj.id)||typeof obj.caption!=='string'||obj.caption.length>300)throw Error('图形对象 ID 或图题格式无效');
+ if(obj.kind==='image'){
+  if(!/^assets\/[A-Za-z0-9][A-Za-z0-9_.-]{0,120}\.(?:png|jpe?g|gif|webp|svg)$/i.test(obj.src)||typeof obj.alt!=='string'||obj.alt.length>300)throw Error('图片路径/说明无效');
+  if(obj.vectorSource!==undefined){
+   const match=obj.vectorSource.match(/^assets\/([a-f0-9]{16})\.emf$/i);
+   if(!match||!new RegExp(`^assets/${match[1]}\\.(?:png|svg)$`,'i').test(obj.src))throw Error('矢量原图和预览必须同名，预览可以是 SVG 或 PNG');
+  }
+  if(obj.rasterFallback!==undefined){
+   const match=obj.src.match(/^assets\/([a-f0-9]{16})\.svg$/i);
+   if(!match||obj.rasterFallback.toLowerCase()!==`assets/${match[1].toLowerCase()}.png`)throw Error('SVG 备用 PNG 路径不匹配');
+  }
+  if(obj.sourceAsset!==undefined){
+   const source=obj.sourceAsset.match(/^assets\/([a-f0-9]{16})\.(pdf|emf|svg|png|jpe?g|webp)$/i),preview=obj.src.match(/^assets\/([a-f0-9]{16})\.(png|svg|jpe?g|webp)$/i);
+   if(!source||!preview||source[1].toLowerCase()!==preview[1].toLowerCase())throw Error('源图与预览必须具有相同资源 ID');
+   if(source[2].toLowerCase()==='pdf'&&preview[2].toLowerCase()!=='png')throw Error('PDF 需要 PNG 预览');
+   if(obj.vectorSource&&obj.sourceAsset.toLowerCase()!==obj.vectorSource.toLowerCase())throw Error('新旧矢量原图字段不一致');
+  }
+  if(obj.rendition!==undefined){
+   const meta=obj.rendition;
+   if(!meta||Array.isArray(meta)||typeof meta!=='object'||Object.keys(meta).some(x=>!['format','dpi','page','width','height','engine'].includes(x))||!['png','svg','jpeg','webp'].includes(meta.format)||(meta.dpi!==undefined&&(!Number.isFinite(meta.dpi)||meta.dpi<=0||meta.dpi>600))||meta.page!==1)throw Error('预览图渲染信息不合法');
+   if(meta.format!==obj.src.split('.').at(-1).toLowerCase().replace('jpg','jpeg'))throw Error('预览格式不一致');
+   for(const field of ['width','height'])if(field in meta&&(!Number.isInteger(meta[field])||meta[field]<1||meta[field]>4096))throw Error('预览尺寸不合法');
+   if('engine' in meta&&!/^[A-Za-z0-9_-]{1,36}$/.test(meta.engine))throw Error('渲染器标识不合法');
+  }
+ }else if(obj.kind==='mermaid'){
+  if(typeof obj.source!=='string'||!obj.source.trim()||obj.source.length>50000)throw Error('流程图源数据无效');
+ }else throw Error('图形种类不受支持');
+ return obj;
+}
+
+// Input order is document order; invalid/duplicate IDs never consume a number.
+// GFM tables can have stable IDs while staying unnumbered.
+function numbering(records){
+ const counts={figure:0,table:0,equation:0},seen=new Set(),items=[],byId=new Map();
+ for(const input of records){
+  const type=input.kind==='image-group'?'figure':input.kind;
+  const sourceKind=input.sourceKind||null;
+  const numbered=input.numbered!==false&&!(type==='table'&&sourceKind==='gfm-pipe');
+  const id=typeof input.id==='string'&&input.id?input.id:null;
+  const valid=input.valid!==false && (id ? /^(fig|tbl|eq)-[A-Za-z0-9_-]{1,60}$/.test(id) : !numbered);
+  const duplicate=!!id&&seen.has(id);
+  if(id&&valid)seen.add(id);
+  const countable=valid&&!duplicate&&numbered&&Object.prototype.hasOwnProperty.call(counts,type);
+  const number=countable?++counts[type]:null;
+  const label=number===null?null:({table:'表 ',figure:'图 ',equation:'式 ('}[type]+number+(type==='equation'?')':''));
+  const entry={...input,kind:type,sourceKind,id,valid,duplicate,numbered,number,label};
+  items.push(entry);
+  if(id&&!duplicate&&valid)byId.set(id,entry);
+ }
+ return {items,byId,counts};
+}
+function indexDOM(article){
+ const nodes=[...article.querySelectorAll('.report-table-wrap, .report-figure-wrap, [data-equation-id]')];
+ const result=numbering(nodes.map(node=>{
+  const kind=node.hasAttribute('data-equation-id')?'equation':node.classList.contains('report-table-wrap')?'table':'figure';
+  const pipe=kind==='table'&&node.hasAttribute('data-pipe-table');
+  return {node,kind,id:node.dataset.equationId||node.dataset.tableId||node.dataset.figureId||null,
+   sourceKind:pipe?'gfm-pipe':kind==='table'?'enhanced':null,numbered:!pipe,valid:true};
+ }));
+ const source=article._sourceObjectCatalog;
+ if(source)for(const entry of result.items){
+  const original=source.byRecord.get(Number(entry.node.closest('.doc-block')?.dataset.mapIndex));
+  if(original)for(const key of ['number','label','valid','duplicate'])entry[key]=original[key];
+ }
+ return result;
+}
+function sourceObject(record,next=null){
+ const token=record.token;
+ if(token.type==='reportEquation'&&token.equation?.id)return {kind:'equation',id:token.equation.id};
+ if(token.type==='reportImageGroup')return {kind:'figure',...root.ReportLayout.parseGroup(record.raw)};
+ if(token.type==='code'&&['report-table','report-figure'].includes(token.lang?.trim())){
+  const object=root.SourceBlocks.readObject(record.raw,token.lang.trim());
+  (token.lang.trim()==='report-table'?tableValidate:figureValidate)(object);
+  return {...object,kind:token.lang.trim()==='report-table'?'table':'figure'};
+ }
+ if(token.type==='table'){
+  const suffix=next?.type==='paragraph'&&root.ReportPipeTables.parseCaption(next.raw.trim())?next.raw:'';
+  const table=root.ReportPipeTables.parseRaw(record.raw+(suffix?'\n'+suffix:''));
+  return {...table.model,id:table.id,kind:'table',sourceKind:'gfm-pipe'};
+ }
+ return null;
+}
+function sourceTexts(record,object=null){
+ try{object=object||sourceObject(record);}catch{return [];}
+ if(!object)return [];
+ return [...(object.images||[]).map(image=>image.caption||''),object.caption||'',...(Array.isArray(object.rows)?object.rows:[]).flat().filter(Boolean).map(cell=>cell.text)].filter(Boolean);
+}
+function indexSource(map){
+ const entries=[];
+ for(const record of map.blocks)try{
+  const object=sourceObject(record,map.blocks[record.index+1]);
+  if(object)entries.push({...object,record});
+ }catch{/* The original block renderer supplies the precise malformed-object error. */}
+ const result=numbering(entries);result.byRecord=new Map(result.items.map(item=>[item.record.index,item]));return result;
+}
+function validObject(language,obj){
+ try{
+  if(language==='report-table')tableValidate(obj);
+  else if(language==='report-figure')figureValidate(obj);
+  else if(language==='report-image-group'){
+   const group=root.ReportLayout || (typeof module!=='undefined'&&module.exports ? require('./report_layout.js') : null);
+   if(!group?.validateGroup)throw Error('Group validator unavailable');
+   group.validateGroup(obj);
+  }else return false;
+  return true;
+ }catch{return false;}
+}
+function captionDisplay(caption,prefix=''){
+ let content=caption.querySelector('.hrs-caption-content');
+ if(!content){content=caption.ownerDocument.createElement('span');content.className='hrs-caption-content';content.textContent=caption.dataset.captionText||'';caption.replaceChildren(content);}
+ let number=caption.querySelector('.hrs-caption-number');
+ if(!number){number=caption.ownerDocument.createElement('span');number.className='hrs-caption-number';caption.prepend(number);}
+ number.textContent=prefix;
+}
+function captionCopy(target,caption){
+ target.replaceChildren(...[...caption.childNodes].map(n=>n.cloneNode(true)));
+ // These are presentation copies of the real table caption. They navigate to
+ // the same note, but must never register duplicate references or duplicate IDs.
+ target.querySelectorAll('[id],[data-hrs-footnote-ref]').forEach(n=>{n.removeAttribute('id');n.removeAttribute('data-hrs-footnote-ref');});
+}
+function tableHeading(wrap){
+ const tools=wrap.querySelector('.hrs-table-tools'),caption=wrap.querySelector('caption');if(!tools)return;
+ let middle=tools.querySelector('.hrs-table-heading-caption');
+ if(!middle){middle=wrap.ownerDocument.createElement('span');middle.className='hrs-table-heading-caption';tools.insertBefore(middle,tools.querySelector('.hrs-table-actions'));}
+ if(caption)captionCopy(middle,caption);else middle.textContent='';
+ if(tools.classList.contains('hrs-table-mini')&&caption?.dataset.captionText?.trim()){
+  const kind=tools.querySelector('.hrs-table-kind');if(kind)captionCopy(kind,caption);
+ }
+ wrap.dataset.captionInTools='1';
+}
+function tableName(wrap){
+ const caption=wrap.querySelector('caption')?.dataset.captionText?.trim();
+ if(caption)return caption;
+ const cells=[...(wrap.querySelector('table tr')?.cells||[])];
+ const text=cells.map(cell=>cell.textContent.trim().replace(/\s+/g,' ')).filter(Boolean).join(' · ');
+ return text.length>80?text.slice(0,79)+'…':text||'表格';
+}
+function objectTitle(entry,show=true,profile='engineering'){
+ const {node,kind}=entry;
+ if(kind==='table'){
+  const name=tableName(node);
+  if(profile==='free')return show&&entry.label?entry.label+(name==='表格'?'':'  '+name):name;
+  if(entry.sourceKind==='gfm-pipe')return 'Markdown 表格 · '+name+'（未编号）';
+ }
+ return node.querySelector(kind==='table'?'caption':'figcaption')?.textContent?.trim()||entry.label||(kind==='table'?'表格':'图');
+}
+function tableChrome(article,profile='engineering',editTable=null){
+ const free=profile==='free',show=article.dataset.hrsShowObjectNumbers!=='0';
+ for(const entry of indexDOM(article).items){
+  if(entry.kind!=='table')continue;
+  const wrap=entry.node,tools=wrap.querySelector('.hrs-table-tools');if(!tools)continue;
+  tools.classList.toggle('hrs-table-mini',free);
+  const kind=tools.querySelector('.hrs-table-kind');
+  if(kind)kind.textContent=free?objectTitle(entry,show,'free'):(entry.sourceKind==='gfm-pipe'?'Markdown 表格 · 不编号':'增强表格');
+  tableHeading(wrap);
+  let menu=tools.querySelector('.hrs-table-menu');
+  if(!free){
+   if(menu){const actions=tools.ownerDocument.createElement('div');actions.className='hrs-table-actions';
+    for(const button of menu.querySelectorAll('button:not([data-table-edit])'))actions.append(button);menu.replaceWith(actions);}
+   continue;
+  }
+  if(!menu){
+   const actions=tools.querySelector('.hrs-table-actions');if(!actions)continue;
+   menu=tools.ownerDocument.createElement('details');menu.className='hrs-table-menu';
+   const summary=tools.ownerDocument.createElement('summary');summary.textContent='⋯';summary.title='表格操作';summary.setAttribute('aria-label','表格操作');
+   const body=tools.ownerDocument.createElement('div');body.className='hrs-table-menu-body';
+   body.append(...actions.children);menu.append(summary,body);actions.replaceWith(menu);
+  }
+  if(editTable&&!menu.querySelector('[data-table-edit]')){
+   const button=tools.ownerDocument.createElement('button');button.type='button';button.dataset.tableEdit='1';button.textContent='编辑表格';
+   button.addEventListener('click',()=>{menu.open=false;editTable(wrap.querySelector('table'));});menu.querySelector('.hrs-table-menu-body').prepend(button);
+  }
+ }
+}
+function applyDisplay(article,show=true){
+ const entries=indexDOM(article);article.dataset.hrsShowObjectNumbers=show?'1':'0';
+ for(const entry of entries.items){
+  if(!['figure','table'].includes(entry.kind))continue;
+  if(entry.sourceKind==='gfm-pipe'){
+   if(article.dataset.hrsRenderProfile==='free'&&entry.id)for(const link of article.querySelectorAll('a.object-xref')){
+    if(link.getAttribute('href')==='#object-'+entry.id)link.textContent=tableName(entry.node);
+   }
+   continue;
+  }
+  const caption=entry.node.querySelector(entry.kind==='table'?'caption':'figcaption');
+  const fallback=entry.kind==='figure'?'图':'表';
+  const text=caption?.dataset.captionText??'';
+  const name=entry.kind==='table'?tableName(entry.node):(text||fallback);
+  if(caption)captionDisplay(caption,show?entry.label+(text?'  ':''):'');
+  for(const link of article.querySelectorAll('a.object-xref')){
+   if(link.getAttribute('href')==='#object-'+entry.id)link.textContent=show?entry.label:name;
+  }
+ }
+ article.querySelectorAll('.report-table-wrap').forEach(tableHeading);
+ return entries;
+}
+const api={tableValidate,figureValidate,validObject,numbering,indexDOM,indexSource,sourceTexts,captionDisplay,tableHeading,tableName,objectTitle,tableChrome,applyDisplay};
+if(typeof module!=='undefined'&&module.exports)module.exports=api;
+root.ReportObjectCatalog=api;
+})(typeof window!=='undefined'?window:globalThis);
+
+/* HF8 PF3 — shared OFFLINE read-only HTML report / help reader.
+ * Only DOM presentation: headings, navigation, code copy/fold, find, image
+ * zoom, back to top. NEVER changes Markdown, source JSON, assets or IR.
+ * This exact first-party script is SHA-256 authenticated by the Python exporter
+ * before an HTML document is saved or imported. It uses no external services.
+ */
+(function(root){
+'use strict';
+const VERSION='hrs-report-reader-v1';
+const MAX_NAV=500;
+const catalog=root.ReportObjectCatalog;
+function headingOutline(article){
+ const headings=[...article.querySelectorAll('h1,h2,h3,h4,h5,h6')].filter(node=>!node.closest('pre,code,.report-table-wrap,.report-figure-wrap'));
+ return headings.slice(0,MAX_NAV).map((node,index)=>({node,id:node.id||'hrs-section-'+(index+1),title:node.textContent.trim().slice(0,190)||'未命名章节',level:+node.tagName.slice(1)}));
+}
+/** A single semantic view over figure, table and numbered equation DOM.
+ * Nav modes share this array and the same original target anchors.
+ * No body reordering, numbering writes or report-source changes.
+ */
+function objectOutline(article){
+ // The same policy powers editor numbers, fold summaries and offline navigation.
+ const records=catalog.indexDOM(article).items.slice(0,MAX_NAV);
+ return records.map((entry,index)=>{
+  const element=entry.node,{kind:type,number}=entry,pipe=entry.sourceKind==='gfm-pipe';
+  let title='';
+  if(pipe&&!element.id)element.id='hrs-md-table-'+(index+1);
+  if(type==='equation'){
+   title='公式（'+number+'）';
+   const description=element.getAttribute('data-equation-description')||element.querySelector('.equation-description')?.textContent?.trim();
+   if(description)title+=' '+description.slice(0,150);
+  }else{
+   const label=element.querySelector(type==='table'?'caption,.report-table-caption':'figcaption,.report-figure-caption');
+   title=catalog.objectTitle(entry,article.dataset.hrsShowObjectNumbers!=='0',article.dataset.hrsRenderProfile||'engineering');
+  }
+  return {element,type,title:title.slice(0,190),number,id:element.id||'',caption:{figure:'图',table:'表',equation:'公式'}[type]};
+ });
+}
+function makeButton(doc,label,className,title){
+ const btn=doc.createElement('button');btn.type='button';btn.textContent=label;btn.className=className;
+ if(title)btn.title=title;return btn;
+}
+function docElement(doc,tag,className){const el=doc.createElement(tag);if(className)el.className=className;return el;}
+function installCodeCards(doc,article){
+ for(const pre of article.querySelectorAll('pre')){
+  const code=pre.querySelector('code');if(!code||pre.closest('.hrs-code-panel,.docs-code,.hrs-table-source'))continue;
+  const card=docElement(doc,'div','hrs-code-panel');const head=docElement(doc,'div','hrs-code-head');
+  const language=docElement(doc,'span','hrs-code-language');
+  const lang=(code.className.match(/(?:^|\s)language-([a-z0-9_+-]+)/i)||[])[1]||'text';
+  language.textContent=lang.toUpperCase();head.append(language);pre.before(card);card.append(head,pre);
+ }
+ for(const panel of article.querySelectorAll('.hrs-code-panel,.docs-code')){
+  let header=panel.querySelector('.hrs-code-head,.docs-code-head');if(!header){header=docElement(doc,'div','hrs-code-head');panel.prepend(header);}
+  if(!header.querySelector('.hrs-code-copy,.copy-snippet')){
+   const copy=makeButton(doc,'复制','hrs-code-copy','复制这段代码到剪贴板');header.append(copy);
+  }
+  if(!header.querySelector('.hrs-code-fold')){
+   const fold=makeButton(doc,'折叠','hrs-code-fold','收起或展开代码块');fold.setAttribute('aria-expanded','true');header.append(fold);
+  }
+  // Exactly two groups: language on the left, copy/fold on the right.
+  // Old generated code panels (which already contain a copy button) also use
+  // this grouping, so the HTML report and offline help cannot diverge.
+  let actions=header.querySelector('.hrs-code-actions');
+  if(!actions){actions=docElement(doc,'span','hrs-code-actions');header.append(actions);}
+  for(const control of [...header.querySelectorAll('.hrs-code-copy,.copy-snippet,.hrs-code-fold')])actions.append(control);
+ }
+}
+/** Copy table cells, never HTML layout. All rows get a rectangular TSV grid.
+ * Quoted values with embedded newlines or tabs use Excel-compatible quoting.
+ * This helper is also exported for offline safety / integration testing. */
+function tableToTSV(table){
+ const grid=[];let width=0;
+ for(const [r,tr] of [...table.rows].entries()){
+  grid[r]??=[];let col=0;
+  for(const cell of [...tr.cells]){
+   while(grid[r][col]!==undefined)col++;
+   const rowspan=Math.max(1,cell.rowSpan||1),colspan=Math.max(1,cell.colSpan||1);
+   const value=cell.dataset.cellRaw??cell.innerText??cell.textContent??'';
+   for(let y=r;y<r+rowspan;y++){
+    grid[y]??=[];
+    for(let x=col;x<col+colspan;x++)grid[y][x]=(y===r&&x===col)?value:'';
+   }
+   col+=colspan;width=Math.max(width,col);
+  }
+ }
+ const quote=value=>/[\t\r\n"]/.test(value)?'"'+String(value).replace(/"/g,'""')+'"':String(value);
+ return grid.map(row=>Array.from({length:width},(_,i)=>quote(row?.[i]??'')).join('\t')).join('\n');
+}
+function installTableCards(doc,article){
+ for(const wrap of article.querySelectorAll('.report-table-wrap')){
+  const table=wrap.querySelector('table');if(!table)continue;
+  table.classList.add('hrs-table-rendered');
+  let tools=wrap.querySelector('.hrs-table-tools');if(tools){catalog.tableHeading(wrap);continue;}
+  tools=docElement(doc,'div','hrs-table-tools');
+  const kind=docElement(doc,'span','hrs-table-kind');kind.textContent=wrap.hasAttribute('data-pipe-table')?'Markdown 表格 · 不编号':'增强表格';
+  const controls=docElement(doc,'div','hrs-table-actions');
+  const source=wrap.querySelector('.hrs-table-source');
+  if(source){const toggle=makeButton(doc,'查看 MD','hrs-table-toggle','切换原始 Markdown 与可视表格');toggle.dataset.tableToggle='1';toggle.setAttribute('aria-pressed','false');controls.append(toggle);}
+  const copy=makeButton(doc,'复制表格','hrs-table-copy','复制为 TSV，粘贴 Excel/WPS 自动分列');copy.dataset.tableCopy='1';
+  controls.append(copy);tools.append(kind,controls);wrap.prepend(tools);catalog.tableHeading(wrap);
+ }
+}
+function copyText(doc,value){
+ const plain=String(value);
+ const fallback=()=>{
+  const area=doc.createElement('textarea');area.value=plain;area.readOnly=true;
+  area.style.cssText='position:fixed;left:-9999px;top:0;width:1px;height:1px;';
+  doc.body.append(area);area.focus();area.select();
+  let ok=false;try{ok=!!doc.execCommand('copy');}finally{area.remove();}return ok;
+ };
+ if(root.navigator?.clipboard?.writeText)return root.navigator.clipboard.writeText(plain).then(()=>true,()=>fallback());
+ return Promise.resolve(fallback());
+}
+/** PF11: read-only, lazy PDF resolver. Re-compilable exports reuse the v2
+ * archive blob; pure-reading and historical exports keep the old PDF script.
+ * A click opens a blank viewer synchronously to avoid popup blocking while
+ * we decompress / hash-check, and the PDF is not expanded until requested.
+ */
+function pdfAssetStore(doc,host=root){
+ const direct=doc.getElementById('hrs-pdf-originals');
+ const source=doc.getElementById('report-source');
+ const urls=new Map(),pending=new Map();let decoded=0,archive=null,legacy=null;
+ const validName=name=>/^[a-f0-9]{16}\.pdf$/i.test(name);
+ function safe64(text){
+  if(typeof text!=='string'||text.length>16*1024*1024||text.length%4!==0||!/^[A-Za-z0-9+/]*={0,2}$/.test(text))throw Error('PDF Base64 不合法');
+  const str=host.atob(text);return Uint8Array.from(str,c=>c.charCodeAt(0));
+ }
+ async function sha(bytes){
+  if(!host.crypto?.subtle)throw Error('当前浏览器无法校验 PDF 附件');
+  return [...new Uint8Array(await host.crypto.subtle.digest('SHA-256',bytes))].map(v=>v.toString(16).padStart(2,'0')).join('');
+ }
+ function pdfStructure(bytes){
+  if(bytes.length<32||bytes.length>12*1024*1024)throw Error('PDF 附件大小不合法');
+  const text=new TextDecoder();
+  if(!text.decode(bytes.subarray(0,1024)).trimStart().startsWith('%PDF-')||!text.decode(bytes.subarray(-4096)).includes('%%EOF'))throw Error('PDF 附件不完整');
+ }
+ function readMeta(name){
+  if(!validName(name))throw Error('PDF 路径不合法');
+  // Reject duplicate legacy entries even when an archive exists; PF10 reading
+  // output uses this script, while new recompilable output has no direct copy.
+  if(direct){
+   if(!legacy){legacy=JSON.parse(direct.textContent);if(!legacy||typeof legacy!=='object'||Array.isArray(legacy)||Object.keys(legacy).length>100)throw Error('PDF 清单无效');}
+   const record=legacy[name];
+   if(!record||!Number.isInteger(record.bytes)||record.bytes<32||record.bytes>12*1024*1024||!/^[a-f0-9]{64}$/.test(record.sha256)||typeof record.base64!=='string')throw Error('PDF 清单中的附件无效');
+   return {length:record.bytes,hash:record.sha256,encoded:record.base64,codec:null};
+  }
+  if(!source)throw Error('当前 HTML 没有携带 PDF 原件');
+  if(!archive){archive=JSON.parse(source.textContent);if(archive?.format!=='html-report-studio-v2'||archive?.profile?.sourceMode!=='recompilable')throw Error('不是可回编 PDF 资源索引');}
+  const items=archive.assetIndex,blobs=archive.blobs;
+  if(!items||typeof items!=='object'||!blobs||typeof blobs!=='object'||Array.isArray(items)||Array.isArray(blobs)||Object.keys(items).length>100||Object.keys(blobs).length>100)throw Error('资源归档索引无效');
+  const item=items['assets/'+name],id=item?.blobId;
+  if(!/^sha256:[a-f0-9]{64}$/.test(id||''))throw Error('PDF 原件索引不存在或哈希无效');
+  const blob=blobs[id];
+  if(!blob||blob.mime!=='application/pdf'||!Number.isSafeInteger(blob.bytes)||blob.bytes<32||blob.bytes>12*1024*1024||blob.domRef!==undefined||typeof blob.base64!=='string'||(blob.codec!==undefined&&blob.codec!=='deflate'))throw Error('归档 PDF 类型或长度无效');
+  return {length:blob.bytes,hash:id.slice(7),encoded:blob.base64,codec:blob.codec||null};
+ }
+ async function inflate(input,length){
+  if(typeof host.DecompressionStream!=='function')throw Error('浏览器不支持离线 Deflate 解压，请使用最新版 Edge');
+  const reader=new Blob([input]).stream().pipeThrough(new host.DecompressionStream('deflate')).getReader();
+  let size=0;const chunks=[];
+  try{
+   for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;
+    if(size>length||size>12*1024*1024)throw Error('PDF 解压超过大小限制');chunks.push(value);}
+  }catch(e){try{await reader.cancel();}catch{}throw Error('PDF 无损解压失败：'+e.message);}
+  const bytes=new Uint8Array(size);let pos=0;for(const v of chunks){bytes.set(v,pos);pos+=v.byteLength;}return bytes;
+ }
+ async function get(name){
+  if(urls.has(name))return urls.get(name);
+  if(pending.has(name))return pending.get(name);
+  const task=(async()=>{
+   const item=readMeta(name),packed=safe64(item.encoded);
+   const bytes=item.codec==='deflate'?await inflate(packed,item.length):packed;
+   if(bytes.length!==item.length)throw Error('PDF 原件长度校验失败');
+   pdfStructure(bytes);
+   if(await sha(bytes)!==item.hash)throw Error('PDF 原件 SHA-256 校验失败');
+   if(decoded+bytes.byteLength>30*1024*1024)throw Error('PDF 原件总量超限');
+   decoded+=bytes.byteLength;
+   const uri=host.URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));urls.set(name,uri);
+   return uri;
+  })();pending.set(name,task);
+  try{return await task;}finally{pending.delete(name);}
+ }
+ function revoke(){for(const uri of urls.values())host.URL.revokeObjectURL(uri);urls.clear();}
+ return {get,revoke,readMeta};
+}
+function installPDFOriginals(doc,article){
+ const links=[...article.querySelectorAll('a[data-figure-source="pdf"]')];
+ const pictures=[...article.querySelectorAll('img[data-pdf-asset]')];
+ if(!links.length&&!pictures.length)return;
+ const store=pdfAssetStore(doc);
+ const open=async(name,event)=>{
+  if(event){event.preventDefault();event.stopPropagation();}
+  // Browser popup policies require the new tab to be allocated synchronously.
+  let viewer=root.open('about:blank','_blank');
+  if(viewer){try{viewer.opener=null;viewer.document.title='PDF 原件校验中…';}catch{}}
+  try{const pdf=await store.get(name);
+   if(viewer&&!viewer.closed)viewer.location.replace(pdf);
+   else root.open(pdf,'_blank','noopener,noreferrer');
+  }catch(error){
+   if(viewer&&!viewer.closed){try{viewer.document.body.textContent='PDF 原件打开失败：'+error.message;}catch{viewer.close();}}
+   for(const link of links)if(link.dataset.pdfAsset===name){link.title='PDF 原件不可用：'+error.message;link.classList.add('pdf-source-error');}
+  }
+ };
+ for(const link of links){
+  const name=link.dataset.pdfAsset;
+  try{store.readMeta(name);}catch(e){link.title='PDF 原件不可用：'+e.message;link.classList.add('pdf-source-error');continue;}
+  link.href='#';link.setAttribute('role','button');link.title='点击校验并打开离线 PDF 原件';
+  link.addEventListener('click',event=>open(name,event));
+ }
+ article.addEventListener('dblclick',event=>{const picture=event.target.closest('img[data-pdf-asset]');if(picture)open(picture.dataset.pdfAsset,event);});
+ root.addEventListener('pagehide',store.revoke,{once:true});
+}
+function taskInteraction(article,profile){
+ const snapshot=article.dataset.hrsTaskSnapshot;
+ for(const box of article.querySelectorAll('input[type="checkbox"]')){
+  const key=box.dataset.hrsTaskKey;
+  const interactive=profile==='free'&&box.classList.contains('hrs-task-checkbox')&&/^[a-f0-9]{64}$/.test(snapshot||'')&&/^\d+$/.test(key||'');
+  box.disabled=!interactive;if(!interactive)continue;
+  const storageKey='hrs-task-v2:'+(root.location?.pathname||'')+':'+snapshot+':'+key;
+  try{const checked=root.localStorage.getItem(storageKey);if(checked==='0'||checked==='1')box.checked=checked==='1';}catch{/* Local reading state is optional. */}
+  box.addEventListener('change',()=>{try{root.localStorage.setItem(storageKey,box.checked?'1':'0');}catch{/* Do not block reading without storage. */}});
+ }
+}
+function mount(doc=root.document){
+ if(!doc)return null;
+ const article=doc.querySelector('[data-hrs-reader-root]');
+ if(!article||article.dataset.hrsReaderReady==='1')return null;
+ article.dataset.hrsReaderReady='1';
+ for(const anchor of article.querySelectorAll('a[href]')){
+  if(/^https?:\/\//i.test(anchor.getAttribute('href'))){anchor.target='_blank';anchor.rel='noopener noreferrer';}
+ }
+ installPDFOriginals(doc,article);
+ const originalDocs=!!article.closest('.docs-shell');
+ let profile='engineering',show=article.dataset.hrsShowObjectNumbers!=='0';
+ if(!originalDocs){
+  const declared=doc.documentElement.dataset.hrsRenderProfile;
+  profile=declared==='engineering'?'engineering':declared==='free'?'free':null;
+  const archiveNode=doc.getElementById('report-source');
+  if(archiveNode){try{const saved=JSON.parse(archiveNode.textContent);profile=profile||(saved.renderProfile==='engineering'?'engineering':'free');show=saved.renderOptions?.show_object_numbers!==false;}catch{/* Archive validity belongs to the existing inert reader. */}}
+  profile=profile||'engineering';
+  doc.body.dataset.renderProfile=profile;article.dataset.hrsRenderProfile=profile;
+  installTableCards(doc,article);catalog.applyDisplay(article,profile==='engineering'||show);catalog.tableChrome(article,profile);
+  taskInteraction(article,profile);
+ }
+ const shell=article.closest('.docs-shell');
+ let sidebar,nav,layout;
+ if(originalDocs){
+  sidebar=shell.querySelector('.docs-nav');nav=sidebar;
+ }else{
+  layout=docElement(doc,'div','hrs-reader-layout');
+  sidebar=docElement(doc,'aside','hrs-reader-sidebar');sidebar.setAttribute('aria-label','报告导航');
+  const heading=docElement(doc,'div','hrs-reader-brand');heading.textContent=profile==='free'?'笔记阅读':'报告阅读';sidebar.append(heading);
+  const desc=docElement(doc,'p','hrs-reader-subtitle');desc.textContent=(profile==='free'?'自由笔记':'工程报告')+' · 离线 HTML';sidebar.append(desc);
+  const links=docElement(doc,'nav','hrs-reader-links');links.setAttribute('aria-label','章节与图表目录');sidebar.append(links);
+  nav=links;
+  const parent=article.parentNode;parent.insertBefore(layout,article);layout.append(sidebar,article);
+  doc.body.classList.add('hrs-reader-mode');article.classList.add('hrs-reader-main');
+ }
+ const tools=docElement(doc,'div','hrs-reader-tools');
+ const search=docElement(doc,'input','hrs-reader-search');search.type='search';search.placeholder='查找正文（回车定位）';
+ search.setAttribute('aria-label','在报告正文中查找文字');search.maxLength=120;
+ const result=docElement(doc,'span','hrs-reader-result');result.setAttribute('role','status');result.setAttribute('aria-live','polite');
+ const back=makeButton(doc,'↑ 返回顶部','hrs-reader-top','返回报告顶部');
+ tools.append(search,result,back);
+ if(originalDocs){const actions=sidebar.querySelector('.docs-actions');if(actions)actions.after(tools);else sidebar.prepend(tools);}
+ else sidebar.insertBefore(tools,nav);
+ const outline=headingOutline(article),seen=new Set();
+ const ensureId=(element,proposed)=>{
+  let id=proposed||'hrs-anchor';let n=1;
+  while(seen.has(id)||(doc.getElementById(id)&&doc.getElementById(id)!==element))id=proposed+'-'+(++n);
+  element.id=id;seen.add(id);return id;
+ };
+ const nodes=[];
+ for(const entry of outline){
+  entry.id=ensureId(entry.node,entry.id);
+  if(originalDocs&&entry.level===1)continue;
+  if(originalDocs){
+   const old=sidebar.querySelector('a[href="#'+entry.id+'"]');if(old){nodes.push(old);continue;}
+  }
+  const link=docElement(doc,'a',`hrs-reader-nav-link hrs-reader-level-${entry.level}`);link.href='#'+entry.id;
+  link.textContent=entry.title;link.title=entry.title;nav.append(link);nodes.push(link);
+ }
+ let objectNav=null;
+ if(!originalDocs){
+  const objects=objectOutline(article);
+  if(objects.length){
+   const section=docElement(doc,'section','hrs-reader-object-section');
+   section.setAttribute('aria-label','图表与公式导航');nav.append(section);
+   const group=docElement(doc,'div','hrs-reader-group-title');group.textContent='图表与公式导航';section.append(group);
+   // Small, neutral segmented switch matching the existing light sidebar.
+   const tabs=docElement(doc,'div','hrs-reader-object-tabs');
+   tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','图表与公式的排列方式');section.append(tabs);
+   const orderBtn=makeButton(doc,'按正文顺序','hrs-reader-object-tab');
+   const typeBtn=makeButton(doc,'按类型分类','hrs-reader-object-tab');
+   const panels=[docElement(doc,'div','hrs-reader-object-panel hrs-reader-object-order'),
+                 docElement(doc,'div','hrs-reader-object-panel hrs-reader-object-types')];
+   const names=['order','type'];
+   for(let i=0;i<2;i++){
+    const button=[orderBtn,typeBtn][i];button.setAttribute('role','tab');
+    button.id='hrs-reader-tab-'+names[i];button.setAttribute('aria-controls','hrs-reader-panel-'+names[i]);
+    panels[i].id='hrs-reader-panel-'+names[i];panels[i].setAttribute('role','tabpanel');
+    panels[i].setAttribute('aria-labelledby',button.id);
+    tabs.append(button);section.append(panels[i]);
+   }
+   const typeGroups={};
+   for(const [type,title] of [['figure','图'],['table','表'],['equation','公式']]){
+    const detail=docElement(doc,'details','hrs-reader-type-group');detail.dataset.readerType=type;detail.open=true;
+    const summary=docElement(doc,'summary','hrs-reader-type-summary');
+    const count=objects.filter(item=>item.type===type).length;
+    summary.textContent=title+'（'+count+'）';detail.append(summary);
+    const entries=docElement(doc,'div','hrs-reader-type-entries');detail.append(entries);
+    panels[1].append(detail);typeGroups[type]={detail,entries};
+   }
+   objects.forEach((item,index)=>{
+    const id=ensureId(item.element,item.id||'hrs-object-'+(index+1));item.id=id;
+    for(const [place,parent] of [['order',panels[0]],['type',typeGroups[item.type].entries]]){
+     const link=docElement(doc,'a','hrs-reader-nav-link hrs-reader-object hrs-reader-object-'+item.type);
+     link.href='#'+id;link.textContent=item.title;link.title=item.title;
+     link.dataset.readerType=item.type;link.dataset.readerMode=place;parent.append(link);
+    }
+   });
+   let active='order';
+   const switchMode=(mode,focus=false)=>{
+    active=mode;
+    for(let i=0;i<2;i++){
+     const on=names[i]===mode,button=[orderBtn,typeBtn][i];
+     button.setAttribute('aria-selected',String(on));button.tabIndex=on?0:-1;
+     panels[i].hidden=!on;
+     if(on&&focus)button.focus();
+    }
+    if(objectNav?.refreshSearch)objectNav.refreshSearch();
+   };
+   orderBtn.addEventListener('click',()=>switchMode('order'));
+   typeBtn.addEventListener('click',()=>switchMode('type'));
+   tabs.addEventListener('keydown',event=>{
+    if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+    event.preventDefault();
+    const mode=event.key==='Home'?'order':event.key==='End'?'type':active==='order'?'type':'order';
+    switchMode(mode,true);
+   });
+   objectNav={objects,tabs,panels,typeGroups,get mode(){return active;},switchMode,refreshSearch:null};
+   switchMode('order');
+  }
+ }
+ const navLinks=[...sidebar.querySelectorAll('a[href^="#"]')];
+ // An explicit user navigation is more authoritative than IntersectionObserver.
+ // An observer may see a nearby long table *after* a short equation scrolls into
+ // view; it must never steal the just-clicked equation highlight. This selection
+ // persists until a REAL user scroll gesture, not an arbitrary timer.
+ let clickedTarget=null;
+ let readingObserver=null;
+ const visibleReadingTargets=new Map();
+ const updateActive=id=>{
+  for(const link of navLinks)link.classList.toggle('hrs-reader-active',!!id&&link.getAttribute('href')==='#'+id);
+ };
+ const syncReadingPosition=()=>{
+  if(clickedTarget||!visibleReadingTargets.size)return;
+  const guide=root.innerHeight*.15;
+  const candidates=[];
+  for(const [element] of visibleReadingTargets){
+   if(!element.isConnected||!element.id)continue;
+   const box=element.getBoundingClientRect();
+   if(box.bottom<guide-5||box.top>root.innerHeight*.34)continue;
+   // Prefer the object closest to the reader's top reading line, with stable
+   // DOM order as tie break rather than callback delivery order.
+   const distance=box.top<=guide?guide-box.top:box.top-guide;
+   candidates.push({id:element.id,distance});
+  }
+  candidates.sort((a,b)=>a.distance-b.distance);
+  if(candidates.length)updateActive(candidates[0].id);
+ };
+ const releaseClickedTarget=event=>{
+  if(!clickedTarget)return;
+  if(event?.target&&sidebar.contains(event.target))return; // scrolling the nav is not reading the article
+  clickedTarget=null;
+  // Scroll / IntersectionObserver will resume automatic following. A current
+  // visible object can also be chosen now even without a fresh IO entry.
+  if(root.requestAnimationFrame)root.requestAnimationFrame(syncReadingPosition);
+  else syncReadingPosition();
+ };
+ sidebar.addEventListener('click',event=>{
+  const link=event.target.closest('a[href^="#"]');
+  if(!link||!sidebar.contains(link))return;
+  const id=link.getAttribute('href').slice(1);
+  if(doc.getElementById(id)){clickedTarget=id;updateActive(id);}
+ });
+ // Only physical user input cancels an explicit navigation. Programmatic smooth
+ // scroll, hash updates and IO callbacks do NOT. This works without scrollend
+ // support and avoids a brittle 300/800ms selection timeout.
+ doc.addEventListener('wheel',releaseClickedTarget,{passive:true,capture:true});
+ doc.addEventListener('touchmove',releaseClickedTarget,{passive:true,capture:true});
+ doc.addEventListener('pointerdown',event=>{
+  if(event.isPrimary&&event.pointerType==='mouse')releaseClickedTarget(event);
+ },{passive:true,capture:true});
+ doc.addEventListener('keydown',event=>{
+  if(event.altKey||event.ctrlKey||event.metaKey)return;
+  if(!['PageDown','PageUp','ArrowDown','ArrowUp','Home','End',' '].includes(event.key))return;
+  if(event.target?.closest?.('input,textarea,select,[contenteditable="true"]'))return;
+  // Space on a link/button activates that control; do not mistake it for page scroll.
+  if(event.key===' '&&event.target?.closest?.('a,button,summary'))return;
+  releaseClickedTarget(event);
+ },{capture:true});
+ back.addEventListener('click',()=>{clickedTarget=null;root.scrollTo({top:0,behavior:'smooth'});});
+ let priorTypeOpen=null;
+ const refreshSearch=()=>{
+  const query=search.value.trim().toLocaleLowerCase();
+  const active=objectNav?.mode||'order';
+  let hits=new Set();
+  for(const link of navLinks){
+   const show=!query||link.textContent.toLocaleLowerCase().includes(query);
+   link.hidden=!show;
+   if(show&&query&&(!link.dataset.readerMode||link.dataset.readerMode===active))hits.add(link.getAttribute('href'));
+  }
+  if(objectNav){
+   if(query&&priorTypeOpen===null)priorTypeOpen=Object.fromEntries(Object.entries(objectNav.typeGroups).map(([name,group])=>[name,group.detail.open]));
+   for(const [type,group] of Object.entries(objectNav.typeGroups)){
+    const any=[...group.entries.querySelectorAll('a')].some(link=>!link.hidden);
+    group.detail.hidden=!!query&&!any;
+    if(query&&any)group.detail.open=true;
+    if(!query&&priorTypeOpen!==null)group.detail.open=priorTypeOpen[type];
+   }
+   if(!query)priorTypeOpen=null;
+  }
+  result.textContent=query?hits.size+' 个导航匹配 · 回车查正文':'';
+ };
+ if(objectNav)objectNav.refreshSearch=refreshSearch;
+ search.addEventListener('input',refreshSearch);
+ search.addEventListener('keydown',event=>{
+  if(event.key!=='Enter')return;event.preventDefault();
+  const query=search.value.trim().toLocaleLowerCase();if(!query)return;
+  const walker=doc.createTreeWalker(article,root.NodeFilter.SHOW_TEXT);let found=null,node;
+  while((node=walker.nextNode())){
+   if(node.parentElement?.closest('script,style,svg,.hrs-code-head'))continue;
+   const pos=node.textContent.toLocaleLowerCase().indexOf(query);if(pos>=0){found={node,pos};break;}
+  }
+  if(!found){result.textContent='正文未找到此文字';return;}
+  const selection=root.getSelection?.();if(selection){const range=doc.createRange();
+   range.setStart(found.node,found.pos);range.setEnd(found.node,Math.min(found.node.length,found.pos+query.length));
+   selection.removeAllRanges();selection.addRange(range);}
+  found.node.parentElement?.scrollIntoView({block:'center',behavior:'smooth'});
+  result.textContent='已定位正文匹配项';
+ });
+ installCodeCards(doc,article);
+ installTableCards(doc,article);
+ const overlay=docElement(doc,'div','hrs-reader-lightbox');overlay.hidden=true;
+ overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','查看图片');
+ const close=makeButton(doc,'×','hrs-reader-lightbox-close','关闭图片放大');
+ close.setAttribute('aria-label','关闭图片放大');
+ const light=docElement(doc,'img','hrs-reader-lightbox-image');light.alt='放大查看图片';
+ const name=docElement(doc,'div','hrs-reader-lightbox-caption');name.hidden=true;
+ overlay.append(close,light,name);doc.body.append(overlay);
+ let previousFocus=null,zoomTimer=null;
+ const hide=()=>{clearTimeout(zoomTimer);if(overlay.hidden)return;overlay.hidden=true;light.removeAttribute('src');previousFocus?.focus?.();};
+ close.addEventListener('click',hide);
+ overlay.addEventListener('click',event=>{if(event.target===overlay)hide();});
+ doc.addEventListener('keydown',event=>{if(event.key==='Escape'&&!overlay.hidden){event.preventDefault();hide();}});
+ article.addEventListener('click',async event=>{
+  const action=event.target.closest('[data-table-copy],[data-table-toggle],[data-table-fold]');
+  if(action&&article.contains(action)){
+   event.preventDefault();event.stopPropagation();
+   const wrap=action.closest('.report-table-wrap'),table=wrap?.querySelector('table');if(!table)return;
+   const source=wrap.querySelector('.hrs-table-source');
+   if(action.dataset.tableFold){
+    const pre=source?.querySelector('.hrs-table-source-pre');if(!pre)return;
+    pre.hidden=!pre.hidden;action.textContent=pre.hidden?'展开源码':'折叠源码';
+    action.setAttribute('aria-expanded',String(!pre.hidden));return;
+   }
+   if(action.dataset.tableToggle){
+    if(!source)return;
+    const showing=source.hidden;source.hidden=!showing;table.hidden=showing;
+    action.textContent=showing?'查看表格':'查看 MD';action.setAttribute('aria-pressed',String(showing));
+   }else{
+    try{
+     const ok=await copyText(doc,tableToTSV(table));action.textContent=ok?'已复制 TSV':'复制失败';
+    }catch{action.textContent='复制失败';}
+    root.setTimeout(()=>{if(action.isConnected)action.textContent='复制表格';},1300);
+   }return;
+  }
+  const button=event.target.closest('.hrs-code-copy,.copy-snippet,.hrs-code-fold');
+  if(button&&article.contains(button)){
+   const panel=button.closest('.hrs-code-panel,.docs-code');if(!panel)return;
+   const pre=panel.querySelector('pre');if(!pre)return;
+   if(button.classList.contains('hrs-code-fold')){
+    pre.hidden=!pre.hidden;
+    const lines=(panel.querySelector('pre code')?.textContent||'').split('\n').length;
+    button.textContent=pre.hidden?'展开 · '+lines+' 行':'折叠';
+    button.setAttribute('aria-expanded',String(!pre.hidden));return;
+   }
+   try{
+    const ok=await copyText(doc,panel.querySelector('pre code')?.textContent||'');
+    button.textContent=ok?'已复制':'复制失败';
+   }catch{button.textContent='复制失败';}
+   root.setTimeout(()=>{button.textContent=button.classList.contains('copy-snippet')?'复制代码':'复制';},1300);
+   return;
+  }
+  const image=event.target.closest('img');if(!image||!article.contains(image)||image.closest('a'))return;
+  if(!image.getAttribute('src')||image.naturalWidth===0)return;
+  clearTimeout(zoomTimer);if(event.detail>1)return;zoomTimer=root.setTimeout(()=>{
+  previousFocus=doc.activeElement;light.src=image.src;light.alt=image.alt||'报告图片';
+  name.textContent=image.alt||image.closest('figure')?.querySelector('figcaption')?.textContent||'图片预览';
+  overlay.hidden=false;close.focus();
+  },320);
+ });
+ for(const image of article.querySelectorAll('img')){
+  if(!image.closest('a')){image.classList.add('hrs-reader-zoomable');image.setAttribute('tabindex','0');
+   image.setAttribute('role','button');image.setAttribute('aria-label','放大图片：'+(image.alt||'图片'));
+   image.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();image.click();}});}
+ }
+ if('IntersectionObserver' in root&&(outline.length||objectNav?.objects.length)){
+  readingObserver=new root.IntersectionObserver(entries=>{
+   for(const entry of entries){
+    if(!navLinks.some(link=>link.getAttribute('href')==='#'+entry.target.id))continue;
+    if(entry.isIntersecting)visibleReadingTargets.set(entry.target,true);
+    else visibleReadingTargets.delete(entry.target);
+   }
+   // Both the chronological and type navigation share the same stable anchor.
+   // During programmatic navigation callbacks only refresh the visible set;
+   // the explicit user's choice continues to own the active highlight.
+   syncReadingPosition();
+  },{rootMargin:'-10% 0px -72% 0px'});
+  for(const item of outline)readingObserver.observe(item.node);
+  if(objectNav)for(const item of objectNav.objects)readingObserver.observe(item.element);
+  let scrollQueued=false;
+  root.addEventListener('scroll',()=>{
+   if(clickedTarget||scrollQueued)return;
+   scrollQueued=true;
+   const run=()=>{scrollQueued=false;syncReadingPosition();};
+   if(root.requestAnimationFrame)root.requestAnimationFrame(run);else run();
+  },{passive:true});
+ }
+ return {article,outline,navigation:navLinks.length,tools,lightbox:overlay,objectNav,version:VERSION};
+}
+function init(){return mount(root.document);}
+const api={VERSION,headingOutline,objectOutline,pdfAssetStore,tableToTSV,installTableCards,taskInteraction,mount,init};
+if(typeof module!=='undefined'&&module.exports)module.exports=api;
+root.HRSReportReader=api;
+if(root.document){if(root.document.readyState==='loading')root.document.addEventListener('DOMContentLoaded',init,{once:true});else init();}
+})(typeof window!=='undefined'?window:globalThis);
+</script></body></html>

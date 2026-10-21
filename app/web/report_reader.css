@@ -1,0 +1,96 @@
+/* HF8 PF3: shared optional offline reader controls for exported HTML and help.
+   It never changes article content, Markdown, figure/table IDs or IR. */
+body.hrs-reader-mode{max-width:none;margin:0;padding:0;background:var(--hrs-bg, #f1f7ec)}
+.hrs-reader-layout{display:grid;grid-template-columns:258px minmax(0,1fr);min-height:100vh;align-items:start}
+.hrs-reader-sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--hrs-editor, #f7f9fc);border-right:1px solid var(--hrs-line, #dce5f1);padding:22px 14px 30px;z-index:4}
+.hrs-reader-brand{font-size:17px;font-weight:750;color:var(--hrs-ink, #203b62);padding:3px 10px}
+.hrs-reader-subtitle{color:var(--hrs-muted, #72839c);font-size:11px;line-height:1.5;margin:2px 10px 18px}
+.hrs-reader-tools{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 16px;padding:0 7px;align-items:center}
+.hrs-reader-search{width:100%;padding:8px 11px;min-width:0;border:1px solid var(--hrs-line, #d2ddeb);border-radius:8px;background:#fff;color:var(--hrs-ink, #263c5b);font-size:12px}
+.hrs-reader-search:focus{outline:2px solid var(--hrs-line, #9db8ef);outline-offset:1px}
+.hrs-reader-result{flex:1;min-width:82px;font-size:11px;line-height:1.5;color:var(--hrs-text, #667b97)}
+.hrs-reader-top{border:1px solid var(--hrs-line, #cfdbef);padding:5px 8px;color:var(--hrs-brand, #355a96);background:white;border-radius:6px;font-size:11px;cursor:pointer}
+.hrs-reader-links{display:grid;gap:1px}
+.hrs-reader-nav-link{display:block;padding:6px 10px;border-radius:6px;text-decoration:none;color:var(--hrs-text, #526783);font-size:12px;line-height:1.55;overflow-wrap:anywhere}
+.hrs-reader-nav-link:hover,.hrs-reader-nav-link.hrs-reader-active{background:var(--hrs-bg, #e6eeff);color:var(--hrs-brand, #2453a5)}
+.hrs-reader-level-1{font-weight:750;color:var(--hrs-ink, #304762)}
+.hrs-reader-level-3{padding-left:20px;font-size:11.5px}
+.hrs-reader-level-4{padding-left:28px;font-size:11px}
+.hrs-reader-level-5{padding-left:36px;font-size:11px}
+.hrs-reader-level-6{padding-left:44px;font-size:11px}
+.hrs-reader-group-title{padding:14px 10px 5px;margin-top:12px;border-top:1px solid var(--hrs-line, #d8e2ef);font-weight:700;font-size:11px;color:var(--hrs-muted, #7183a0)}
+.hrs-reader-object{font-size:11px;padding-left:13px}
+.hrs-reader-nav-link[hidden],.docs-nav a[href^="#"][hidden]{display:none!important}
+.hrs-reader-main{width:min(1010px,calc(100% - 56px));min-width:0;margin:24px auto 55px;padding:44px clamp(22px,5vw,70px);background:#fff;border-radius:12px;box-shadow:0 5px 31px #1e345115;box-sizing:border-box}
+.hrs-reader-zoomable{cursor:zoom-in}
+.hrs-reader-zoomable:focus{outline:3px solid var(--hrs-line, #93b8e7);outline-offset:3px}
+.hrs-reader-lightbox[hidden]{display:none!important}
+.hrs-reader-lightbox{position:fixed;z-index:100000;inset:0;background:rgba(11,20,36,.91);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:38px 22px;color:#fff}
+.hrs-reader-lightbox-close{position:absolute;top:15px;right:22px;border:1px solid var(--hrs-line, #cbd5e1);border-radius:8px;background:var(--hrs-ink, #223249);color:white;font-size:27px;line-height:1;padding:4px 13px;cursor:pointer}
+.hrs-reader-lightbox-image{object-fit:contain;max-width:94vw;max-height:80vh;width:auto;height:auto;margin:0;cursor:zoom-out}
+.hrs-reader-lightbox-caption{padding:10px;font-size:12px;color:var(--hrs-line, #cbd5e1);text-align:center}
+.hrs-code-fold{margin-left:8px;border:1px solid var(--hrs-line, #c7d3e6);border-radius:5px;padding:3px 8px;font-size:10px;color:var(--hrs-muted, #64736a);background:#fff;cursor:pointer}
+.hrs-code-panel pre[hidden],.docs-code pre[hidden]{display:none!important}
+.docs-nav .hrs-reader-tools{margin:10px 6px 14px}
+@media(max-width:850px){.hrs-reader-layout{display:block}.hrs-reader-sidebar{position:relative;height:auto;max-height:230px;overflow-y:auto;border-right:0;border-bottom:1px solid var(--hrs-line, #dce5f1)}.hrs-reader-main{width:calc(100% - 20px);margin:10px auto 24px;padding:27px 17px}.hrs-reader-tools{margin:5px 0}}
+@media print{
+ body.hrs-reader-mode{max-width:none!important;margin:0!important;padding:0!important;background:#fff!important}
+ .hrs-reader-layout{display:block!important;min-height:0!important}
+ .hrs-reader-sidebar,.hrs-reader-tools,.hrs-reader-lightbox,.hrs-reader-top,.hrs-code-fold,.hrs-code-copy,.copy-snippet{display:none!important}
+ .hrs-reader-main{max-width:none!important;width:auto!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+ .hrs-code-panel pre[hidden],.docs-code pre[hidden]{display:block!important}
+}
+
+[data-figure-source="pdf"]{cursor:pointer}@media print{[data-figure-source],.figure-source-link,.figure-edit-button{display:none!important}}
+
+/* HF8 PF6: maintain a clean enlarged image. The figure caption remains in prose. */
+.hrs-reader-lightbox-caption{display:none!important}
+.hrs-reader-lightbox .hrs-reader-lightbox-image{max-height:88vh}
+.report-figure-wrap .figure-source-chip{position:absolute;top:8px;right:8px;z-index:2;display:inline-flex;align-items:center;padding:4px 8px;border:1px solid var(--hrs-line, #d4dfec);border-radius:6px;background:rgba(255,255,255,.94);color:var(--hrs-brand, #44658d);font-size:10px;font-weight:650;text-decoration:none;line-height:1.3;white-space:nowrap;opacity:.86}
+.report-figure-wrap .figure-source-chip:hover,.report-figure-wrap .figure-source-chip:focus-visible{opacity:1;background:var(--hrs-bg, #edf3ff);color:var(--hrs-brand, #2459a8)}
+.report-figure-wrap .image-group-cell{position:relative}
+.figure-media-stage{position:relative;display:table;max-width:100%;margin:0 auto}
+@media print{.figure-source-chip{display:none!important}}
+
+
+/* HF8 PF8 — two-sided code header (left: language, right: related actions).
+   The middle floating copy button in PF7 came from space-between on 3 children. */
+.hrs-code-head,.docs-code-head{display:flex;justify-content:flex-start;align-items:center;gap:7px}
+.hrs-code-head>:first-child,.docs-code-head>:first-child{margin-right:auto}
+.hrs-code-actions{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;margin-left:auto}
+.hrs-code-actions .hrs-code-copy,.hrs-code-actions .copy-snippet,.hrs-code-actions .hrs-code-fold{margin:0;border:1px solid transparent;border-radius:5px;background:transparent;color:var(--hrs-muted, #506480);padding:3px 7px;font-size:11px;cursor:pointer}
+.hrs-code-actions button:hover,.hrs-code-actions button:focus-visible{border-color:var(--hrs-line, #cedaee);background:var(--hrs-brand-tint, #e2ebfc);color:var(--hrs-brand, #2454a5)}
+.hrs-code-actions button[aria-expanded="false"]{color:var(--hrs-brand, #305daa)}
+@media print{.hrs-code-actions{display:none!important}}
+
+/* PF8: avoid a second gray, bordered box around a normal fenced code line. */
+.hrs-code-panel>pre:not(.hrs-code-pre){margin:0!important;padding:12px 14px!important;border:0!important;border-radius:0!important;background:transparent!important;line-height:1.55}
+
+/* HF8 PF9 — two modes inside the existing pale-blue report sidebar.
+   Tabs are deliberately small and neutral: navigation, not report content. */
+.hrs-reader-object-section{margin-top:2px;min-width:0}
+.hrs-reader-object-section .hrs-reader-group-title{padding-bottom:8px}
+.hrs-reader-object-tabs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px;padding:3px;margin:0 7px 10px;border:1px solid var(--hrs-line, #e3eaf4);border-radius:8px;background:var(--hrs-bg, #edf2f9)}
+.hrs-reader-object-tab{appearance:none;background:transparent;border:1px solid transparent;border-radius:6px;min-width:0;padding:7px 3px;line-height:1.35;white-space:nowrap;color:var(--hrs-text, #6c7d95);font:inherit;font-size:11px;cursor:pointer}
+.hrs-reader-object-tab[aria-selected="true"]{background:#fff;color:var(--hrs-brand, #2b5495);border-color:var(--hrs-line, #dbe5f5);box-shadow:0 1px 4px #2348760d;font-weight:650}
+.hrs-reader-object-tab:hover:not([aria-selected="true"]){color:var(--hrs-brand, #395d94);background:var(--hrs-bg, #e5edf8)}
+.hrs-reader-object-tab:focus-visible{outline:2px solid var(--hrs-line, #7fa3e4);outline-offset:1px}
+.hrs-reader-object-panel[hidden],.hrs-reader-type-group[hidden]{display:none!important}
+.hrs-reader-type-group{margin:0 4px 7px;border:0;min-width:0}
+.hrs-reader-type-summary{list-style:none;cursor:pointer;color:var(--hrs-ink, #3f5a7d);border-radius:6px;padding:8px 7px;font-size:12px;font-weight:650;line-height:1.45}
+.hrs-reader-type-summary::-webkit-details-marker{display:none}
+.hrs-reader-type-summary::before{content:'▸';color:var(--hrs-muted, #8199b8);display:inline-block;width:17px;font-size:12px;transition:transform .12s ease}
+.hrs-reader-type-group[open]>.hrs-reader-type-summary::before{transform:rotate(90deg)}
+.hrs-reader-type-summary:hover{background:var(--hrs-bg, #edf3fc);color:var(--hrs-brand, #295392)}
+.hrs-reader-type-summary:focus-visible{outline:2px solid var(--hrs-line, #a4bce5)}
+.hrs-reader-type-entries{display:grid;gap:1px;padding:1px 0 3px 8px}
+.hrs-reader-object-panel .hrs-reader-nav-link{min-width:0}
+.hrs-reader-type-group+.hrs-reader-type-group{border-top:1px solid var(--hrs-line, #e7edf5);padding-top:4px}
+@media(max-width:850px){.hrs-reader-object-tabs{max-width:280px}}
+@media print{.hrs-reader-object-section,.hrs-reader-object-tabs,.hrs-reader-object-panel{display:none!important}}
+
+/* Preserve explicit quote lines and synthesize Chinese italics consistently. */
+.paper,.reader-paper{font-synthesis:style}
+.paper blockquote p,.reader-paper blockquote p{white-space:pre-line}
+.paper[data-hrs-render-profile="free"] blockquote p,[data-hrs-reader-root][data-hrs-render-profile="free"] blockquote p{margin:0;line-height:1.5}
+.paper[data-hrs-render-profile="free"] blockquote p+p,[data-hrs-reader-root][data-hrs-render-profile="free"] blockquote p+p{margin-top:.7em}

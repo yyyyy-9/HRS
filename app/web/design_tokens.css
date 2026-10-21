@@ -1,0 +1,44 @@
+﻿/* PF13.4 · single source of truth for reusable UI design tokens.
+ * Future themes should override variables, never patch component selectors.
+ * Included in the editor, self-contained exported HTML and offline help.
+ */
+:root {
+  --hrs-blank-line-height: 1.5em;
+  --hrs-image-placeholder-ratio: 16 / 9;
+  --hrs-table-radius: 8px;
+  --hrs-table-grid-width: 1px;
+  --hrs-table-cell-padx: 7px;
+  --hrs-table-cell-pady: 8px;
+  --hrs-table-row-min-height: 32px;
+  --hrs-table-caption-pady: 8px;
+  --hrs-table-toolbar-padx: 10px;
+  --hrs-table-toolbar-pady: 3px;
+  --hrs-table-block-margin: 17px;
+  --hrs-table-text-size: 12px;
+  --hrs-table-line-height: 1.45;
+  --hrs-table-toolbar-size: 11px;
+  --hrs-table-toolbar-min-height: 30px;
+  --hrs-table-free-title-padx: 12px;
+  --hrs-table-action-pady: 4px;
+  --hrs-table-action-padx: 7px;
+  --hrs-table-action-radius: 5px;
+  --hrs-table-action-gap: 5px;
+  --hrs-table-source-max-height: 540px;
+  --hrs-code-radius: 8px;
+  --hrs-code-header-min-height: 30px;
+  --hrs-code-font-size: 12px;
+  --hrs-code-leading: 1.65;
+  --hrs-code-padding-x: 14px;
+  --hrs-code-padding-y: 12px;
+  /* Semantic role aliases follow the selected palette; no duplicate colors. */
+  --hrs-table-outline: var(--hrs-line);
+  --hrs-table-ink: var(--hrs-ink);
+  --hrs-table-control-ink: var(--hrs-muted);
+  --hrs-table-hover: var(--hrs-brand-tint);
+  --hrs-table-caption-ink: var(--hrs-ink);
+  --hrs-table-caption-size: var(--hrs-table-text-size);
+  --hrs-code-action-ink: var(--hrs-muted);
+}
+
+/* Shared section geometry; palette remains in the existing theme catalog. */
+:root{--hrs-section-font-size:13px;--hrs-section-control-size:24px}

@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Report Studio · 离线报告工作台</title>
+  <link rel="icon" type="image/svg+xml" href="/web/app-icon.svg">
+  <link rel="alternate icon" type="image/x-icon" href="/web/app-icon.ico">
+  <link rel="apple-touch-icon" href="/web/app-icon.png">
+  <link rel="manifest" href="/web/app.webmanifest">
+  <link rel="stylesheet" id="hrs-theme-link" href="/web/theme.css">
+  <link rel="stylesheet" href="/web/design_tokens.css">
+  <link rel="stylesheet" href="/web/style.css">
+  <link rel="stylesheet" href="/web/reading_pack.css">
+  <link rel="stylesheet" href="/web/surface_components.css">
+  <link rel="stylesheet" href="/web/document_search.css">
+  <script>
+    // Full Mermaid requires this ES2022 API. Install once, before any vendor
+    // executes; preserve native implementations and normal property semantics.
+    if(typeof Object.hasOwn!=='function')Object.defineProperty(Object,'hasOwn',{
+      configurable:true,writable:true,
+      value:function(object,key){return Object.prototype.hasOwnProperty.call(object,key);}
+    });
+    window.MathJax={
+      loader:{load:['[tex]/boldsymbol']},
+      tex:{inlineMath:[['$','$']],displayMath:[['$$','$$']],processEscapes:true, packages: {'[+]': ['boldsymbol']}},
+      svg:{fontCache:'local'},
+      options:{enableMenu:false},
+      startup:{typeset:false}
+    };
+  </script>
+  <script src="/web/vendor/marked.js" defer></script>
+  <script src="/web/safe_html.js" defer></script>
+  <script src="/web/vendor/mathjax-tex-svg.js" defer></script>
+  <script src="/web/vendor/mermaid/mermaid.min.js" defer></script>
+  <script src="/web/mermaid_renderer.js" defer></script>
+  <script src="/web/diagram.js" defer></script>
+  <script src="/web/report_clone.js" defer></script>
+  <script src="/web/table_content.js" defer></script>
+  <script src="/web/report_tables.js" defer></script>
+  <script src="/web/pipe_tables.js" defer></script>
+  <script src="/web/dialogs.js" defer></script>
+  <script src="/web/table_editor.js" defer></script>
+  <script src="/web/report_layout.js" defer></script>
+  <script src="/web/list_styles.js" defer></script>
+  <script src="/web/object_catalog.js" defer></script>
+  <script src="/web/source_blocks.js" defer></script>
+  <script src="/web/source_actions.js" defer></script>
+  <script src="/web/object_clipboard.js" defer></script>
+  <script src="/web/report_equations.js" defer></script>
+  <script src="/web/source_map.js" defer></script>
+  <script src="/web/scroll_follow.js" defer></script>
+  <script src="/web/code_highlight.js" defer></script>
+  <script src="/web/inline_formula.js" defer></script>
+  <script src="/web/vendor/source-editor.js" defer></script>
+  <script src="/web/source_projection.js" defer></script>
+  <script src="/web/draft_snapshot.js" defer></script>
+  <script src="/web/product_settings.js" defer></script>
+  <script src="/web/render_profile.js" defer></script>
+  <script src="/web/notebook_view.js" defer></script>
+  <script src="/web/preview_images.js" defer></script>
+  <script src="/web/color_theme.js" defer></script>
+  <script src="/web/export_archive.js" defer></script>
+  <script src="/web/export_rendition.js" defer></script>
+  <script src="/web/portable_window.js" defer></script>
+  <script src="/web/note_syntax.js" defer></script>
+  <script src="/web/external_links.js" defer></script>
+  <script src="/web/reading_pack.js" defer></script>
+  <script src="/web/bridge_model.js" defer></script>
+  <script src="/web/word_export.js" defer></script>
+  <script src="/web/report_workspace.js" defer></script>
+  <script src="/web/document_search.js" defer></script>
+  <script src="/web/preflight.js" defer></script>
+  <script src="/web/operations.js" defer></script>
+  <script src="/web/preview_commit.js" defer></script>
+  <script src="/web/app.js" defer></script>
+</head>
+<body>
+  <div id="workspace-operation" class="workspace-operation" role="status" aria-live="polite" hidden><span id="workspace-operation-text">正在准备工作页，请稍候…</span><button type="button" id="workspace-operation-cancel" class="btn" hidden>取消</button></div>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand"><div class="brand-icon"><img src="/web/app-icon.svg" alt="HRS 大纲树"></div><div><strong>Report Studio</strong><small>离线技术文档工作台 <b id="release-badge" title="正在读取服务端版本">HRS</b></small></div></div>
+      <div class="top-center"><span class="project-label" id="project-label">演示项目</span><span class="top-sep"></span><span id="save-indicator" class="status"><i></i>正在加载</span></div>
+      <nav class="top-actions" aria-label="文件、保存与导出">
+        <select id="color-theme" class="btn" aria-label="配色主题" title="界面与HTML配色；独立于自由/工程模式">
+
+        </select>
+        <button id="btn-new" class="btn btn-new" title="创建带预设样式的新文档">＋ 新建</button>
+        <details class="top-menu" id="menu-open">
+          <summary class="btn top-menu-trigger" title="打开工程、导入文稿或只读浏览阅读包">打开 <span class="caret">▾</span></summary>
+          <div class="top-menu-list">
+            <button id="btn-project-open" type="button" class="menu-item"><b>打开工程…</b><small>选择包含 report.md 和 assets 的文件夹</small></button>
+            <button id="btn-import" type="button" class="menu-item"><b>导入 Markdown / HTML…</b><small>选择文稿，自动读取同目录相对图片；原文件不变</small></button>
+            <button id="btn-readpack" type="button" class="menu-item"><b>阅读包（只读）…</b><small>浏览 ZIP 或文件夹里的多份 Markdown，相对图片自动显示</small></button>
+          </div>
+        </details>
+        <div class="split-button">
+          <button id="btn-save" class="btn btn-save" title="只有点击此按钮才更新正式文件 (Ctrl+S)">保存</button>
+          <details class="top-menu" id="menu-save">
+            <summary class="btn top-menu-trigger split-caret" title="更多保存选项" aria-label="更多保存选项"><span class="caret">▾</span></summary>
+            <div class="top-menu-list">
+              <button id="btn-project-migrate" type="button" class="menu-item"><b>项目另存为…</b><small>复制到新的工程目录，原项目保留不删</small></button>
+              <button id="btn-exit" type="button" class="menu-item"><b>保存草稿并退出</b><small>确认恢复草稿写入后关闭窗口；正式稿仍需 Ctrl+S</small></button>
+            </div>
+          </details>
+        </div>
+        <details class="top-menu" id="menu-export">
+          <summary class="btn btn-primary top-menu-trigger" title="导出 HTML、PDF 或 Word beta（Ctrl+E 直接导出 HTML）">导出 <span class="caret">▾</span></summary>
+          <div class="top-menu-list align-right">
+            <button id="btn-export" type="button" class="menu-item"><b>导出 HTML…</b><small>离线单文件，可选可回编归档 · Ctrl+E</small></button>
+            <button id="btn-export-word" type="button" class="menu-item"><b class="feature-label">导出 Word…<span class="beta-badge">beta</span></b><small>按工程规则编译到指定母模板</small></button>
+            <button id="btn-prepare-report" type="button" class="menu-item"><b>独立工程预览…</b><small>按需创建副本，或管理已有临时稿</small></button>
+            <button id="btn-pdf" type="button" class="menu-item"><b>导出 PDF</b><small>用本机浏览器生成，写入项目 output/</small></button>
+            <button id="btn-print" type="button" class="menu-item"><b>打印 / 另存为 PDF…</b><small>打开打印版，在浏览器打印对话框中保存</small></button>
+          </div>
+        </details>
+        <a id="btn-help" class="btn btn-quiet btn-help" href="/web/help.html" target="_blank" rel="noopener noreferrer" title="离线使用手册：保存、图表、公式、引用与导出">帮助</a>
+      </nav>
+    </header>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="side-section">
+          <div class="section-title">工作台 <span>本机</span></div>
+          <div class="side-card"><span class="local-dot"></span><div><b>本机运行</b><small>数据不经过外部服务器</small></div></div>
+        </div>
+        <div class="side-section recent-section">
+          <div class="section-title">最近打开 <button id="btn-recent" title="刷新最近文档">↻</button></div>
+          <div id="recent-list" class="recent-list muted">读取中…</div>
+        </div>
+        <div class="side-section grow toc-section">
+          <div class="section-title">文档目录 <button id="btn-rebuild-toc" title="刷新目录">↻</button></div>
+          <div id="topic-controls" hidden><label for="topic-select">查看范围</label><select id="topic-select" aria-label="查看专题"><option value="">全部专题</option></select><label class="topic-space-option"><input id="preserve-blank-lines" type="checkbox"><span data-render-option-label="preserve_blank_lines"></span></label></div>
+          <nav id="toc" class="toc"><span class="muted">等待载入…</span></nav>
+        </div>
+        <div class="side-section side-footer">
+          <div class="mini-tip"><b>Ctrl + S</b> 保存　<b>Ctrl + E</b> 导出 HTML</div>
+          <div class="mini-tip">公式：<code>$...$</code> 或 <code>\(...\)</code> 行内 / <code>$$...$$</code> 块级</div>
+          <div class="mini-tip">流程图：<code>```mermaid</code></div>
+        </div>
+      </aside>
+      <main class="workspace">
+        <div class="toolbar" aria-label="报告编辑工具栏">
+          <div class="tools-group" aria-label="编辑与对象插入">
+            <div class="tool-cluster tool-history" aria-label="撤销与重做">
+              <button id="btn-undo" class="tool history-tool" title="撤销 Ctrl+Z" aria-label="撤销" disabled>↶</button>
+              <button id="btn-redo" class="tool history-tool" title="重做 Ctrl+Y / Ctrl+Shift+Z" aria-label="重做" disabled>↷</button>
+            </div>
+            <div class="tool-cluster" aria-label="段落与文字">
+              <details id="heading-picker" class="heading-picker">
+                <summary class="tool" title="插入 Markdown 一级至六级标题（H1–H6）">标题 ▾</summary>
+                <div class="heading-menu" id="heading-menu" aria-label="标题级别">
+                  <button data-insert="h1" class="tool" title="插入一级标题">H1 一级标题</button>
+                  <button data-insert="h2" class="tool" title="插入二级标题">H2 二级标题</button>
+                  <button data-insert="h3" class="tool" title="插入三级标题">H3 三级标题</button>
+                  <button data-insert="h4" class="tool" title="插入四级标题">H4 四级标题</button>
+                  <button data-insert="h5" class="tool" title="插入五级标题">H5 五级标题</button>
+                  <button data-insert="h6" class="tool" title="插入六级标题">H6 六级标题</button>
+                </div>
+              </details>
+              <button data-insert="bold" class="tool" title="加粗 Ctrl+B"><b>B</b> 加粗</button>
+              <button data-insert="italic" class="tool" title="斜体 Ctrl+I"><em>I</em> 斜体</button>
+              <div class="tool-action-split" role="group" aria-label="自由笔记高亮">
+                <button data-insert="highlight" id="btn-highlight" class="tool tool-split-main" title="选中文字后高亮；仅自由笔记生效">▰ 高亮</button>
+                <details id="highlight-picker" class="tool-split-menu">
+                  <summary class="tool tool-split-arrow" title="高亮颜色" aria-label="选择高亮颜色">▾</summary>
+                  <div class="highlight-menu" role="menu">
+                    <button class="tool" data-highlight-color="clear" role="menuitem"><i class="highlight-swatch swatch-clear"></i>清除高亮</button>
+                  </div>
+                </details>
+              </div>
+              <div class="tool-action-split" role="group" aria-label="列表与编号">
+                <button data-insert="list" data-command-id="list.bullet" class="tool tool-split-main" title="直接插入项目符号列表">☷ 列表</button>
+                <details id="list-picker" class="list-picker tool-split-menu">
+                  <summary class="tool tool-split-arrow" title="选择数字、字母或括号列表" aria-label="更多列表样式">▾</summary>
+                  <div class="list-menu" id="list-menu" aria-label="列表编号样式">
+                    <button data-list-style="decimal" data-command-id="list.decimal" class="tool">1. 数字列表</button>
+                    <button data-list-style="lower-alpha" data-command-id="list.lower-alpha" class="tool">a. 字母列表</button>
+                    <button data-list-style="paren-decimal" data-command-id="list.paren-decimal" class="tool">（1）括号数字</button>
+                    <button data-list-style="paren-lower-alpha" data-command-id="list.paren-lower-alpha" class="tool">（a）括号字母</button>
+                  </div>
+                </details>
+              </div>
+              <button data-insert="code" class="tool" title="插入代码块">{ } 代码</button>
+              <button data-insert="inline-math" data-command-id="equation.inline" class="tool" title="直接插入行内公式 $...$ · Ctrl+Alt+M">∑ 行内</button>
+              <div class="tool-action-split" role="group" aria-label="行间公式">
+                <button data-insert="numbered-math" data-command-id="equation.numbered" class="tool tool-split-main" title="直接插入可引用的编号行间公式">∑ 编号</button>
+                <details class="tool-picker tool-split-menu" id="math-picker">
+                  <summary class="tool tool-split-arrow" title="其他行间公式样式" aria-label="更多行间公式">▾</summary>
+                  <div class="tool-menu" aria-label="行间公式类型">
+                    <button data-insert="math" data-command-id="equation.unnumbered" class="tool" title="不自动编号的独立公式">∑ 不编号公式<small>独立成行 $$…$$</small></button>
+                  </div>
+                </details>
+              </div>
+            </div>
+            <div class="tool-cluster" aria-label="表格与图形对象">
+              <button data-insert="table" class="tool" title="结构化表格，支持 Excel 区域粘贴">▦ 表格</button>
+              <button id="btn-paste-graphic" data-command-id="figure.paste" class="tool tool-paste-main" title="直接从 MATLAB / Origin 剪贴板粘贴 EMF/PNG/DIB 图形">⎘ 粘贴图形</button>
+              <div class="tool-action-split" role="group" aria-label="图片与组图">
+                <button data-insert="image" data-command-id="figure.insert" class="tool tool-split-main" title="直接插入带图题图片、PDF、SVG、EMF">▧ 图片</button>
+                <details class="tool-picker tool-split-menu" id="image-picker">
+                  <summary class="tool tool-split-arrow" title="插入并排组图" aria-label="更多图片选项">▾</summary>
+                  <div class="tool-menu" aria-label="图片与组图">
+                    <button data-insert="image-group" data-command-id="figure.group" class="tool" title="最多 12 张，可调行列、粘贴、子图编号">▧ 并排组图…<small>2–12 张 · 支持行列设置</small></button>
+                  </div>
+                </details>
+              </div>
+              <div class="tool-action-split" role="group" aria-label="流程图">
+                <button data-insert="figure" data-command-id="diagram.captioned" class="tool tool-split-main" title="默认插入带图题、自动编号并可引用的流程图">◇ 流程图</button>
+                <details class="tool-picker tool-split-menu" id="diagram-picker">
+                  <summary class="tool tool-split-arrow" title="不带图题的流程图" aria-label="更多流程图选项">▾</summary>
+                  <div class="tool-menu" aria-label="流程图类型">
+                    <button data-insert="mermaid" data-command-id="diagram.plain" class="tool" title="插入没有图题的普通 Mermaid 流程图">◇ 普通流程图<small>不带图题、不自动编号</small></button>
+                  </div>
+                </details>
+              </div>
+            </div>
+            <div class="tool-cluster" aria-label="章节与交叉引用">
+              <div class="tool-action-split" role="group" aria-label="交叉引用">
+                <button data-insert="object-ref" data-command-id="reference.object" class="tool tool-split-main" title="直接按标题选择图、表或编号公式的引用">↗ 引用</button>
+                <details class="tool-picker tool-split-menu" id="ref-picker">
+                  <summary class="tool tool-split-arrow" title="引用章节等更多选项" aria-label="更多引用选项">▾</summary>
+                  <div class="tool-menu" aria-label="交叉引用">
+                    <button data-insert="footnote" class="tool" title="插入脚注引用和文末说明">注 脚注说明…</button>
+                    <button data-insert="section-ref" data-command-id="reference.section" class="tool" title="引用章节标题，保留稳定章节 ID">§ 章节引用…<small>改名或调序后仍指向原章节</small></button>
+                  </div>
+                </details>
+              </div>
+            </div>
+          </div>
+          <div class="toolbar-end">
+            <select id="render-profile" class="tool" aria-label="渲染模式" title="同一源稿的渲染与输出规则"></select>
+            <div id="number-display-options" class="number-display-options">
+              <label id="heading-number-option" title="自由笔记按 H2 起自动显示章节号；不改写 Markdown，工程输出始终编号"><input id="show-heading-numbers" type="checkbox"><span data-render-option-label="show_heading_numbers"></span></label>
+              <label id="object-number-option" title="自由笔记的图表编号显示；工程输出始终编号"><input id="show-object-numbers" type="checkbox" checked><span data-render-option-label="show_object_numbers"></span></label>
+            </div>
+            <button id="btn-validate" class="tool" title="检查对象 ID、交叉引用和结构错误">✓ 文档检查</button>
+            <button id="btn-search" class="tool" title="全文查找 · Ctrl+F">⌕ 查找</button>
+            <div class="view-modes" role="group" aria-label="编辑模式">
+              <button class="view-mode" data-view="reading" title="单栏阅读；目录保持在当前视图，图表仍可打开编辑窗口">阅读</button>
+              <button class="view-mode active" data-view="split">分屏</button>
+              <button class="view-mode" data-view="source">Markdown</button>
+            </div>
+          </div>
+        </div>
+        <section id="document-search" class="document-search" role="search" aria-label="文档内置查找" hidden>
+          <input id="search-query" type="search" placeholder="查找全文…" aria-label="查找文字" autocomplete="off" spellcheck="false">
+          <select id="search-scope" aria-label="查找范围"><option value="source">Markdown 源码</option><option value="preview">渲染正文</option></select>
+          <label title="区分英文字母大小写"><input id="search-case" type="checkbox">Aa</label>
+          <output id="search-count" aria-live="polite">0 / 0</output>
+          <button id="search-prev" type="button" title="上一处 · Shift+Enter / Shift+F3" disabled>↑ 上一处</button>
+          <button id="search-next" type="button" title="下一处 · Enter / F3" disabled>↓ 下一处</button>
+          <span class="search-help">全文查找，含折叠源码</span>
+          <button id="search-close" class="search-close" type="button" title="关闭 · Escape" aria-label="关闭查找">×</button>
+        </section>
+        <section id="report-workspace-bar" class="report-workspace-bar" hidden><strong>临时工程工作页</strong><span id="report-workspace-origin"></span><button id="btn-workspace-check" class="tool">检查本稿</button><button id="btn-workspace-export" class="tool">导出 Word</button><button id="btn-workspace-sync" class="tool" disabled>同步回源稿…</button><details class="top-menu" id="menu-workspace"><summary class="tool top-menu-trigger">整理临时稿 ▾</summary><div class="top-menu-list align-right"><button id="btn-workspace-save" class="menu-item"><b>保存为独立工程…</b><small>新建目录与身份，保留原临时稿</small></button><button id="btn-workspace-archive" class="menu-item"><b>归档本稿</b><small>从常用列表收起，可在准备窗口继续</small></button><button id="btn-workspace-trash" class="menu-item"><b>移入回收站</b><small>保留附件和草稿，可恢复</small></button></div></details><button id="btn-workspace-return" class="tool">返回原台账</button></section>
+        <div class="edit-layout split" id="edit-layout">
+          <section class="source-pane" id="source-pane">
+            <div class="pane-title"><span class="pane-icon">⌘</span> Markdown 源码 <span class="pane-hint">Ctrl + 单击定位预览</span><label class="source-wrap-control" title="只在屏幕上折行，不改变 Markdown 源文"><input id="source-wrap" type="checkbox" checked>自动折行</label><button id="btn-fold-all" class="source-fold-tool" title="收起围栏代码块">全部折叠</button><button id="btn-unfold-all" class="source-fold-tool" title="展开完整源码">全部展开</button></div>
+            <textarea id="markdown" spellcheck="false" placeholder="# 在这里输入 Markdown 文档…" aria-label="Markdown 源码"></textarea>
+            <details id="source-notes" class="source-notes" hidden><summary id="source-notes-title">本稿注释与参考</summary><p>这里编辑脚注定义；正文继续在上方编写。单击条目定位预览，编辑只修改对应定义。</p><div id="source-notes-list"></div></details>
+            <div class="editor-foot" id="source-stats">0 字符</div>
+          </section>
+          <div id="split-divider" class="split-divider" role="separator" aria-label="调整源码与预览宽度" aria-orientation="vertical" aria-valuemin="30" aria-valuemax="70" aria-valuenow="50" tabindex="0" title="拖动调整两栏；方向键微调，双击恢复均分"></div>
+          <section class="preview-pane" id="preview-pane">
+            <div class="pane-title"><span class="pane-icon">◉</span> 文档预览 <span class="pane-hint" id="preview-hint">公式与流程图离线渲染</span><label class="follow-scroll-control" title="按对应源码块双向跟随，折叠内容也能定位"><input id="follow-scroll" type="checkbox">跟随滚动</label></div>
+            <div class="page-scroll"><article id="preview-content" class="paper"></article></div>
+          </section>
+        </div>
+        <section id="problems-panel" class="problems-panel" aria-label="文档检查问题列表" hidden>
+          <div class="problems-head"><strong>文档检查</strong><span id="problems-summary" role="status"></span><button id="btn-problems-close" class="source-fold-tool" aria-label="收起文档检查">收起</button></div>
+          <ol id="problem-list" class="problem-list"></ol>
+        </section>
+        <footer class="bottom-bar"><span id="bottom-left">实时预览 · 草稿自动恢复 · Ctrl+S 正式保存</span><span id="bottom-right">本地渲染 · 无 CDN</span></footer>
+      </main>
+    </div>
+  </div>
+  <input id="file-reader-zip" type="file" accept=".zip,application/zip" hidden>
+  <section id="reader-overlay" role="dialog" aria-label="Markdown 阅读包" aria-modal="true" hidden>
+    <div class="reader-head"><strong id="reader-title">Markdown 文档阅读包</strong><button id="reader-openzip">打开 ZIP</button><button id="reader-openfolder">选择本地文件夹</button><button id="reader-back" disabled>← 返回</button><span id="reader-current"></span><button id="reader-close" aria-label="关闭阅读包">关闭阅读器</button></div>
+    <div class="reader-status" id="reader-status">选择 ZIP 或本地文件夹，仅读取，不会改写现有工程。</div>
+    <div class="reader-main"><nav class="reader-nav" id="reader-nav" aria-label="阅读包 Markdown 文件"></nav><div class="reader-scroll" id="reader-scroll"><article class="reader-paper" id="reader-article"></article></div></div>
+  </section>
+  <input id="file-import" type="file" accept=".md,.markdown,.html,text/markdown,text/html" hidden>
+  <input id="file-image" type="file" multiple accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,.emf,.pdf,application/pdf" hidden>
+  <div id="modal-layer" class="modal-layer" hidden>
+    <div class="modal-scrim"></div>
+    <section class="modal-window" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-head"><div><small id="modal-kicker">编辑</small><h2 id="modal-title">编辑</h2></div><button class="icon-close" id="modal-close" aria-label="关闭">×</button></div>
+      <div id="modal-body" class="modal-body"></div>
+      <div class="modal-foot"><span id="modal-note"></span><div><button class="btn btn-quiet" id="modal-cancel">取消</button><button class="btn btn-quiet" id="modal-extra" hidden>不保存</button><button class="btn btn-primary" id="modal-ok">应用修改</button></div></div>
+    </section>
+  </div>
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

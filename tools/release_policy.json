@@ -1,0 +1,42 @@
+{
+  "schema": "hrs-release-policy-v1",
+  "purpose": "Documentation and distribution metadata; application behavior is unchanged.",
+  "allowed_application_changes": [
+    "app/CHANGELOG.md",
+    "app/LICENSING.md",
+    "app/MANIFEST.json",
+    "app/README.md",
+    "app/RIGHTS.json",
+    "app/docs/*",
+    "app/release.json",
+    "app/tools/maintain_docs.py",
+    "app/web/CHANGELOG_READABLE.html",
+    "app/web/MODULE_OVERVIEW.html",
+    "app/web/WORD_COMPILER_HANDOFF.html",
+    "app/web/help.html"
+  ],
+  "approved_css_changes": {},
+  "protected": "Browser runtime/launchers, all CSS/vendor/upstream editor, Reader, Word support, and functional HRS code remain byte-identical to 1.1.0 R1. Public documentation, synthetic guide assets, licensing metadata and explicit public-history policy are the only App changes.",
+  "approved_word_material_changes": {
+    "word_support/COPYRIGHT": {
+      "baseline_sha256": null,
+      "sha256": "059aec06f0816d2af953f3b4ceea560b5aa83e1c713024d2de17b7710c2dcc41"
+    },
+    "word_support/LICENSE": {
+      "baseline_sha256": null,
+      "sha256": "0b383d5a63da644f628d99c33976ea6487ed89aaa59f0b3257992deac1171e6b"
+    },
+    "word_support/MANIFEST.json": {
+      "baseline_sha256": "00ca98aca6c60eee78b42c0a7927eb9aeff1a0cc9ac5ceafbf1f068fdae7eeaa",
+      "sha256": "4190cb2729585d997f3c79617a820ce637acfebfae516e483078b2fa05fed323"
+    },
+    "word_support/SOURCE.txt": {
+      "baseline_sha256": null,
+      "sha256": "cc868d426dd0532b147c6eeace337cbbc788bb5367b2bf5decfec322c64baa81"
+    },
+    "word_support/wps/templates/cover_template_v0311.docx": {
+      "baseline_sha256": "c7f12250b87a549426e546ca10625e4a348655562fc03551e133747d252d5119",
+      "sha256": "173237bfaeda6ba688f9a6ddc51225d54722e136a7ab6c88fb7398dba4b9ee82"
+    }
+  }
+}

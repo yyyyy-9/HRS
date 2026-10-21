@@ -1,0 +1,99 @@
+/* HRS 单一颜色定义 v1（试行）
+ * 所有组件只引用 var(--hrs-*)，不再写死色值。
+ * 主题切换 = 覆盖本文件的变量。 */
+
+:root {
+  /* 品牌 */
+  --hrs-brand: #35734c;
+  --hrs-brand-dark: #2a5c3d;
+  --hrs-brand-tint: #e3efdb;
+  --hrs-on-brand: #ffffff;
+
+  /* 文字 */
+  --hrs-ink: #26352a;
+  --hrs-text: #3c4a3e;
+  --hrs-muted: #64736a;
+  --hrs-faint: #8b9a8d;
+
+  /* 表面 */
+  --hrs-line: #dce7d5;
+  --hrs-bg: #f1f7ec;
+  --hrs-canvas: #e8f1e0;
+  --hrs-sidebar: #eff5e9;
+  --hrs-pane: #f1f7ea;
+  --hrs-editor: #fbfdf9;
+  --hrs-paper: #f6faf2;
+  --hrs-surface: #ffffff;
+  --hrs-shadow: #26352a1f;
+  --hrs-scrim: #1c382a9c;
+
+  /* 表格 */
+  --hrs-table-toolbar: #e8f1df;
+  --hrs-table-heading: #f1f8ec;
+  --hrs-table-row: #ffffff;
+  --hrs-table-row-alt: #f2f8ee;
+  --hrs-table-grid: #dde8d6;
+
+  /* 代码 */
+  --hrs-code-surface: #f3f8ee;
+  --hrs-code-head: #eaf3e1;
+  --hrs-code-border: #dce7d5;
+  --hrs-code-ink: #3c4a3e;
+
+  /* 引用块 */
+  --hrs-quote-border: #b9d3a8;
+  --hrs-quote-bg: #f3f8ee;
+  --hrs-quote-ink: #5b6b5e;
+
+  /* 状态 */
+  --hrs-success: #4e7d57;
+  --hrs-warning: #b5762e;
+  --hrs-danger: #9e4a42;
+  --hrs-info: #2f6b45;
+
+  /* 高亮（编辑器/笔记） */
+  --hrs-hl-yellow: #fff1a8;
+  --hrs-hl-green: #d8f3dc;
+  --hrs-hl-blue: #d9eaff;
+  --hrs-hl-red: #ffd7d7;
+  --hrs-hl-orange: #ffe0b2;
+  --hrs-hl-purple: #e7d7fa;
+  --hrs-hl-pink: #fbd5e8;
+  --hrs-hl-cyan: #c9f2f3;
+
+  /* 流程图（diagram.js 读取） */
+  --hrs-diagram-bg: #eef3ff;
+  --hrs-diagram-alt: #e6f5ed;
+  --hrs-diagram-accent: #75ad98;
+  --hrs-diagram-ink: #334664;
+  --hrs-diagram-line: #91a8dd;
+  --hrs-diagram-muted: #91a0b9;
+  --hrs-diagram-note: #8494b3;
+  --hrs-diagram-strong: #64718c;
+  --hrs-diagram-special: #a897d9;
+  --hrs-diagram-soft: #f4efff;
+
+  /* 语法高亮（代码块） */
+  --hrs-code-token-keyword: #7843c6;
+  --hrs-code-token-function: #1c60a3;
+  --hrs-code-token-string: #22774a;
+  --hrs-code-token-comment: #82909b;
+  --hrs-code-token-number: #a75529;
+  --hrs-code-token-variable: #9455a7;
+  --hrs-code-token-property: #ac5d28;
+  --hrs-code-token-heading: #2452ba;
+  --hrs-code-token-fence: #6077c4;
+  --hrs-code-token-language: #327a92;
+  --hrs-code-token-link: #2e6a9b;
+
+  /* Shared component status colors. */
+  --hrs-amber: #d19a31;
+  --hrs-amber-strong: #e5a438;
+  --hrs-danger-soft: #e8bec0;
+  --hrs-danger-pale: #f1b6b6;
+  --hrs-danger-bright: #dd615f;
+  --hrs-success-bright: #21a57d;
+  --hrs-warning-bright: #f7bc59;
+  --hrs-mint: #2bb699;
+
+}

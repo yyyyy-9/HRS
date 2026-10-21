@@ -1,0 +1,112 @@
+{
+  "schema": "hrs-toolbar-command-catalog-v1",
+  "release": "v0.5.6 HF8 PF13.6",
+  "notes": "Documented UI command mapping; not an RPC API and does not bypass authorization or dialogs. Main split action remains fixed.",
+  "commands": [
+    {
+      "id": "equation.inline",
+      "ui_event": "insertCommand(inline-math)",
+      "trigger": "单击",
+      "display": "行内公式",
+      "secondary": false
+    },
+    {
+      "id": "equation.numbered",
+      "ui_event": "insertCommand(numbered-math)",
+      "trigger": "单击",
+      "display": "编号行间公式",
+      "secondary": false
+    },
+    {
+      "id": "equation.unnumbered",
+      "ui_event": "insertCommand(math)",
+      "trigger": "下拉",
+      "display": "不编号行间公式",
+      "secondary": true
+    },
+    {
+      "id": "figure.paste",
+      "ui_event": "btn-paste-graphic.click",
+      "trigger": "单击",
+      "display": "剪贴板粘贴图形",
+      "secondary": false
+    },
+    {
+      "id": "figure.insert",
+      "ui_event": "insertCommand(image)",
+      "trigger": "单击",
+      "display": "插入图片",
+      "secondary": false
+    },
+    {
+      "id": "figure.group",
+      "ui_event": "insertCommand(image-group)",
+      "trigger": "下拉",
+      "display": "插入组图",
+      "secondary": true
+    },
+    {
+      "id": "diagram.captioned",
+      "ui_event": "insertCommand(figure)",
+      "trigger": "单击",
+      "display": "带图题流程图",
+      "secondary": false
+    },
+    {
+      "id": "diagram.plain",
+      "ui_event": "insertCommand(mermaid)",
+      "trigger": "下拉",
+      "display": "普通流程图",
+      "secondary": true
+    },
+    {
+      "id": "list.bullet",
+      "ui_event": "insertCommand(list)",
+      "trigger": "单击",
+      "display": "项目符号列表",
+      "secondary": false
+    },
+    {
+      "id": "list.decimal",
+      "ui_event": "insertStyledList(decimal)",
+      "trigger": "下拉",
+      "display": "数字列表",
+      "secondary": true
+    },
+    {
+      "id": "list.lower-alpha",
+      "ui_event": "insertStyledList(lower-alpha)",
+      "trigger": "下拉",
+      "display": "字母列表",
+      "secondary": true
+    },
+    {
+      "id": "list.paren-decimal",
+      "ui_event": "insertStyledList(paren-decimal)",
+      "trigger": "下拉",
+      "display": "括号数字列表",
+      "secondary": true
+    },
+    {
+      "id": "list.paren-lower-alpha",
+      "ui_event": "insertStyledList(paren-lower-alpha)",
+      "trigger": "下拉",
+      "display": "括号字母列表",
+      "secondary": true
+    },
+    {
+      "id": "reference.object",
+      "ui_event": "insertCommand(object-ref)",
+      "trigger": "单击",
+      "display": "图表公式引用",
+      "secondary": false
+    },
+    {
+      "id": "reference.section",
+      "ui_event": "insertCommand(section-ref)",
+      "trigger": "下拉",
+      "display": "章节引用",
+      "secondary": true
+    }
+  ]
+}

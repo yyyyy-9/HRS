@@ -1,0 +1,202 @@
+{
+  "version": "gfm-pipe-crosslanguage-v1",
+  "splits": [
+    {
+      "source": "| a | b |",
+      "cells": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "source": "a | b",
+      "cells": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "source": "|a\\|b|c|",
+      "cells": [
+        "a|b",
+        "c"
+      ]
+    },
+    {
+      "source": "|a\\\\|b|",
+      "cells": [
+        "a\\",
+        "b"
+      ]
+    },
+    {
+      "source": "|a\\\\\\|b|",
+      "cells": [
+        "a\\|b"
+      ]
+    },
+    {
+      "source": "|a\\\\\\\\|b|",
+      "cells": [
+        "a\\\\",
+        "b"
+      ]
+    },
+    {
+      "source": "|a\\\\\\\\\\|b|",
+      "cells": [
+        "a\\\\|b"
+      ]
+    },
+    {
+      "source": "| `a|b` | c |",
+      "cells": [
+        "`a|b`",
+        "c"
+      ]
+    },
+    {
+      "source": "| ``a|b`` | c |",
+      "cells": [
+        "``a|b``",
+        "c"
+      ]
+    },
+    {
+      "source": "| `a\\|b` | c |",
+      "cells": [
+        "`a\\|b`",
+        "c"
+      ]
+    },
+    {
+      "source": "| A | B\\\\|",
+      "cells": [
+        "A",
+        "B\\\\"
+      ]
+    },
+    {
+      "source": "| A | B\\\\|",
+      "cells": [
+        "A",
+        "B\\\\"
+      ]
+    },
+    {
+      "source": "| A | B\\\\\\|",
+      "cells": [
+        "A",
+        "B\\|"
+      ]
+    },
+    {
+      "source": " | 空 白 |\t右侧 | ",
+      "cells": [
+        "空 白",
+        "右侧"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "source": "| A | B |\n| :--- | ---: |\n| x | y |",
+      "id": null,
+      "caption": "",
+      "align": [
+        "left",
+        "right"
+      ],
+      "rows": [
+        [
+          "A",
+          "B"
+        ],
+        [
+          "x",
+          "y"
+        ]
+      ]
+    },
+    {
+      "source": "| Item | x |\n| :---: | --- |\n| a\\|b | c |\n\n: 数据 {#tbl-pipe-data}",
+      "id": "tbl-pipe-data",
+      "caption": "数据",
+      "align": [
+        "center",
+        null
+      ],
+      "rows": [
+        [
+          "Item",
+          "x"
+        ],
+        [
+          "a|b",
+          "c"
+        ]
+      ]
+    },
+    {
+      "source": "| A | B |\n| --- | --- |\n| a\\\\\\|b | x |",
+      "id": null,
+      "caption": "",
+      "align": [
+        null,
+        null
+      ],
+      "rows": [
+        [
+          "A",
+          "B"
+        ],
+        [
+          "a\\|b",
+          "x"
+        ]
+      ]
+    },
+    {
+      "source": "| 任务规模 | 计算类型 | Torch CPU (16 线程) | GPU (RTX 5080) | 加速倍数 |\n| :--- | :--- | ---: | ---: | ---: |\n| 128×128 | 前向 E² | 102.105 ms | 8.705 ms | 11.73× |\n| 512×512 | 前向 E² | 3,645.208 ms | 200.325 ms | 18.20× |\n| 128×128 | 前向 + Mask 梯度 | 262.063 ms | 19.143 ms | 13.69× |",
+      "id": null,
+      "caption": "",
+      "align": [
+        "left",
+        "left",
+        "right",
+        "right",
+        "right"
+      ],
+      "rows": [
+        [
+          "任务规模",
+          "计算类型",
+          "Torch CPU (16 线程)",
+          "GPU (RTX 5080)",
+          "加速倍数"
+        ],
+        [
+          "128×128",
+          "前向 E²",
+          "102.105 ms",
+          "8.705 ms",
+          "11.73×"
+        ],
+        [
+          "512×512",
+          "前向 E²",
+          "3,645.208 ms",
+          "200.325 ms",
+          "18.20×"
+        ],
+        [
+          "128×128",
+          "前向 + Mask 梯度",
+          "262.063 ms",
+          "19.143 ms",
+          "13.69×"
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,168 @@
+{
+  "schema": "hrs-fixture-rights-v1",
+  "public_distribution": "AUTHORIZED",
+  "files": [
+    {
+      "path": "fp_hartmann/figures/synthetic-1.png",
+      "bytes": 3580,
+      "sha256": "ef3101e4e4a4a7b252ce01df089b61c7d49c1eea83c56499978f91c897ce1760",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    },
+    {
+      "path": "fp_hartmann/figures/synthetic-2.png",
+      "bytes": 3778,
+      "sha256": "d4bd2cc0e9f96695e74678c71c02e9b684ad980e4756b36f15f53da2aca6f5c6",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    },
+    {
+      "path": "fp_hartmann/figures/synthetic-3.png",
+      "bytes": 3778,
+      "sha256": "e79dc5c54352af6e854ed48f36ee184dd3dae81371f7b2c81db44c3fad3f1419",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    },
+    {
+      "path": "fp_hartmann/figures/synthetic-4.png",
+      "bytes": 3793,
+      "sha256": "36fbb36c1f0f03e30a2e7bdcf07d2761761abc1b70dbd387c96b83245e206d57",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    },
+    {
+      "path": "fp_hartmann/figures/synthetic-5.png",
+      "bytes": 3901,
+      "sha256": "66e610514fc1d1c412f8c0036b67265b14989c6d01cd426101e80e93af031adb",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    },
+    {
+      "path": "fp_hartmann/figures/synthetic-6.png",
+      "bytes": 3943,
+      "sha256": "d25c9dfaae7f3c05c72f51d4fce312c3419433316724e8d9b46d4abb3b78c77c",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    },
+    {
+      "path": "fp_hartmann/REPORT.md",
+      "bytes": 519,
+      "sha256": "23fe90c8a51249dc164949bf7bf14e55271ebe3f5dee85e5c51ee377bc3747f2",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    },
+    {
+      "path": "fp_hartmann/research/wavemeter/synthetic-7.png",
+      "bytes": 3783,
+      "sha256": "a0f47d207599156e1a49c76954031f97e885fb3ef40d6df23e26754c5aed3ecc",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    },
+    {
+      "path": "fp_hartmann/SOURCE_SHA256.json",
+      "bytes": 182,
+      "sha256": "3245e7f348ea0ce722128762f7a1c226cc300031874ea3c8e65c1eb5ae27c144",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    },
+    {
+      "path": "gfm_tables.json",
+      "bytes": 3481,
+      "sha256": "eddbd37d71518cbb45574e2f3efbd9cb6370cad824915feee14cbc6f93ef48c4",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    },
+    {
+      "path": "lingmo_manual/fixture.json",
+      "bytes": 119,
+      "sha256": "f8205591d4020f4c2d0e75381d324f683d6766cdf76eeb67b3adaf179c9a666f",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    },
+    {
+      "path": "lingmo_manual/灵墨用户手册.md",
+      "bytes": 678,
+      "sha256": "2807d3731377b441a6422ff8b13d61baf16bc556e5622e80f5f074e5bea2e919",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    },
+    {
+      "path": "lingmo_manual/资源/lingnote-guide-c4b2246f-8d46-4aba-bfc6-af2f214a3ccf.png",
+      "bytes": 3580,
+      "sha256": "ef3101e4e4a4a7b252ce01df089b61c7d49c1eea83c56499978f91c897ce1760",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    },
+    {
+      "path": "mermaid_full.json",
+      "bytes": 2024,
+      "sha256": "25580923fb2f80f2265df83b0c6351be04eda1e20e6eccafecb7bc635a281697",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    },
+    {
+      "path": "object_id_cases.json",
+      "bytes": 3775,
+      "sha256": "89cf2fbeb863e7106b7b442dc85fa9ffde1d923dfbd96310165f730ae3d0e1bb",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    },
+    {
+      "path": "pf1310_article_math.json",
+      "bytes": 1917,
+      "sha256": "e9b48604c47707cb9450ade19201cf98bb6099104f08b7e89740d31901e2d75d",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    },
+    {
+      "path": "pf135_contract_cases.json",
+      "bytes": 417,
+      "sha256": "0482d42a035b3ab6fd7bbbe884ee5f402e124d5e2b68c575875e9b9489cc6e92",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    },
+    {
+      "path": "rc2_feedback/report.md",
+      "bytes": 67,
+      "sha256": "91423de638416c438e4b64a9c19f31cfb383e7e2913331369d5d792aa74c0e59",
+      "source": "Project-authored conformance data or newly generated synthetic example",
+      "public_distribution": "AUTHORIZED",
+      "license": "GPL-3.0-or-later",
+      "holder": "yyyyy-9"
+    }
+  ]
+}

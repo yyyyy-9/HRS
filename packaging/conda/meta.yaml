@@ -1,0 +1,48 @@
+{% set identity = load_file_data('../../app/release.json', from_recipe_dir=True) %}
+{% set version = identity['version'] if identity['package_revision'] == 'R1' else identity['version'] + '.post' + identity['package_revision'][1:] %}
+
+package:
+  name: html-report-studio
+  version: {{ version }}
+
+source:
+  path: ../..
+
+build:
+  number: 0
+  noarch: python
+  entry_points:
+    - hrs = html_report_studio.cli:main
+
+requirements:
+  host:
+    - python >=3.12
+    - pip
+    - setuptools >=77
+    - wheel
+  run:
+    - python >=3.12
+
+test:
+  imports:
+    - html_report_studio
+  commands:
+    - hrs --version
+    - hrs info
+    - python -m html_report_studio --version
+    - python -m pip check
+  requires:
+    - pip
+
+about:
+  summary: Local Markdown report editor with offline HTML assets
+  license: GPL-3.0-or-later
+  license_file:
+    - app/LICENSE
+    - app/COPYRIGHT
+  home: https://github.com/yyyyy-9
+
+extra:
+  recipe-maintainers:
+    - yyyyy-9
+

@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "html-report-studio"
+dynamic = ["version"]
+description = "Local Markdown report editor with offline HTML assets"
+readme = "app/README.md"
+requires-python = ">=3.12"
+license = "GPL-3.0-or-later"
+license-files = ["app/LICENSE", "app/COPYRIGHT"]
+authors = [{name = "yyyyy-9"}]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Environment :: Web Environment",
+  "Topic :: Text Editors :: Documentation",
+]
+
+[project.optional-dependencies]
+automation = ["playwright==1.62.0"]
+
+[project.urls]
+Author = "https://github.com/yyyyy-9"
+Repository = "https://github.com/yyyyy-9/HRS"
+Issues = "https://github.com/yyyyy-9/HRS/issues"
+
+[project.scripts]
+hrs = "html_report_studio.cli:main"
+
+[tool.setuptools]
+include-package-data = false
+

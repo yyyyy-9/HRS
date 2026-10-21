@@ -1,0 +1,5 @@
+{
+  "schema": "hrs-public-source-policy-v1",
+  "private_history": "preserved-locally-not-published",
+  "public_fixtures": "project-owned-synthetic"
+}

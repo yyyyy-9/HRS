@@ -1,0 +1,11 @@
+[
+  {"name":"单程 Littrow 分支","source":"flowchart TB\n    A[\"PLD100L<br/>0.5 nm\"] --> B[\"单程 Littrow<br/>压缩到 pm 级\"]\n    B --> C[\"窄带 248.33 nm\"]\n    C --> D[\"被测中阶梯光栅<br/>−94 级\"]\n    D --> E[\"Hartmann<br/>波前/面型\"]\n    B --> F[\"回返光取样<br/>线宽测量\"]","nodes":6},
+  {"name":"棱镜组回返光路","source":"flowchart LR\n    A[\"PLD100L<br/>248 nm / 约 0.5 nm\"] --> B[\"取样 / 照明整形\"]\n    B --> C[\"缩束到 3 mm<br/>空间滤波\"]\n    C --> D[\"棱镜组 20X<br/>3 mm → 60 mm\"]\n    D --> E[\"光栅<br/>83.19 l/mm，−94 级 Littrow\"]\n    E --> F[\"反向通过棱镜组\"]\n    F --> G[\"取出回返光\"]\n    G --> H[\"线宽测量\"]","nodes":8},
+  {"name":"重复分支图","source":"flowchart TB\n    A[\"PLD100L<br/>0.5 nm\"] --> B[\"单程 Littrow<br/>压缩到 pm 级\"]\n    B --> C[\"窄带 248.33 nm\"]\n    C --> D[\"被测中阶梯光栅<br/>−94 级\"]\n    D --> E[\"Hartmann<br/>波前/面型\"]\n    B --> F[\"回返光取样<br/>线宽测量\"]","nodes":6},
+  {"name":"子图及样式","source":"flowchart TB\n    subgraph 光学系统\n      A[输入] --> B{有效吗?}\n      B -->|是| C[测量]\n      B -.->|否| A\n    end\n    classDef result fill:#dcfce7,stroke:#16803c\n    class C result","nodes":3},
+  {"name":"时序图","source":"sequenceDiagram\n    participant A as 光源\n    participant B as 检测器\n    A->>B: 发送脉冲\n    B-->>A: 返回测量结果"},
+  {"name":"思维导图","source":"mindmap\n  root((报告))\n    光源\n      波长\n    检测器"},
+  {"name":"甘特图","source":"gantt\n    title 测试安排\n    dateFormat YYYY-MM-DD\n    section 光学\n    校准 :a1, 2026-10-18, 2d\n    测量 :after a1, 1d"},
+  {"name":"类图","source":"classDiagram\n    class Source {\n      +float wavelength\n      +emit()\n    }\n    Source --> Detector"},
+  {"name":"状态图","source":"stateDiagram-v2\n    [*] --> 校准\n    校准 --> 测量\n    测量 --> [*]"}
+]

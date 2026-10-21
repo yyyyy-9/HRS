@@ -1,0 +1,110 @@
+{
+  "schema": "hrs-rights-v1",
+  "own_license": {
+    "selected": "GPL-3.0-or-later",
+    "status": "EFFECTIVE",
+    "holder": "yyyyy-9",
+    "holder_url": "https://github.com/yyyyy-9",
+    "license_file": "LICENSE",
+    "notice_file": "COPYRIGHT",
+    "scope": "Project-owned code/documentation; third-party components and user documents/fixtures retain their own rights"
+  },
+  "third_party": [
+    {
+      "name": "Marked",
+      "version": null,
+      "license": "MIT and retained Markdown notices",
+      "upstream": "https://github.com/markedjs/marked",
+      "notice": {
+        "path": "web/vendor/MARKED-LICENSE.txt",
+        "bytes": 2942,
+        "sha256": "8e3a3f82f59a60958f56ca08f445647c32a4733dc7ca6c2c46f6eb898471ab9c"
+      },
+      "runtime": [
+        {
+          "path": "web/vendor/marked.js",
+          "bytes": 98105,
+          "sha256": "91e90d63828ffe48d7ab281a4005f512e6b069b01a9e3b18aa69a0b2a4f2f317"
+        }
+      ],
+      "version_note": "The original readable UMD file does not embed a package version; exact bytes and retained source are pinned by SHA256."
+    },
+    {
+      "name": "CodeMirror and bundled dependencies",
+      "version": "bundle; package versions listed below",
+      "license": "MIT",
+      "upstream": "https://codemirror.net/",
+      "notice": {
+        "path": "web/vendor/CODEMIRROR-LICENSES.txt",
+        "bytes": 12598,
+        "sha256": "6cd9fe89c66a32a103a67710216d276266f3e40e506ad862301f20cd4780c311"
+      },
+      "runtime": [
+        {
+          "path": "web/vendor/source-editor.js",
+          "bytes": 293529,
+          "sha256": "e049d21014154e9cc579843e36307b5de90834a6911445848d2488953b6c0c9f",
+          "upstream_sha256": "cee9f510806337147bf3d51a9e5122c46c40e97ce251ed9bd7882c34c7159f63",
+          "local_modification": "Only HRS adapter trailer exports existing CodeMirror primitives for source projection; upstream payload and notices unchanged (R8 approved)."
+        }
+      ],
+      "bundled_packages": [
+        "@codemirror/state 6.7.6",
+        "@codemirror/view 6.43.14",
+        "@codemirror/commands 6.11.1",
+        "@codemirror/language 6.13.1",
+        "@lezer/common 1.5.3",
+        "@lezer/highlight 1.2.5",
+        "@lezer/lr 1.4.11",
+        "@marijn/find-cluster-break 1.0.4",
+        "crelt 1.0.7",
+        "style-mod 4.1.4",
+        "w3c-keyname 2.2.8"
+      ]
+    },
+    {
+      "name": "MathJax",
+      "version": "3.2.1",
+      "license": "Apache-2.0",
+      "upstream": "https://github.com/mathjax/MathJax",
+      "notice": {
+        "path": "web/vendor/MATHJAX-LICENSE.txt",
+        "bytes": 11358,
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "runtime": [
+        {
+          "path": "web/vendor/mathjax-tex-svg.js",
+          "bytes": 2108580,
+          "sha256": "0383da4c22a61555f3d99877f939f00012d2583381177302987ab04760cdadf3"
+        },
+        {
+          "path": "web/vendor/input/tex/extensions/boldsymbol.js",
+          "bytes": 4056,
+          "sha256": "55f7224e2cdaba66adc87ecb894b99fa12b0b2473ca942a0c8b18f574fcc3feb"
+        }
+      ]
+    },
+    {
+      "name": "Mermaid",
+      "version": "12.2.0",
+      "license": "MIT",
+      "upstream": "https://github.com/mermaid-js/mermaid",
+      "notice": {
+        "path": "web/vendor/mermaid/LICENSE.txt",
+        "bytes": 1089,
+        "sha256": "ec9fb67dcb25eccc416ed56e1aab819222c805a2a4bfe4cb19e7556bf2ffde80"
+      },
+      "runtime": [
+        {
+          "path": "web/vendor/mermaid/mermaid.min.js",
+          "bytes": 5494801,
+          "sha256": "a8a6a6f805b074a8261a2825c86f99c8054acb3b35f50bb7e24a4f9f2c3c3b9f"
+        }
+      ]
+    }
+  ],
+  "test_assets": "tests/fixtures/RIGHTS.json: project-authored synthetic fixtures",
+  "runtime_boundary": "Full retains original dependency notices/credits/source inventory; not relicensed by the HRS project license",
+  "notice_review_scope": "Listed shipped notices/runtime SHA256 are verified; third-party licence text and source pointers are retained separately."
+}

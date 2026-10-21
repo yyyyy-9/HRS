@@ -1,0 +1,1459 @@
+{
+  "catalog_format": "hrs-module-catalog-v1",
+  "app_baseline": "1.1.1 R2",
+  "scope": "source tree only; no external report files are opened",
+  "caveat": "This is an interface index, not a Python import dependency graph or a DOCX compiler.",
+  "items": [
+    {
+      "id": "host_services",
+      "path": "host_services.py",
+      "layer": "host-adapter",
+      "responsibility": "private optional desktop PDF capability; existing source/resource/output checks stay in studio",
+      "entrypoints": [
+        "desktop_bridge",
+        "render_desktop_pdf",
+        "watch_desktop_parent",
+        "release_desktop_windows"
+      ],
+      "input": "owning host environment and checked temporary HTML",
+      "output": "native PDF / owner-bound lifecycle",
+      "side_effects": "explicit print and owned leases only; never source or arbitrary output",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 3776,
+      "sha256": "6aabcba995660b17b8c3af227c54832dbccf32077d4265c40d8d4b637864268e",
+      "review_flags": []
+    },
+    {
+      "id": "output_preflight",
+      "path": "web/preflight.js",
+      "layer": "output-policy",
+      "responsibility": "complete text diagnostics over Python IR plus shared Marked/SourceMap/notes; partial APIs remain explicit",
+      "entrypoints": [
+        "complete"
+      ],
+      "input": "current source snapshot, IR and existing model",
+      "output": "complete text preflight receipt",
+      "side_effects": "read-only",
+      "word_pipeline_role": "entry-check",
+      "bytes": 1425,
+      "sha256": "d089d2b592cf016f1121c7d9cebf30fc9d1a2e67f1e95cae28c1b10b0aa2fb3b",
+      "review_flags": []
+    },
+    {
+      "id": "ui_operations",
+      "path": "web/operations.js",
+      "layer": "ui-lifecycle",
+      "responsibility": "shared nested leases and request deadlines/cancellation without premature unlock",
+      "entrypoints": [
+        "create",
+        "request"
+      ],
+      "input": "current UI controls/editor and bounded requests",
+      "output": "owned leases/structured request errors",
+      "side_effects": "temporary UI only",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 2536,
+      "sha256": "d599a9e6c8c518ff7c485ec217e0cdaa4b266666eedf92fa5cc449b62492e777",
+      "review_flags": []
+    },
+    {
+      "id": "preview_commit",
+      "path": "web/preview_commit.js",
+      "layer": "presentation",
+      "responsibility": "reuse unchanged safe prose DOM and keep current source metadata; structural changes retain full rendering",
+      "entrypoints": [
+        "reusable",
+        "commit"
+      ],
+      "input": "current/staged DOM and existing SourceMap",
+      "output": "reconciled preview",
+      "side_effects": "DOM only",
+      "word_pipeline_role": "display-only",
+      "bytes": 1740,
+      "sha256": "88db518542135db52842ad0cca8dd68fb79de34a421bf318f4889dbaf57b9dea",
+      "review_flags": []
+    },
+    {
+      "id": "report_workspace",
+      "path": "report_workspace.py",
+      "layer": "owned-project-metadata",
+      "responsibility": "owned report metadata, lifecycle/copy jobs and reviewed origin-range sync through existing report commits",
+      "entrypoints": [
+        "info",
+        "list_reports",
+        "lifecycle",
+        "WorkspaceJobs",
+        "CopyAsset"
+      ],
+      "input": "owned workspace and source document identity",
+      "output": "validated temporary report state/jobs",
+      "side_effects": "owned lifecycle only; creation reuses Handler atomic transaction",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 20958,
+      "sha256": "db6ddb9684655da3bbd2246581653c33e20592da33c84f948db44da90c2b22a9",
+      "review_flags": []
+    },
+    {
+      "id": "report_workspace_ui",
+      "path": "web/report_workspace.js",
+      "layer": "source-ui",
+      "responsibility": "select whole/topic or resume an existing report; original app owns transition and native Word calls",
+      "entrypoints": [
+        "choose",
+        "createJob"
+      ],
+      "input": "source-bound topic choices and recoverable reports",
+      "output": "explicit lifecycle/selection and progress",
+      "side_effects": "explicit owned report actions; original project unchanged",
+      "word_pipeline_role": "never-source-of-truth",
+      "bytes": 5736,
+      "sha256": "9bf473b4c3d68c960e9dfb0d0d0ef2355a8ba742c52265c403f333273968a300",
+      "review_flags": []
+    },
+    {
+      "id": "source_projection",
+      "path": "web/source_projection.js",
+      "layer": "source-projection",
+      "responsibility": "CodeMirror same-document visible range, hidden-note protection and footnote boundary hints",
+      "entrypoints": [
+        "attach"
+      ],
+      "input": "existing editor and SourceMap UTF-16 ranges",
+      "output": "display decorations and guarded native transactions",
+      "side_effects": "same source buffer; no persistence",
+      "word_pipeline_role": "secondary",
+      "bytes": 4006,
+      "sha256": "1f951af0734346966acd8b8ca8938881b18b41dd50688e84e2a36cc95156ae6b",
+      "review_flags": []
+    },
+    {
+      "id": "notebook_view",
+      "path": "web/notebook_view.js",
+      "layer": "source-projection",
+      "responsibility": "H1 topics, extra blank-line gaps and standalone definition closure over the existing lexer/source map",
+      "entrypoints": [
+        "index",
+        "title"
+      ],
+      "input": "full source/Marked tokens/SourceMap",
+      "output": "read-only topic ranges and independently compilable excerpts",
+      "side_effects": "source unchanged",
+      "word_pipeline_role": "secondary",
+      "bytes": 5973,
+      "sha256": "ccc906ea7ce7e5ef3bb1edcf43c4b2120c272e647f37781087455f4b4a639dcc",
+      "review_flags": []
+    },
+    {
+      "id": "preview_images",
+      "path": "web/preview_images.js",
+      "layer": "presentation",
+      "responsibility": "lazy preview images, bounded intrinsic size cache and viewport anchor restoration",
+      "entrypoints": [
+        "attach",
+        "dimensions"
+      ],
+      "input": "preview/scroller and existing viewport callbacks",
+      "output": "lazy loading and cached image dimensions",
+      "side_effects": "temporary DOM/cache only",
+      "word_pipeline_role": "display-only",
+      "bytes": 1653,
+      "sha256": "14540d1f7accf8cdf79e324353aad97a4b67f85fd318db5ceae1af9c8b34832d",
+      "review_flags": []
+    },
+    {
+      "id": "module_exports",
+      "path": "module_exports.py",
+      "layer": "export-transaction",
+      "responsibility": "private staged module HTML and atomic single HTML/ZIP delivery using original source/asset checks",
+      "entrypoints": [
+        "ModuleExports"
+      ],
+      "input": "source-bound module requests and audited HTML",
+      "output": "complete independent HTML files in project output",
+      "side_effects": "explicit export writes only; never source",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 4169,
+      "sha256": "dd23df92fc3e470ba367f7ec7265faddbbc29c5129738630b0f789c23c3f94d4",
+      "review_flags": []
+    },
+    {
+      "id": "installed_cli",
+      "path": "cli.py",
+      "layer": "application-entry",
+      "responsibility": "standard Python/conda command delegates to the existing local host with user data outside installed resources",
+      "entrypoints": [
+        "main",
+        "user_data_root",
+        "capabilities"
+      ],
+      "input": "explicit action and optional data root",
+      "output": "local host lifecycle or read-only identity/license",
+      "side_effects": "start/stop only after explicit action",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 4673,
+      "sha256": "4a5d24bc335e50611a443058bd354fea4b4778e77aa8f695466f5acac2993769",
+      "review_flags": []
+    },
+    {
+      "id": "installed_package",
+      "path": "__init__.py",
+      "layer": "application-entry",
+      "responsibility": "import-only package marker without server or user-state writes",
+      "entrypoints": [],
+      "input": "package import",
+      "output": "no server",
+      "side_effects": "read-only",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 383,
+      "sha256": "2422f6b3edc20389605289076d533dc3fd16f03c984a46543df5c9e12a7c541b",
+      "review_flags": []
+    },
+    {
+      "id": "installed_module",
+      "path": "__main__.py",
+      "layer": "application-entry",
+      "responsibility": "python -m entry delegates to the same installed CLI",
+      "entrypoints": [],
+      "input": "CLI arguments",
+      "output": "existing CLI result",
+      "side_effects": "explicit action only",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 49,
+      "sha256": "76fa916e93e0ae1a6c1bb51dcc0bcf289c014e9f760a47165f8a84401ccf41d7",
+      "review_flags": []
+    },
+    {
+      "id": "product_defaults",
+      "path": "product_settings.py",
+      "layer": "product-configuration",
+      "responsibility": "single JSON owner for palette/profile choices, labels and render-option defaults; immutable Python view",
+      "entrypoints": [
+        "load_settings"
+      ],
+      "input": "product_settings.json",
+      "output": "validated immutable catalog",
+      "side_effects": "read-only",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 1658,
+      "sha256": "329d6c0609a906118fac758d175ae9372695ba4e02ccfc7cc1b1996c6ee2d125",
+      "review_flags": []
+    },
+    {
+      "id": "browser_defaults",
+      "path": "web/product_settings.js",
+      "layer": "generated-configuration",
+      "responsibility": "generated immutable browser view of product_settings.json; checked by build_settings.js",
+      "entrypoints": [
+        "ReportSettings"
+      ],
+      "input": "canonical product JSON",
+      "output": "identical browser catalog",
+      "side_effects": "generated only",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 2705,
+      "sha256": "7aaef69f5c47c6122ab6df69bbc51816a9b8d399e0762f236163510851b2592e",
+      "review_flags": []
+    },
+    {
+      "id": "release_identity",
+      "path": "release_info.py",
+      "layer": "release-configuration",
+      "responsibility": "release.json reader shared by service, source builder and documentation gates; protocol versions remain independent",
+      "entrypoints": [
+        "load_release"
+      ],
+      "input": "release.json",
+      "output": "derived display identity and package stem",
+      "side_effects": "read-only",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 860,
+      "sha256": "4850b7ddf73d12d2158e1dc13bbaff74a3749cb85a4d4f4588e969e9623f9dc7",
+      "review_flags": []
+    },
+    {
+      "id": "color_theme",
+      "path": "web/color_theme.js",
+      "layer": "presentation-configuration",
+      "responsibility": "independent palettes and bounded transactional stylesheet loading with previous-theme rollback",
+      "entrypoints": [
+        "normalize",
+        "fromURL",
+        "path",
+        "apply"
+      ],
+      "input": "explicit UI/URL or restored palette",
+      "output": "palette stylesheet and root setting",
+      "side_effects": "presentation only",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 2424,
+      "sha256": "bbb4ead25433f1f752fd10a76ffa459c0c36c6bcf952db9980fda3ef52e17054",
+      "review_flags": []
+    },
+    {
+      "id": "palette_configuration",
+      "path": "color_theme.py",
+      "layer": "project-settings",
+      "responsibility": "validated independent color_theme metadata; source and engineering rules unchanged",
+      "entrypoints": [
+        "normalize",
+        "read"
+      ],
+      "input": "optional project metadata",
+      "output": "allowed palette name",
+      "side_effects": "read-only",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 691,
+      "sha256": "ad5f69765c12ef66627c5ad26ae5034133323257a09717399453d06dd194c302",
+      "review_flags": []
+    },
+    {
+      "id": "object_clipboard",
+      "path": "object_clipboard.py",
+      "layer": "resource-import",
+      "responsibility": "validates fragment identities and resource bytes, remaps declared objects and internal references, stages imported assets",
+      "entrypoints": [
+        "copy_bundle",
+        "paste_bundle"
+      ],
+      "input": "explicit clipboard fragment and existing IR",
+      "output": "validated new source and draft assets",
+      "side_effects": "writes draft assets after candidate validation",
+      "word_pipeline_role": "indirect",
+      "bytes": 10563,
+      "sha256": "dc51802fb500cc345194dfd59eca7afff13b0fb28195018aeb9c19ca5d3e730b",
+      "review_flags": []
+    },
+    {
+      "id": "source_clipboard",
+      "path": "web/object_clipboard.js",
+      "layer": "source-ui",
+      "responsibility": "one clipboard and local-image adapter for source cards, selection and Markdown import",
+      "entrypoints": [
+        "copy",
+        "paste",
+        "importMarkdown"
+      ],
+      "input": "explicit source selection and clipboard/files",
+      "output": "existing editor change transaction",
+      "side_effects": "explicit clipboard reads/writes and draft import",
+      "word_pipeline_role": "never-source-of-truth",
+      "bytes": 5119,
+      "sha256": "85e2eedfd6ca8f75824a39bec61d5a16a17d921d3c8d831048e39566934f9c53",
+      "review_flags": []
+    },
+    {
+      "id": "project_commit",
+      "path": "project_commit.py",
+      "layer": "project-write",
+      "responsibility": "shared revision-checked lock, backup and atomic report commit for editor and explicit block apply",
+      "entrypoints": [
+        "report_lock",
+        "backup_report",
+        "commit_report",
+        "commit_report_locked"
+      ],
+      "input": "current source bytes and expected SHA-256",
+      "output": "backup path and committed report",
+      "side_effects": "writes original only inside explicit commit",
+      "word_pipeline_role": "primary",
+      "bytes": 2595,
+      "sha256": "d4c48b7b64d7eebe8ae2d38d5aba09131197627bd69f9f947863526ff10950bb",
+      "review_flags": []
+    },
+    {
+      "id": "block_commands",
+      "path": "block_cli.py",
+      "layer": "programmatic-block-write",
+      "responsibility": "plans one existing IR block edit and explicitly applies a reviewed snapshot-bound candidate",
+      "entrypoints": [
+        "plan",
+        "write_plan",
+        "apply_plan",
+        "main"
+      ],
+      "input": "source, target, replacement, expected source/plan SHA-256",
+      "output": "candidate, diff or explicit commit receipt",
+      "side_effects": "plan new files; apply original with shared backup/atomic save",
+      "word_pipeline_role": "primary",
+      "bytes": 9296,
+      "sha256": "239184dfa1a15f15d592cf217ebc656832578cebeb996282e876aee6a27e9b31",
+      "review_flags": []
+    },
+    {
+      "id": "render_profile",
+      "path": "web/render_profile.js",
+      "layer": "output-policy",
+      "responsibility": "shared source-map projection for free/engineering display, chapter labels, abstract role and explicit Word decoration downgrade",
+      "entrypoints": [
+        "normalize",
+        "html",
+        "plan",
+        "wordTokens"
+      ],
+      "input": "existing Markdown tokens/source map and profile",
+      "output": "derived labels/roles/diagnostics; source unchanged",
+      "side_effects": "display/output only",
+      "word_pipeline_role": "primary",
+      "bytes": 3968,
+      "sha256": "19a649055998440d93c3e8feffe4ad17f267f6915c70504e2d35e0613d6f3160",
+      "review_flags": []
+    },
+    {
+      "id": "profile_configuration",
+      "path": "render_profile.py",
+      "layer": "project-settings",
+      "responsibility": "validated optional meta.json render_profile; never a second content source",
+      "entrypoints": [
+        "normalize",
+        "read",
+        "normalize_options",
+        "read_options",
+        "output_checks",
+        "require_output"
+      ],
+      "input": "existing project metadata and parsed IR headings",
+      "output": "profile, options and shared output diagnostics",
+      "side_effects": "read-only",
+      "word_pipeline_role": "primary",
+      "bytes": 3508,
+      "sha256": "be9868599e35c7811b9ccfd391d5318d3dc70bc4013b9d4b47cd23aa2ddbfdca",
+      "review_flags": []
+    },
+    {
+      "id": "html_commands",
+      "path": "html_cli.py",
+      "layer": "programmatic-html",
+      "responsibility": "HRS-owned optional command adapter calling the original renderer/export/archive with private project snapshots",
+      "entrypoints": [
+        "export_html",
+        "recover_html",
+        "browser_session",
+        "main"
+      ],
+      "input": "explicit project or HRS HTML and new output path",
+      "output": "UTF-8 JSON receipt and new HTML/project",
+      "side_effects": "temporary local service/browser; writes explicit new output only",
+      "word_pipeline_role": "primary",
+      "bytes": 15605,
+      "sha256": "b1f5cd91a4cb74f6090315874e5b01d25363f1d476c7e3b5f0a0158d2bf402cd",
+      "review_flags": []
+    },
+    {
+      "id": "html_asset_references",
+      "path": "html_assets.py",
+      "layer": "resource-contract",
+      "responsibility": "discovers HTML image dependencies without rendering or inventing objects",
+      "entrypoints": [
+        "references",
+        "ImageReferences"
+      ],
+      "input": "Markdown outside code/comments/raw text",
+      "output": "image paths and source positions",
+      "side_effects": "read-only",
+      "word_pipeline_role": "primary",
+      "bytes": 1459,
+      "sha256": "9b2ae321e23a90cb59caf2f22b0e6a8c24e10e45f1c6548942f730f72c0f4e44",
+      "review_flags": []
+    },
+    {
+      "id": "safe_html",
+      "path": "web/safe_html.js",
+      "layer": "html-security",
+      "responsibility": "shared inert allowlist for Markdown preview, inline table text and reading packs",
+      "entrypoints": [
+        "fragment",
+        "assetPath",
+        "safeLink",
+        "hasHTML"
+      ],
+      "input": "HTML from the original Markdown renderer",
+      "output": "fresh safe display nodes",
+      "side_effects": "DOM only; source unchanged",
+      "word_pipeline_role": "display-only",
+      "bytes": 7914,
+      "sha256": "3f060205558c0df4c776810694962ef096af3cd6ff77994596095971ffe2e812",
+      "review_flags": []
+    },
+    {
+      "id": "agent_readonly",
+      "path": "agent_readonly.py",
+      "layer": "agent-api-read",
+      "responsibility": "local stdout-only AI Agent A0: object, reference and diagnostic queries with snapshot and explicit structural-only scope",
+      "entrypoints": [
+        "project",
+        "analyze_file",
+        "main"
+      ],
+      "input": "explicit report.md or project path",
+      "output": "hrs-agent-read-v1 stdout JSON",
+      "side_effects": "read-only; no project writes or HTTP RPC",
+      "word_pipeline_role": "primary",
+      "bytes": 7933,
+      "sha256": "a8bad46ce1619db2b37c37856d5195adc19f15cbbda1178c360189cab3d7d437",
+      "review_flags": []
+    },
+    {
+      "id": "readable_docs_builder",
+      "path": "tools/build_readable_docs.js",
+      "layer": "docs-build",
+      "responsibility": "deterministic offline Markdown help compiler using bundled Marked and trusted reader",
+      "entrypoints": [
+        "build",
+        "imageData",
+        "main"
+      ],
+      "input": "canonical app/docs/*.md and bundled guide images",
+      "output": "eleven offline HTML documents from seven canonical Markdown sources",
+      "side_effects": "writes application docs only under explicit --write",
+      "word_pipeline_role": "exclude",
+      "bytes": 6725,
+      "sha256": "d04d9696f34629cd7319da80f2dbe2ea781615933755c32add4c402c46fbdfce",
+      "review_flags": []
+    },
+    {
+      "id": "ui_theme_tokens",
+      "path": "web/design_tokens.css",
+      "layer": "presentation",
+      "responsibility": "shared structural dimensions and aliases to independent palette properties",
+      "entrypoints": [],
+      "input": "document root",
+      "output": "design tokens",
+      "side_effects": "CSS only",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 1697,
+      "sha256": "f495ea903e26b13074cc7275d7ee6ebf799cd9a07d1ef78834390d7639285ac7",
+      "review_flags": []
+    },
+    {
+      "id": "shared_surface_components",
+      "path": "web/surface_components.css",
+      "layer": "presentation",
+      "responsibility": "canonical table/window toolbar, caption, grid and code-card surface style",
+      "entrypoints": [],
+      "input": "table/code DOM",
+      "output": "shared screen, print and help CSS component rules",
+      "side_effects": "CSS only",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 12856,
+      "sha256": "991110ba329a175c02f21171349aa4c786e52e25c1055db0f39e97066b8d1366",
+      "review_flags": []
+    },
+    {
+      "id": "readable_docs_theme",
+      "path": "tools/readable_docs_theme.css",
+      "layer": "docs-style",
+      "responsibility": "single-page help-specific styling layered over shared reader",
+      "entrypoints": [],
+      "input": "generated help HTML",
+      "output": "CSS presentation",
+      "side_effects": "CSS only",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 4187,
+      "sha256": "e60d92921797ba1c6e46bb42e6f194d54baa9c88a597e09b0b179f586eeb0b39",
+      "review_flags": []
+    },
+    {
+      "id": "report_contract",
+      "path": "report_contract.py",
+      "layer": "report-ir",
+      "responsibility": "validates Markdown source and produces read-only engineering-report-ir-v1",
+      "entrypoints": [
+        "analyze",
+        "validate_table",
+        "validate_figure",
+        "parse_image_group"
+      ],
+      "input": "Markdown and project assets",
+      "output": "JSON IR, errors, dependencies",
+      "side_effects": "read-only",
+      "word_pipeline_role": "primary",
+      "bytes": 35546,
+      "sha256": "e8ed0ee832f9b905ce296b0f2ec012fac37e7adb5d3b720a3d9744ce5bc40573",
+      "review_flags": []
+    },
+    {
+      "id": "asset_housekeeping",
+      "path": "asset_housekeeping.py",
+      "layer": "project-maintenance",
+      "responsibility": "explicitly scans, quarantines and restores unreferenced project assets without altering report source",
+      "entrypoints": [
+        "AssetHousekeeper"
+      ],
+      "input": "saved project and recovery/history Markdown",
+      "output": "asset groups and reversible project-local trash batches",
+      "side_effects": "project writes only after user confirmation",
+      "word_pipeline_role": "exclude",
+      "bytes": 17746,
+      "sha256": "32e0016b3e62d80e247d2e0161f298dd4809352e79f01f9cc9824eeecdc76f17",
+      "review_flags": []
+    },
+    {
+      "id": "project_workspace",
+      "path": "project_workspace.py",
+      "layer": "project-management",
+      "responsibility": "validates external project directories and handles copy/migration",
+      "entrypoints": [
+        "validate_project_name",
+        "pick_project_parent",
+        "pick_import_file",
+        "copy_project_tree",
+        "ProjectRegistry",
+        "is_link"
+      ],
+      "input": "explicitly chosen directory",
+      "output": "project location / registry",
+      "side_effects": "writes only on explicit operation",
+      "word_pipeline_role": "indirect",
+      "bytes": 9529,
+      "sha256": "88ec7663a8833233fbb0738214f73d7949a4aae8efb2abbef964b1166d5295e4",
+      "review_flags": []
+    },
+    {
+      "id": "markdown_import",
+      "path": "markdown_import.py",
+      "layer": "local-import",
+      "responsibility": "reads an explicitly selected MD and adapts existing IR/assets into a complete draft payload",
+      "entrypoints": [
+        "prepare_markdown_import"
+      ],
+      "input": "one native-selected MD and its relative images",
+      "output": "existing rewritten Markdown and validated asset payload",
+      "side_effects": "read-only original",
+      "word_pipeline_role": "indirect",
+      "bytes": 2074,
+      "sha256": "d55a9c0ee4b227ba49c2b1c59cd1d60b45cd592175162dd808900fd3fcd39000",
+      "review_flags": []
+    },
+    {
+      "id": "studio_http",
+      "path": "studio.py",
+      "layer": "local-api",
+      "responsibility": "local document server, assets, validation, drafts, save and export",
+      "entrypoints": [
+        "StudioServer",
+        "Handler",
+        "normalize_svg",
+        "check_image"
+      ],
+      "input": "browser HTTP requests",
+      "output": "JSON API / binary resources",
+      "side_effects": "reads/writes projects and drafts",
+      "word_pipeline_role": "do-not-import",
+      "bytes": 113994,
+      "sha256": "d5e895ead78b81626cf540869b6447b397851f8283c759cf855f6b6b03def273",
+      "review_flags": [
+        "large-monolithic-module"
+      ]
+    },
+    {
+      "id": "native_picker",
+      "path": "native_picker.py",
+      "layer": "windows-navigation",
+      "responsibility": "Common Item Dialog with per-action successful-directory memory; history never grants file access",
+      "entrypoints": [
+        "PickerHistory",
+        "configure",
+        "choose"
+      ],
+      "input": "explicit native dialog action",
+      "output": "selected path or cancellation",
+      "side_effects": "user selection and navigation preferences",
+      "word_pipeline_role": "exclude",
+      "bytes": 6064,
+      "sha256": "ab452d87591b3dccc077cbd6b5973955251b064da8c4bae456de1c48b0127e77",
+      "review_flags": []
+    },
+    {
+      "id": "word_export",
+      "path": "word_export.py",
+      "layer": "word-export-adapter",
+      "responsibility": "native-selected templates and offline Bridge/WPS subprocess; no duplicate compiler",
+      "entrypoints": [
+        "WordExport",
+        "runtime_paths",
+        "check_template"
+      ],
+      "input": "current frozen HRS project and selected template",
+      "output": "DOCX and existing Bridge provenance",
+      "side_effects": "explicit output and local preference writes",
+      "word_pipeline_role": "delegates",
+      "bytes": 18456,
+      "sha256": "9f6abcf882251db9bc663aef4bf659a4cb64b47596fff867c6cf1f875a1e089e",
+      "review_flags": []
+    },
+    {
+      "id": "word_export_ui",
+      "path": "web/word_export.js",
+      "layer": "browser-ui",
+      "responsibility": "theme-aware beta entry, Word template chooser, progress, errors and result actions",
+      "entrypoints": [
+        "open"
+      ],
+      "input": "editor snapshot via callback",
+      "output": "Word export UI requests",
+      "side_effects": "explicit user actions only",
+      "word_pipeline_role": "never-source-of-truth",
+      "bytes": 11613,
+      "sha256": "0f2b03bd22ad6bfe6f0d6d968550cdd1e36390e8c38e46c30943cabb001efdf1",
+      "review_flags": []
+    },
+    {
+      "id": "bridge_word_model",
+      "path": "web/bridge_model.js",
+      "layer": "generated-bridge-adapter",
+      "responsibility": "exact copy of canonical Bridge browser_model.js; reuses current HRS lexer/profile and graphical renderer",
+      "entrypoints": [
+        "build",
+        "render"
+      ],
+      "input": "source-bound Bridge request",
+      "output": "existing engineering tokens and PNG renditions",
+      "side_effects": "no source writes; bounded canvas",
+      "word_pipeline_role": "delegates",
+      "bytes": 5323,
+      "sha256": "fc6c0d14f19cbb6879a85b1aecac1530c95d350712de409507c929d20f85f96e",
+      "review_flags": []
+    },
+    {
+      "id": "clipboard_graphics",
+      "path": "clipboard_graphics.py",
+      "layer": "graphics-io",
+      "responsibility": "reads Windows clipboard EMF/PNG/DIB and produces raster preview",
+      "entrypoints": [
+        "ClipboardGraphic",
+        "validate_emf",
+        "emf_to_png",
+        "read_windows_graphic"
+      ],
+      "input": "Windows clipboard / EMF",
+      "output": "source bytes / PNG preview",
+      "side_effects": "reads OS clipboard",
+      "word_pipeline_role": "indirect",
+      "bytes": 13313,
+      "sha256": "23c9194cf80ea9866c59ccc7bc2ee6a510e6a417bbbcf8afdbe3d86c91594e5a",
+      "review_flags": []
+    },
+    {
+      "id": "pdf_graphics",
+      "path": "pdf_graphics.py",
+      "layer": "graphics-io",
+      "responsibility": "single-page PDF figure raster preview with original PDF preserved",
+      "entrypoints": [
+        "PdfPreview",
+        "validate_pdf",
+        "png_dimensions",
+        "render_pdf_preview"
+      ],
+      "input": "PDF bytes",
+      "output": "PNG preview, dimensions",
+      "side_effects": "temporary files / Windows PDF renderer",
+      "word_pipeline_role": "indirect",
+      "bytes": 9065,
+      "sha256": "1eb1c36bed062182d4432dfea145d418885420696e450cb1e775d87e064f0a33",
+      "review_flags": []
+    },
+    {
+      "id": "svg_prolog",
+      "path": "svg_prolog.py",
+      "layer": "graphics-security",
+      "responsibility": "normalizes SVG document prolog without external DTD fetch",
+      "entrypoints": [
+        "safe_svg_prolog"
+      ],
+      "input": "SVG bytes",
+      "output": "normalized bytes",
+      "side_effects": "read-only",
+      "word_pipeline_role": "indirect",
+      "bytes": 5257,
+      "sha256": "62bf3858764a94f56327d1abf7134866a6f4d17ea6a34d8aeebd01ddb189d2b6",
+      "review_flags": []
+    },
+    {
+      "id": "reference_context",
+      "path": "reference_context.py",
+      "layer": "reference-mask",
+      "responsibility": "masks code, URLs and unsafe places for reference checking",
+      "entrypoints": [
+        "masked_context",
+        "label_key"
+      ],
+      "input": "Markdown text",
+      "output": "masked text",
+      "side_effects": "read-only",
+      "word_pipeline_role": "primary",
+      "bytes": 7600,
+      "sha256": "cc9d8b82d22246d6cc9125b9da05747f011dd778f6cc38b69d112152583c28d3",
+      "review_flags": []
+    },
+    {
+      "id": "reading_pack",
+      "path": "reading_pack.py",
+      "layer": "reader-only",
+      "responsibility": "isolated ZIP/directory Markdown browsing",
+      "entrypoints": [
+        "ReadBundle",
+        "ReadPackManager",
+        "normalized_reference"
+      ],
+      "input": "explicit external ZIP or folder",
+      "output": "read-only Markdown and media",
+      "side_effects": "memory session only",
+      "word_pipeline_role": "exclude",
+      "bytes": 12086,
+      "sha256": "c6c32b84690467dd672fc81f4d1fb69dcd9bc94a4e8630e3523b533d33c0a0af",
+      "review_flags": []
+    },
+    {
+      "id": "portable_host",
+      "path": "portable_host.py",
+      "layer": "windows-launch",
+      "responsibility": "portable local web server and browser lifecycle",
+      "entrypoints": [
+        "PortableServer",
+        "PortableHandler",
+        "start",
+        "stop"
+      ],
+      "input": "Windows launcher / local session",
+      "output": "server and browser window",
+      "side_effects": "service lifecycle",
+      "word_pipeline_role": "exclude",
+      "bytes": 22878,
+      "sha256": "21840a2a7e6c9e3e135c42c73f4ecdb7b70bda0e93a6b7d037adbe4856cdd3aa",
+      "review_flags": []
+    },
+    {
+      "id": "portable_sessions",
+      "path": "portable_sessions.py",
+      "layer": "windows-launch",
+      "responsibility": "session lease and disconnection timeout",
+      "entrypoints": [
+        "WindowSessions",
+        "WindowLease"
+      ],
+      "input": "browser sessions",
+      "output": "lease state",
+      "side_effects": "memory state",
+      "word_pipeline_role": "exclude",
+      "bytes": 6228,
+      "sha256": "9ce0fd71dfc971429e6a66102e93c0d6261606b6563f0f24254d7fcf88ea826b",
+      "review_flags": []
+    },
+    {
+      "id": "portable_transport",
+      "path": "portable_transport.py",
+      "layer": "windows-launch",
+      "responsibility": "simple control transport for portable host",
+      "entrypoints": [
+        "read_control",
+        "write_control"
+      ],
+      "input": "local transport stream",
+      "output": "control messages",
+      "side_effects": "local transport",
+      "word_pipeline_role": "exclude",
+      "bytes": 1745,
+      "sha256": "22a7884b877d233978aaa6e5a7d42e80f9c28c7ebb9e2d522086da9b888f696f",
+      "review_flags": []
+    },
+    {
+      "id": "vector_conversion",
+      "path": "vector_conversion.py",
+      "layer": "legacy-optional",
+      "responsibility": "optional EMF-to-SVG experiment; NOT HF8 default",
+      "entrypoints": [
+        "try_emf_svg",
+        "find_inkscape"
+      ],
+      "input": "EMF bytes",
+      "output": "optional SVG",
+      "side_effects": "may use external Inkscape if requested",
+      "word_pipeline_role": "exclude",
+      "bytes": 2691,
+      "sha256": "71990b3c8b89a803a9e6ad6e9e138fbc7df536ed634b3a778ab0548baba56134",
+      "review_flags": []
+    },
+    {
+      "id": "app_ui",
+      "path": "web/app.js",
+      "layer": "browser-ui",
+      "responsibility": "main editor UI orchestration, captions, references and export",
+      "entrypoints": [
+        "insertCommand",
+        "insertObjectReference",
+        "numberObjects",
+        "insertSectionReference"
+      ],
+      "input": "editor state / browser DOM",
+      "output": "visual preview and UI events",
+      "side_effects": "modifies editor state via explicit action",
+      "word_pipeline_role": "never-source-of-truth",
+      "bytes": 230338,
+      "sha256": "634338d31cce3b5266957ddb822462f7c26ac4107874de44d87cc10607bdcd63",
+      "review_flags": [
+        "large-monolithic-module"
+      ]
+    },
+    {
+      "id": "source_blocks",
+      "path": "web/source_blocks.js",
+      "layer": "source-map",
+      "responsibility": "source block/fold ranges and explicit saved-image promotion through existing figure serialization",
+      "entrypoints": [
+        "scan",
+        "readObject",
+        "normalized",
+        "replacement",
+        "lexer"
+      ],
+      "input": "Markdown text and optional full-document link definitions",
+      "output": "source ranges, raw objects and the configured original Marked lexer",
+      "side_effects": "read-only",
+      "word_pipeline_role": "reference",
+      "bytes": 10286,
+      "sha256": "74aeb52c1476cd915574a5b190e8bc88efc331700a58936c3beaf2f024264145",
+      "review_flags": []
+    },
+    {
+      "id": "document_search",
+      "path": "web/document_search.js",
+      "layer": "read-only-search",
+      "responsibility": "whole Markdown string or rendered text search with source fold navigation and temporary display ranges",
+      "entrypoints": [
+        "attach"
+      ],
+      "input": "current Markdown, rendered DOM and explicit literal query",
+      "output": "transient match count and current selection/range",
+      "side_effects": "read-only source; UI only",
+      "word_pipeline_role": "display-only",
+      "bytes": 9041,
+      "sha256": "546d7393badbdb33bb75b1ad67302be7340c000d436223d20a2b6f149023a12e",
+      "review_flags": []
+    },
+    {
+      "id": "document_search_styles",
+      "path": "web/document_search.css",
+      "layer": "presentation",
+      "responsibility": "theme-aware non-modal find bar and temporary current-match paint",
+      "entrypoints": [],
+      "input": "find UI and active rendered text range",
+      "output": "search presentation only",
+      "side_effects": "CSS only",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 1938,
+      "sha256": "d5d2ce8ef4f45df92bd0e8e28f0187d207a79651031f99c3e5a5e6437cbca929",
+      "review_flags": []
+    },
+    {
+      "id": "source_actions",
+      "path": "web/source_actions.js",
+      "layer": "source-ui",
+      "responsibility": "exact folded source selection, clipboard and deletions through existing editor history",
+      "entrypoints": [
+        "attach"
+      ],
+      "input": "current editor source/ranges",
+      "output": "source selection / commands",
+      "side_effects": "explicit clipboard and source edit",
+      "word_pipeline_role": "exclude",
+      "bytes": 4329,
+      "sha256": "4cac2063fd3ec8eee0ac3422118a96629b2ad67a669326c1093c0eaed8222d06",
+      "review_flags": []
+    },
+    {
+      "id": "note_syntax",
+      "path": "web/note_syntax.js",
+      "layer": "presentation",
+      "responsibility": "shared Marked highlight and footnote extensions without source rewriting",
+      "entrypoints": [
+        "installMarked",
+        "prepare",
+        "finalize",
+        "bindNavigation",
+        "hasRich"
+      ],
+      "input": "Marked tokens and DOM",
+      "output": "note markup / derived footnote navigation",
+      "side_effects": "Marked registration and presentation DOM",
+      "word_pipeline_role": "policy-gated",
+      "bytes": 9970,
+      "sha256": "06e8a702582907a338befca9c4c76cbcf6af4a9ce2530a9bf4684b579d876a0e",
+      "review_flags": []
+    },
+    {
+      "id": "external_links",
+      "path": "web/external_links.js",
+      "layer": "browser-ui",
+      "responsibility": "route explicit web-link clicks to the local system-browser API",
+      "entrypoints": [
+        "attach",
+        "decorate",
+        "externalURL"
+      ],
+      "input": "user click / safe URL",
+      "output": "system browser request",
+      "side_effects": "explicit external application launch",
+      "word_pipeline_role": "exclude",
+      "bytes": 1328,
+      "sha256": "d70d622ecda01cec06a8af57d00b82bbe5a4caf571640200bb8a90bbb175dfa5",
+      "review_flags": []
+    },
+    {
+      "id": "mathjax_boldsymbol",
+      "path": "web/vendor/input/tex/extensions/boldsymbol.js",
+      "layer": "vendor",
+      "responsibility": "exact MathJax 3.2.1 offline boldsymbol component; main bundle unchanged",
+      "entrypoints": [],
+      "input": "TeX boldsymbol",
+      "output": "native MathJax math variant",
+      "side_effects": "MathJax extension registration",
+      "word_pipeline_role": "not-omml-validation",
+      "bytes": 4056,
+      "sha256": "55f7224e2cdaba66adc87ecb894b99fa12b0b2473ca942a0c8b18f574fcc3feb",
+      "review_flags": []
+    },
+    {
+      "id": "source_map",
+      "path": "web/source_map.js",
+      "layer": "source-map",
+      "responsibility": "maps existing Marked block/link-definition tokens to UTF-16 source ranges",
+      "entrypoints": [
+        "create",
+        "assertRange",
+        "rebaseUnchanged",
+        "taskRanges",
+        "listFrames",
+        "textFrame",
+        "replaceNormalizedText"
+      ],
+      "input": "Markdown / Marked tokens",
+      "output": "source ranges",
+      "side_effects": "read-only until UI applies edit",
+      "word_pipeline_role": "reference",
+      "bytes": 12035,
+      "sha256": "1df42121b3e7f37e1f607af11c94f9de700f4ced50607f67dfd5189f3c93dc50",
+      "review_flags": []
+    },
+    {
+      "id": "native_pipe_tables",
+      "path": "web/pipe_tables.js",
+      "layer": "table-model",
+      "responsibility": "parse and serialize native GFM pipe tables and preserve alignment/caption",
+      "entrypoints": [
+        "parseRaw",
+        "stringify",
+        "requiresPromotion",
+        "promoted"
+      ],
+      "input": "original Markdown GFM table",
+      "output": "editable logical grid or canonical GFM text",
+      "side_effects": "read-only helper; caller handles user confirmation",
+      "word_pipeline_role": "primary",
+      "bytes": 5863,
+      "sha256": "8858bdd3a21a0e48ee0938ee8efc41c4e892100ee04bc36ee3a37cc426fc7338",
+      "review_flags": []
+    },
+    {
+      "id": "report_tables",
+      "path": "web/report_tables.js",
+      "layer": "table-model",
+      "responsibility": "HTML/TSV paste and logical merged-cell table operations",
+      "entrypoints": [
+        "parseTSV",
+        "parseHTML",
+        "logicalGrid",
+        "validateWidths"
+      ],
+      "input": "clipboard cells / table object",
+      "output": "normalized grid / new table object",
+      "side_effects": "read-only helpers; calling UI decides write",
+      "word_pipeline_role": "secondary",
+      "bytes": 15544,
+      "sha256": "163ae9522e95817caf46ea5cb71c9dbad8267a1e071bf9ad7fedaed0bd43bece",
+      "review_flags": []
+    },
+    {
+      "id": "table_editor",
+      "path": "web/table_editor.js",
+      "layer": "browser-ui",
+      "responsibility": "visual structured table editing modal",
+      "entrypoints": [
+        "open"
+      ],
+      "input": "table model / browser event",
+      "output": "updated table model",
+      "side_effects": "temporary UI state",
+      "word_pipeline_role": "never-source-of-truth",
+      "bytes": 14858,
+      "sha256": "6e24a83650a25ed681bd534078aa785cef5b455b78fb593e05e577c49c385b02",
+      "review_flags": []
+    },
+    {
+      "id": "dialogs",
+      "path": "web/dialogs.js",
+      "layer": "browser-ui",
+      "responsibility": "in-page confirmation dialog and focus trapping shared by editor and table editor",
+      "entrypoints": [
+        "confirm",
+        "trapFocus",
+        "isOpen"
+      ],
+      "input": "UI message",
+      "output": "user decision (boolean)",
+      "side_effects": "temporary DOM only",
+      "word_pipeline_role": "never-source-of-truth",
+      "bytes": 3190,
+      "sha256": "7e54866f1f8e16fd0b8435bb2c85ba4131493a678172326d5c764fdf228aa4c6",
+      "review_flags": []
+    },
+    {
+      "id": "report_layout",
+      "path": "web/report_layout.js",
+      "layer": "image-group-model",
+      "responsibility": "parses/serializes image group Markdown fences and attributes",
+      "entrypoints": [
+        "parseGroup",
+        "groupSnippet",
+        "validateGroup"
+      ],
+      "input": "Markdown group fence / model",
+      "output": "group model / Markdown snippet",
+      "side_effects": "read-only helpers",
+      "word_pipeline_role": "secondary",
+      "bytes": 7451,
+      "sha256": "689530b692076c5295c94f5b7cea7a8d2aee47c694d01282f19e8580c91d97d3",
+      "review_flags": []
+    },
+    {
+      "id": "list_styles",
+      "path": "web/list_styles.js",
+      "layer": "list-style",
+      "responsibility": "Markdown list style hints and semantic HTML list rendering",
+      "entrypoints": [
+        "listSnippet",
+        "installMarked"
+      ],
+      "input": "Markdown + list style",
+      "output": "Markdown source / Marked extension",
+      "side_effects": "global Marked extension",
+      "word_pipeline_role": "needs-word-mapping",
+      "bytes": 2440,
+      "sha256": "8c32209681c2581c41115a7d73b6319a71a4aa607a317d1e984205e2be4301d4",
+      "review_flags": []
+    },
+    {
+      "id": "table_content",
+      "path": "web/table_content.js",
+      "layer": "inline-tokenizer",
+      "responsibility": "splits structured table cell text into text and math",
+      "entrypoints": [
+        "tokenize"
+      ],
+      "input": "cell text",
+      "output": "$ or \\(...\\) inline / block math token spans",
+      "side_effects": "read-only",
+      "word_pipeline_role": "secondary",
+      "bytes": 1709,
+      "sha256": "a05bf7fa05fe0a7d0bacea2d1b1e1b6f5e7ecbd7aaa4d433a84a6b366c1fc325",
+      "review_flags": []
+    },
+    {
+      "id": "code_highlight",
+      "path": "web/code_highlight.js",
+      "layer": "presentation",
+      "responsibility": "code and GFM native table syntax highlighter in source/preview",
+      "entrypoints": [
+        "language",
+        "sourceTokens",
+        "highlightHTML"
+      ],
+      "input": "Markdown fenced code",
+      "output": "highlight spans",
+      "side_effects": "read-only visual",
+      "word_pipeline_role": "exclude",
+      "bytes": 15822,
+      "sha256": "7bee268f5473f338d22c142726c1bfccd2dc9ddaf3edf80a1a4652deb80a6f71",
+      "review_flags": []
+    },
+    {
+      "id": "inline_formula",
+      "path": "web/inline_formula.js",
+      "layer": "presentation",
+      "responsibility": "inserts inline TeX without changing original semantics",
+      "entrypoints": [
+        "inlineSnippet"
+      ],
+      "input": "selected editor text",
+      "output": "Markdown $...$ snippet",
+      "side_effects": "read-only helper",
+      "word_pipeline_role": "secondary",
+      "bytes": 1024,
+      "sha256": "990d81ba0f9f513b895eec0ed25261202abf23c6d78a61e77d9ef88397a25fec",
+      "review_flags": []
+    },
+    {
+      "id": "mermaid_renderer",
+      "path": "web/mermaid_renderer.js",
+      "layer": "presentation",
+      "responsibility": "official local Mermaid rendering shared by editor, dialogs and reading packs; asynchronous cache and unique SVG identities",
+      "entrypoints": [
+        "render",
+        "into",
+        "renderAll"
+      ],
+      "input": "complete Mermaid source / trusted palette",
+      "output": "safe standalone SVG",
+      "side_effects": "temporary DOM and bounded render cache",
+      "word_pipeline_role": "needs-vector-rendition",
+      "bytes": 5852,
+      "sha256": "a3e96c9561200b62d851612d4d35731414701d28ed7058bf95df70224067dfcf",
+      "review_flags": []
+    },
+    {
+      "id": "diagram",
+      "path": "web/diagram.js",
+      "layer": "mermaid-editor-helper",
+      "responsibility": "optional simple-node editing model; never gates complete Mermaid rendering",
+      "entrypoints": [
+        "parse"
+      ],
+      "input": "Mermaid source",
+      "output": "editable diagram model",
+      "side_effects": "read-only parse",
+      "word_pipeline_role": "needs-vector-rendition",
+      "bytes": 8471,
+      "sha256": "0fb582a4838f0c6f167a8698288ab858cf8aeed7bb33cab7d82fe90e7f4f49bc",
+      "review_flags": []
+    },
+    {
+      "id": "export_archive",
+      "path": "web/export_archive.js",
+      "layer": "archive",
+      "responsibility": "HTML v2 recompilable asset index and SHA-256 verification",
+      "entrypoints": [
+        "buildArchive",
+        "readArchive"
+      ],
+      "input": "Markdown and graph assets",
+      "output": "v2 HTML embedded archive",
+      "side_effects": "constructs export only",
+      "word_pipeline_role": "reference",
+      "bytes": 11615,
+      "sha256": "ea606922f08591aef1cb16a61d00eb857827b121f12f64ece5178d7c6f2d3fa2",
+      "review_flags": []
+    },
+    {
+      "id": "export_rendition",
+      "path": "web/export_rendition.js",
+      "layer": "presentation",
+      "responsibility": "DPI-dependent bitmap downscaling for HTML export",
+      "entrypoints": [
+        "rendition"
+      ],
+      "input": "image bytes / physical width",
+      "output": "image bytes for HTML",
+      "side_effects": "canvas bitmap rendering",
+      "word_pipeline_role": "exclude",
+      "bytes": 2883,
+      "sha256": "940298c42ca7362b439b89038b1f8d037541317e7a4de7860fce38750a9b7c4d",
+      "review_flags": []
+    },
+    {
+      "id": "browser_object_catalog",
+      "path": "web/object_catalog.js",
+      "layer": "object-contract",
+      "responsibility": "single browser-side validation and derived-numbering semantics for editor/source/reader",
+      "entrypoints": [
+        "tableValidate",
+        "figureValidate",
+        "validObject",
+        "numbering",
+        "indexDOM",
+        "indexSource",
+        "sourceTexts"
+      ],
+      "input": "validated DOM, parsed object records and SourceMap",
+      "output": "semantic object counts, numbers, lookup and dependency text",
+      "side_effects": "read-only",
+      "word_pipeline_role": "primary",
+      "bytes": 14548,
+      "sha256": "d1360536a578a80c1bd206bc7b726d474b9dadb0a73cf2dfa43c9f29dee14977",
+      "review_flags": []
+    },
+    {
+      "id": "standalone_reader_core",
+      "path": "web/report_reader_core.js",
+      "layer": "reader-source",
+      "responsibility": "authoritative offline reader interaction logic; shared catalog injected by bundle",
+      "entrypoints": [
+        "objectOutline",
+        "installTableCards",
+        "mount"
+      ],
+      "input": "rendered document DOM",
+      "output": "offline reader navigation and copy/fold",
+      "side_effects": "DOM-only",
+      "word_pipeline_role": "exclude",
+      "bytes": 32207,
+      "sha256": "d374780418591df48616c1182b87975449cb6e39998281ef8ec940b5e3c3db59",
+      "review_flags": []
+    },
+    {
+      "id": "standalone_reader_builder",
+      "path": "tools/build_reader_bundle.js",
+      "layer": "reader-build",
+      "responsibility": "deterministic offline report_reader.js generator from catalog and reader core",
+      "entrypoints": [],
+      "input": "canonical JS modules",
+      "output": "standalone browser reader JS",
+      "side_effects": "writes bundled app reader only with --write",
+      "word_pipeline_role": "exclude",
+      "bytes": 1045,
+      "sha256": "bb8ef39dc420378b0f84bfc33730a5b8d3a477c274fb56c78d3ad2ecbcc24d57",
+      "review_flags": []
+    },
+    {
+      "id": "html_report_reader",
+      "path": "web/report_reader.js",
+      "layer": "generated-presentation",
+      "responsibility": "generated and byte-checked standalone reader: offline section navigation and dual object lists (chronological / figure-table-equation categories), search, copy/fold, zoom, back-to-top",
+      "entrypoints": [
+        "headingOutline",
+        "mount",
+        "init",
+        "pdfAssetStore"
+      ],
+      "input": "rendered HTML DOM",
+      "output": "navigation, copy and zoom controls",
+      "side_effects": "DOM only: never mutates source JSON or Markdown",
+      "word_pipeline_role": "exclude",
+      "bytes": 46818,
+      "sha256": "e995e95d01162d97e254b75f17d34f9e460c332ef81cf40619091a91db3bc2d5",
+      "review_flags": []
+    },
+    {
+      "id": "html_report_reader_styles",
+      "path": "web/report_reader.css",
+      "layer": "presentation",
+      "responsibility": "offline interactive reader layout; print hides navigation, search, lightbox and buttons",
+      "entrypoints": [],
+      "input": "static reader DOM",
+      "output": "responsive and print styles",
+      "side_effects": "CSS only",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 9936,
+      "sha256": "463de5594dcc325c76b67c658ae2abc99e0219790394b46e5e6af7ad675588bb",
+      "review_flags": []
+    },
+    {
+      "id": "reading_pack_ui",
+      "path": "web/reading_pack.js",
+      "layer": "reader-only",
+      "responsibility": "read-only external Markdown reader UI",
+      "entrypoints": [
+        "resolveRelative",
+        "closeReader"
+      ],
+      "input": "selected ZIP / folder",
+      "output": "read-only preview",
+      "side_effects": "UI memory state",
+      "word_pipeline_role": "exclude",
+      "bytes": 11149,
+      "sha256": "a39ee0bb4dc89fdc7f28cacc83759b13061601ae62c98cc43aba3741243c251a",
+      "review_flags": []
+    },
+    {
+      "id": "print_styles",
+      "path": "web/print.css",
+      "layer": "presentation",
+      "responsibility": "offline HTML print layout and figure/list/table styles",
+      "entrypoints": [],
+      "input": "semantic HTML",
+      "output": "CSS layout",
+      "side_effects": "CSS only",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 12336,
+      "sha256": "e3fab1a39963d760bef83f873642630f980f54f4f630d61fd44ba8d8d065b65d",
+      "review_flags": []
+    },
+    {
+      "id": "editor_styles",
+      "path": "web/style.css",
+      "layer": "presentation",
+      "responsibility": "interactive editor UI styling",
+      "entrypoints": [],
+      "input": "browser DOM",
+      "output": "CSS layout",
+      "side_effects": "CSS only",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 67322,
+      "sha256": "800d46db790aafc6b895e4e2b089a09205536bed563ffaeb71070b50a8d54231",
+      "review_flags": []
+    },
+    {
+      "id": "pipe_table_contract",
+      "path": "pipe_table_contract.py",
+      "layer": "source-contract",
+      "responsibility": "read-only GFM pipe table scanner and Quarto tbl-id parser for Python IR",
+      "entrypoints": [
+        "parse_at",
+        "split_cells"
+      ],
+      "input": "Markdown source lines",
+      "output": "IR table with precise source ranges",
+      "side_effects": "read-only",
+      "word_pipeline_role": "primary",
+      "bytes": 4250,
+      "sha256": "9e3eeb4cfc5ea35533441ff482a9752073cb36a90aefe7b1e811687f8947f589",
+      "review_flags": []
+    },
+    {
+      "id": "equation_contract",
+      "path": "equation_contract.py",
+      "layer": "source-contract",
+      "responsibility": "parse $$ and \\[ ... \\] display math, with opt-in stable IDs for numbered $$ blocks",
+      "entrypoints": [
+        "parse_equation"
+      ],
+      "input": "Markdown block",
+      "output": "equation source record",
+      "side_effects": "read-only",
+      "word_pipeline_role": "primary",
+      "bytes": 1596,
+      "sha256": "d9a0cd5715f9b204c909ba7393f5723f7d1c6e014cad32487e105341505dcb16",
+      "review_flags": []
+    },
+    {
+      "id": "report_equations",
+      "path": "web/report_equations.js",
+      "layer": "source-contract",
+      "responsibility": "shared editor $$ and \\[...\\] equation parsing; stable IDs only for opt-in $$ blocks",
+      "entrypoints": [
+        "parse",
+        "snippet",
+        "installMarked"
+      ],
+      "input": "Markdown block",
+      "output": "equation token",
+      "side_effects": "read-only helpers",
+      "word_pipeline_role": "reference",
+      "bytes": 2183,
+      "sha256": "6a9868149ec42a36ab411775d16491e88ef62ba3dfebaa9f41acc39770a9a5f7",
+      "review_flags": []
+    },
+    {
+      "id": "codemirror_bundle",
+      "path": "web/vendor/source-editor.js",
+      "layer": "vendor",
+      "responsibility": "prebuilt CodeMirror 6 editor; bundled third-party licences",
+      "entrypoints": [],
+      "input": "editor state",
+      "output": "editor DOM and source text",
+      "side_effects": "browser only",
+      "word_pipeline_role": "exclude",
+      "bytes": 293529,
+      "sha256": "e049d21014154e9cc579843e36307b5de90834a6911445848d2488953b6c0c9f",
+      "review_flags": []
+    }
+  ]
+}

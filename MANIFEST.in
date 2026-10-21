@@ -1,0 +1,9 @@
+include pyproject.toml setup.py MANIFEST.in LICENSE
+recursive-include packaging *
+recursive-include app *
+recursive-exclude app __pycache__ *.pyc *.pyo
+prune app/projects
+prune app/data
+prune tests
+prune history
+
