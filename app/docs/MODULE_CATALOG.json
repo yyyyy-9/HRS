@@ -1,6 +1,6 @@
 {
   "catalog_format": "hrs-module-catalog-v1",
-  "app_baseline": "1.1.2 R1",
+  "app_baseline": "1.1.3 R1",
   "scope": "source tree only; no external report files are opened",
   "caveat": "This is an interface index, not a Python import dependency graph or a DOCX compiler.",
   "items": [
@@ -266,8 +266,8 @@
       "output": "derived display identity and package stem",
       "side_effects": "read-only",
       "word_pipeline_role": "not-semantic",
-      "bytes": 860,
-      "sha256": "4850b7ddf73d12d2158e1dc13bbaff74a3749cb85a4d4f4588e969e9623f9dc7",
+      "bytes": 897,
+      "sha256": "68d4aedfeebcfcfadf1a22ca157266907c8128158af02b6a064f413f7839b101",
       "review_flags": []
     },
     {
@@ -639,8 +639,8 @@
       "output": "JSON API / binary resources",
       "side_effects": "reads/writes projects and drafts",
       "word_pipeline_role": "do-not-import",
-      "bytes": 113994,
-      "sha256": "d5e895ead78b81626cf540869b6447b397851f8283c759cf855f6b6b03def273",
+      "bytes": 114059,
+      "sha256": "599ee09b1c549bdd5fdd19c1295c348e48dc7282da29277dfc338a427d3706f2",
       "review_flags": [
         "large-monolithic-module"
       ]

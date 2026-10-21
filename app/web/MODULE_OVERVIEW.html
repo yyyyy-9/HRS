@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="671465bca14a6011f319bc15f74055f8e58f4a6b41184ae0179ddb7a229f227a"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="02e1c4cfc3cfe4007abcab3473df5e5d566d9b337b365967f2fff40f5986b8a4"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -583,7 +583,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v1.1.2<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v1.1.3<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
 <a class="level2" href="#section-3">同源桌面宿主</a>
 <a class="level2" href="#section-4">Word beta 界面适配</a>
 <a class="level2" href="#section-5">渲染与输出配置</a>
@@ -611,7 +611,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <h2 id="section-5">渲染与输出配置</h2>
 <p><code>web/render_profile.js</code>在原Marked和SourceMap上派生两模式的章号、摘要范围、HTML显示策略及Word装饰降级；编辑器、阅读包与Bridge共用它。<code>render_profile.py</code>验证模式与显示选项，并消费既有IR提供工程标题输出检查；文档检查、HTML CLI和Bridge调用同一规则。它们不建立第二份对象IR，不改变内容真源、编号对象身份或资源校验。</p>
 <p><code>web/color_theme.js</code>与<code>color_theme.py</code>消费统一配色目录，管理工程/草稿配置及临时输出覆盖；theme*.css集中颜色，design_tokens.css只维护尺寸结构。表格命名和简洁操作栏在object_catalog.js，Reader由它与report_reader_core.js经原生成器构建。自由HTML任务的localStorage只记录本机阅读状态，不回写源归档；帮助固定蓝色并沿用原Markdown生成器。</p>
-<p>当前发布身份以<code>release.json</code>和<a href="../docs/CURRENT_STATUS.html">当前状态</a>为准。本页说明当前程序由哪些模块组成、数据如何流转、各层负责什么。具体语法以<a href="../工程报告源格式_v1_规范.md">源格式规范</a>为准；操作方法见<a href="help.html">使用手册</a>，版本演进见<a href="CHANGELOG_READABLE.html">更新记录</a>。</p>
+<p>当前发布身份以<code>release.json</code>和<a href="../docs/CURRENT_STATUS.html">当前状态</a>为准。本页说明当前程序由哪些模块组成、数据如何流转、各层负责什么。具体语法以<a href="../source_format_v1.md">源格式规范</a>为准；操作方法见<a href="help.html">使用手册</a>，版本演进见<a href="CHANGELOG_READABLE.html">更新记录</a>。</p>
 <h2 id="section-6">自由台账的派生视图与交付</h2>
 <p><code>web/notebook_view.js</code> 只消费原Marked/SourceMap，派生H1专题范围、顶层额外空行和分册定义依赖；<code>object_catalog.indexSource</code> 复用原numbering函数取得全文对象序列，DOM呈现使用同一序列。主编辑器缓存一个当前全文快照的词法/范围/对象/脚注结果，聚焦只构建选定范围的显示节点。source_projection.js使用CodeMirror现有扩展点隐藏范围之外源码和定义，限制本机输入跨界；同一全文缓冲/UTF-16/撤销仍是原真源。脚注定义在独立面板通过原范围事务编辑。source-editor.js只公开既有适配层所需扩展原语，上游载荷保持逐字节原样。编号、目录、引用和全文源码仍完整；不建立第二份持久正文。分册独立派生编号并复用原HTML归档。<code>preview_images.js</code> 管理懒加载、有界尺寸缓存及原锚点恢复，成功切稿时清理。</p>
 <p><code>module_exports.py</code> 暂存已经通过原审计/源资源校验的HTML；全部完成后原子交付一册或ZIP，失败清理自己的临时文件。工程源、历史和共享资源不因分册删除。界面和显式programmatic调用消费同一实现；原单篇HTML CLI、A0和plan/apply契约保持。</p>
@@ -686,7 +686,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <td>消费原IR/源范围；不创建另一份正文模型</td>
 </tr>
 </tbody></table>
-<p>稳定 ID 标识对象，源码范围绑定同一份快照，显示编号按有效对象顺序派生。普通段落和匿名表格不强制分配 ID；目前没有完整的逐段行内 AST。Agent 的调用、冲突拒绝和范围条件统一见<a href="../工程报告源格式_v1_规范.md">规范第6节</a>。</p>
+<p>稳定 ID 标识对象，源码范围绑定同一份快照，显示编号按有效对象顺序派生。普通段落和匿名表格不强制分配 ID；目前没有完整的逐段行内 AST。Agent 的调用、冲突拒绝和范围条件统一见<a href="../source_format_v1.md">规范第6节</a>。</p>
 <h2 id="section-11">编辑与预览</h2>
 <table>
 <thead>

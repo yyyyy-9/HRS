@@ -1,6 +1,6 @@
 {
   "schema": "hrs-release-policy-v1",
-  "purpose": "Documentation and distribution metadata; application behavior is unchanged.",
+  "purpose": "Distribution metadata and an ASCII documentation filename with the legacy HTTP alias; editor/render/save/Word behavior is unchanged.",
   "allowed_application_changes": [
     "app/CHANGELOG.md",
     "app/LICENSING.md",
@@ -9,6 +9,10 @@
     "app/RIGHTS.json",
     "app/docs/*",
     "app/release.json",
+    "app/release_info.py",
+    "app/studio.py",
+    "app/source_format_v1.md",
+    "app/工程报告源格式_v1_规范.md",
     "app/tools/maintain_docs.py",
     "app/web/CHANGELOG_READABLE.html",
     "app/web/MODULE_OVERVIEW.html",
@@ -16,7 +20,7 @@
     "app/web/help.html"
   ],
   "approved_css_changes": {},
-  "protected": "Browser runtime/launchers, all CSS/vendor/upstream editor, Reader, Word support, and functional HRS code remain byte-identical to 1.1.0 R1. Public documentation, synthetic guide assets, licensing metadata and explicit public-history policy are the only App changes.",
+  "protected": "Browser runtime/launchers, CSS/vendor/upstream editor, Reader and Word implementation remain byte-identical to 1.1.0 R1. Documentation metadata and the legacy source-spec URL alias are the only server/release-info changes.",
   "approved_word_material_changes": {
     "word_support/COPYRIGHT": {
       "baseline_sha256": null,

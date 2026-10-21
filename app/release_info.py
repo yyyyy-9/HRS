@@ -2,6 +2,8 @@
 import json,re
 from pathlib import Path
 
+SOURCE_SPEC = 'source_format_v1.md'
+
 
 def load_release(path=None):
     data=json.loads(Path(path or Path(__file__).with_name('release.json')).read_text('utf8'))

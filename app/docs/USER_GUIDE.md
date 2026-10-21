@@ -249,7 +249,7 @@ H<sub>2</sub>O，x<sup>2</sup>，<kbd>Ctrl</kbd>，<mark>重点</mark><br>换行
 </details>
 ```
 
-也支持安全 div 卡片、伸缩布局、颜色、边框、间距和普通 HTML 表格，范围见[源规范](../工程报告源格式_v1_规范.md)。脚本、事件、嵌入网页、危险链接和不允许的样式不执行或生效，原始源码仍保留。HTML 块内部按 HTML 显示，不再次解释 Markdown。
+也支持安全 div 卡片、伸缩布局、颜色、边框、间距和普通 HTML 表格，范围见[源规范](../source_format_v1.md)。脚本、事件、嵌入网页、危险链接和不允许的样式不执行或生效，原始源码仍保留。HTML 块内部按 HTML 显示，不再次解释 Markdown。
 
 含 HTML 的段落在分屏可双击打开现有源码窗口修改；阅读视图不编辑普通正文，不会反序列化去掉标签。导出使用相同安全显示结果，可回编版保留原 Markdown 和资源。HTML 工程图片也须位于 assets/；只读阅读包按包内相对路径找图。保存、检查和导出只要求真实引用的附件，代码示例中的 .assets/photo.png 或 assets/photo.png 不要求有图片文件。卡片内的文字按安全HTML局部颜色继承，例如深色卡片设置 color:white 后，其段落与粗体保持白色。
 
@@ -555,4 +555,4 @@ D:\Work\光学实验报告\
 
 手册正文只维护在 `docs/USER_GUIDE.md`，由随包 Marked 和原有 Reader 生成离线 HTML；截图已内嵌。网页中的复制、折叠不会改手册或用户报告。
 
-日常功能变化见[更新记录](CHANGELOG_READABLE.md)，程序组成见[模块说明](MODULE_OVERVIEW.md)，下游接入见[Word/WPS 数据接口](WORD_COMPILER_HANDOFF.md)，格式规则见[源格式规范](../工程报告源格式_v1_规范.md)。
+日常功能变化见[更新记录](CHANGELOG_READABLE.md)，程序组成见[模块说明](MODULE_OVERVIEW.md)，下游接入见[Word/WPS 数据接口](WORD_COMPILER_HANDOFF.md)，格式规则见[源格式规范](../source_format_v1.md)。

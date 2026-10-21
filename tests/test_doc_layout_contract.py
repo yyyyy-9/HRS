@@ -114,6 +114,14 @@ class DocumentationHTTP(unittest.TestCase):
             self.assertEqual(self.request(self.base + path)[0], 404, path)
         self.assertEqual(self.request(self.base + '/docs/CURRENT_STATUS.md', data=b'{}')[0], 404)
 
+    def test_source_spec_resource_and_legacy_url_return_the_same_document(self):
+        """DIST-03: ASCII packaging preserves the old public document URL."""
+        expected = (ROOT / 'app/source_format_v1.md').read_bytes()
+        for path in ('/source_format_v1.md', '/工程报告源格式_v1_规范.md'):
+            with self.subTest(path=path):
+                status, body = self.request(self.base + path)
+                self.assertEqual((status, body), (200, expected))
+
 
 class DocumentLayout(unittest.TestCase):
     def test_current_documents_may_use_unversioned_headings_but_reject_stale_identity(self):
@@ -126,7 +134,7 @@ class DocumentLayout(unittest.TestCase):
     def test_documented_ir_example_commands_succeed_without_source_changes(self):
         """DOC-02: run the documented structural example; full validation still rejects absent assets."""
         app = ROOT / 'app'
-        spec = (app / '工程报告源格式_v1_规范.md').read_text('utf8')
+        spec = (app / DOCS.SOURCE_SPEC).read_text('utf8')
         section = spec.split('## 6. 工程 IR 输出契约', 1)[1].split('## 7.', 1)[0]
         commands = [shlex.split(line) for line in section.splitlines()
                     if re.match(r'^python .*docs/IR_EXAMPLE_SOURCE\.md', line) and '--output' not in line]

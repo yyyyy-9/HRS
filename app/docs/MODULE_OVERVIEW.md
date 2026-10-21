@@ -24,7 +24,7 @@ report_workspace.js提供范围/恢复/管理选择与任务进度，report_work
 
 `web/color_theme.js`与`color_theme.py`消费统一配色目录，管理工程/草稿配置及临时输出覆盖；theme*.css集中颜色，design_tokens.css只维护尺寸结构。表格命名和简洁操作栏在object_catalog.js，Reader由它与report_reader_core.js经原生成器构建。自由HTML任务的localStorage只记录本机阅读状态，不回写源归档；帮助固定蓝色并沿用原Markdown生成器。
 
-当前发布身份以`release.json`和[当前状态](CURRENT_STATUS.md)为准。本页说明当前程序由哪些模块组成、数据如何流转、各层负责什么。具体语法以[源格式规范](../工程报告源格式_v1_规范.md)为准；操作方法见[使用手册](USER_GUIDE.md)，版本演进见[更新记录](CHANGELOG_READABLE.md)。
+当前发布身份以`release.json`和[当前状态](CURRENT_STATUS.md)为准。本页说明当前程序由哪些模块组成、数据如何流转、各层负责什么。具体语法以[源格式规范](../source_format_v1.md)为准；操作方法见[使用手册](USER_GUIDE.md)，版本演进见[更新记录](CHANGELOG_READABLE.md)。
 
 ## 自由台账的派生视图与交付
 
@@ -74,7 +74,7 @@ Python 和浏览器各有适应运行环境的解析实现，以现行规范及�
 | `block_cli.py`、`project_commit.py` | 快照约束的 plan/apply，以及编辑器共用的锁、备份、原子提交 | plan只写新候选；显式apply才更新report.md，资源不批量写入 |
 | `object_clipboard.py`、`web/object_clipboard.js` | 对象片段身份映射、资源打包及草稿暂存适配 | 消费原IR/源范围；不创建另一份正文模型 |
 
-稳定 ID 标识对象，源码范围绑定同一份快照，显示编号按有效对象顺序派生。普通段落和匿名表格不强制分配 ID；目前没有完整的逐段行内 AST。Agent 的调用、冲突拒绝和范围条件统一见[规范第6节](../工程报告源格式_v1_规范.md)。
+稳定 ID 标识对象，源码范围绑定同一份快照，显示编号按有效对象顺序派生。普通段落和匿名表格不强制分配 ID；目前没有完整的逐段行内 AST。Agent 的调用、冲突拒绝和范围条件统一见[规范第6节](../source_format_v1.md)。
 
 ## 编辑与预览
 

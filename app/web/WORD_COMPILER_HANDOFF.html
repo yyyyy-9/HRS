@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Word 数据交接 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="52779b6e60069b681a77d288fa7a60053137602f1e60b570829c913a25b9183c"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Word 数据交接 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="5d4f56941059b6912f7a02117cfdf73227ee44baeba8bcf098f2dd8640fd48c2"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -583,7 +583,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v1.1.2<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">输出模式与模板角色</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v1.1.3<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">输出模式与模板角色</a>
 <a class="level2" href="#section-3">编辑入口与源稿提交</a>
 <a class="level2" href="#section-4">笔记降级边界</a>
 <a class="level2" href="#section-5">项目分工与内容来源</a>
@@ -623,7 +623,7 @@ python report_contract.py ir D:\Reports\demo\report.md --output D:\Reports\demo\
 python agent_readonly.py objects D:\Reports\demo\report.md
 python tools/audit_modules.py --check
 </code></pre>
-<p>前两条校验引用附件；IR 输出是派生文件，不覆盖原 Markdown。A0 的七种读取为 <code>summary/objects/get/references/diagnostics/outline/get-block</code>，输出 <code>hrs-agent-read-v1</code> JSON，不写工程、不执行文稿代码。匿名块读取必须携带同一快照的摘要，重复 ID 拒绝歧义，精确条件见<a href="../工程报告源格式_v1_规范.md">源规范第6节</a>。</p>
+<p>前两条校验引用附件；IR 输出是派生文件，不覆盖原 Markdown。A0 的七种读取为 <code>summary/objects/get/references/diagnostics/outline/get-block</code>，输出 <code>hrs-agent-read-v1</code> JSON，不写工程、不执行文稿代码。匿名块读取必须携带同一快照的摘要，重复 ID 拒绝歧义，精确条件见<a href="../source_format_v1.md">源规范第6节</a>。</p>
 <p>随包 <code>IR_EXAMPLE_SOURCE.md</code> / <code>IR_EXAMPLE.json</code> 是结构示例，未附四个示意附件。可直接运行的结构读取命令见同一规范第6节；不能把示例的结构读取成功当成完整附件验证成功。<code>sourceContractValid</code> 只是结构入场条件，不证明资源齐全、领域参数正确或下游编译成功。</p>
 <p>输出中的output_blockers是“哪些诊断代码在工程输出中会阻断”的策略集合，并不表示当前存在这些错误；当前是否通过应读取valid/safeToCompile、preflight范围与diagnostics。</p>
 <h2 id="section-7">Agent 调用和提交边界</h2>

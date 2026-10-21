@@ -98,9 +98,9 @@ def render(root=ROOT, *, source_url=None, source_sha256=None):
     identity_test = ("from importlib.metadata import version; from " + module +
         ".release_info import load_release; assert version(" + repr(project['name']) +
         ") == load_release()['python_version'] == '${{ version }}'")
-    resource_test = ("import " + module + "; from pathlib import Path; p=Path(" + module +
+    resource_test = ("import " + module + "; from " + module + ".release_info import SOURCE_SPEC; from pathlib import Path; p=Path(" + module +
         ".__file__).parent; assert all((p/n).is_file() for n in "
-        "['MANIFEST.json','web/app.js','web/help.html','LICENSE','COPYRIGHT'])")
+        "['MANIFEST.json','web/app.js','web/help.html','LICENSE','COPYRIGHT',SOURCE_SPEC])")
     quote = lambda value: json.dumps(value, ensure_ascii=False)
     fields = {
         'VERSION': quote(identity['python_version']), 'PYTHON_MIN': quote(minimum[1]),

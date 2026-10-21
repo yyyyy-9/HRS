@@ -16,7 +16,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 DOC=ROOT/'docs'
 sys.path.insert(0,str(ROOT))
-from release_info import load_release
+from release_info import load_release, SOURCE_SPEC
 RELEASE=load_release()
 ACTIVE=['CURRENT_STATUS.md','SHORT_TERM_PLAN.md','LONG_TERM_ROADMAP.md','PROJECT_GOALS.md',
         'USER_GUIDE.md','CHANGELOG_READABLE.md','MODULE_OVERVIEW.md','WORD_COMPILER_HANDOFF.md',
@@ -71,7 +71,7 @@ def validate(*,generated_verified=False)->list[str]:
  if not (ROOT/'README.md').is_file() or 'docs/CURRENT_STATUS.md' not in (ROOT/'README.md').read_text('utf8'):
   problems.append('README must link current state, rather than historical status only')
  for item in list(DOC.glob('*.md'))+list(ROOT.glob('*.md')):
-  if item.name=='工程报告源格式_v1_规范.md':continue  # canonical technical source specification
+  if item.name==SOURCE_SPEC:continue  # canonical technical source specification
   if re.search(r'(?:[_-](?:updated|draft|tmp|temp|final\d+|v\d+)|更新稿|中间稿|临时)',item.name,re.I):
    problems.append('Intermediate Markdown in active directory: '+item.relative_to(ROOT).as_posix())
  # All historical bytes are source-only and checked by the archive manifest.
@@ -79,7 +79,7 @@ def validate(*,generated_verified=False)->list[str]:
  if not (ROOT.parent/'AGENTS.md').is_file():problems.append('Missing source/portable root AGENTS.md')
  # Active documentation links are not silently allowed to go stale.
  # Bare file references in code fences are not links and are not included.
- for document in [ROOT/'README.md',ROOT/'工程报告源格式_v1_规范.md',*(DOC/name for name in ACTIVE)]:
+ for document in [ROOT/'README.md',ROOT/SOURCE_SPEC,*(DOC/name for name in ACTIVE)]:
   if not document.exists():continue
   value=document.read_text('utf8')
   value=re.sub(r'^ {0,3}(`{3,}|~{3,})[^\n]*\n[\s\S]*?^ {0,3}\1[ \t]*$', '',value,flags=re.M)

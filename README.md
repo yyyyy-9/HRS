@@ -28,7 +28,7 @@ hrs
 - 明确检查后导出Word；复用对应Bridge/WPS组件和准备好的封面模板，保留原生公式/脚注/题注及引用。原生公式需按提示选择Pandoc。
 - 只读接口、完整预检和快照绑定的plan/apply。程序没有模型API客户端，不执行文稿中的任意代码。
 
-详细操作见[使用手册](app/docs/USER_GUIDE.md)、[当前能力与限制](app/docs/CURRENT_STATUS.md)、[源格式](app/工程报告源格式_v1_规范.md)和[下游接口](app/docs/WORD_COMPILER_HANDOFF.md)。
+详细操作见[使用手册](app/docs/USER_GUIDE.md)、[当前能力与限制](app/docs/CURRENT_STATUS.md)、[源格式](app/source_format_v1.md)和[下游接口](app/docs/WORD_COMPILER_HANDOFF.md)。
 
 ## 模板样式工具
 

@@ -17,6 +17,13 @@ spec.loader.exec_module(cli)
 
 
 class InstalledCommands(unittest.TestCase):
+    def test_packaged_resource_names_can_be_listed_by_a_cp1252_console(self):
+        """DIST-03: Windows artifact inspection must not fail printing paths."""
+        names = [p.relative_to(ROOT / 'app').as_posix() for p in (ROOT / 'app').rglob('*')
+                 if p.is_file() and '__pycache__' not in p.parts]
+        self.assertTrue(names)
+        '\n'.join(names).encode('cp1252', errors='strict')
+
     def test_public_word_material_policy_requires_exact_hashes_and_protects_code(self):
         """OSS-PREP-01: a cover/licence replacement must not permit code edits."""
         import sys

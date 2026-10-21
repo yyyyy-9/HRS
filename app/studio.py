@@ -38,7 +38,7 @@ from word_export import WordExport
 
 HERE = Path(__file__).resolve().parent
 APP_MANIFEST_SHA256 = hashlib.sha256((HERE/'MANIFEST.json').read_bytes()).hexdigest() if (HERE/'MANIFEST.json').is_file() else None
-from release_info import load_release
+from release_info import load_release, SOURCE_SPEC
 _identity = load_release()
 VERSION = _identity['version']
 PACKAGE_REVISION = _identity['package_revision']
@@ -893,7 +893,8 @@ class Handler(BaseHTTPRequestHandler):
             if p.startswith('/docs/'):
                 return self.static(p[len('/docs/'):],HERE/'docs',
                                    {'.html','.md','.json','.png','.jpg','.jpeg','.webp','.svg'})
-            if p in ('/README.md','/CHANGELOG.md','/工程报告源格式_v1_规范.md'):
+            if p=='/工程报告源格式_v1_规范.md':p='/'+SOURCE_SPEC
+            if p in ('/README.md','/CHANGELOG.md','/'+SOURCE_SPEC):
                 return self.static(p[1:],HERE,{'.md'})
             if p=='/api/readpack/document':return self.readpack_document()
             if p=='/api/readpack/file':return self.readpack_file()

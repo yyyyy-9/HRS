@@ -1,5 +1,10 @@
 # HRS 发行说明
 
+## v1.1.3
+
+- 源格式规范改为source_format_v1.md，解决Windows产物检查使用cp1252输出时的文件名编码错误；内容保持，旧文档HTTP地址继续指向同一规范。
+- 统一服务与维护工具中的规范资源定义，补充路径编码和实际HTTP兼容检查；编辑、渲染和Word规则保持。
+
 ## v1.1.2
 
 - Python与Conda安装分发统一为hrstudio，命令hrs和模块html_report_studio保持。已有旧分发应先卸载再安装，工程与环境外用户数据保留。

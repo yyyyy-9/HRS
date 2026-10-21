@@ -43,7 +43,7 @@ python agent_readonly.py objects D:\Reports\demo\report.md
 python tools/audit_modules.py --check
 ```
 
-前两条校验引用附件；IR 输出是派生文件，不覆盖原 Markdown。A0 的七种读取为 `summary/objects/get/references/diagnostics/outline/get-block`，输出 `hrs-agent-read-v1` JSON，不写工程、不执行文稿代码。匿名块读取必须携带同一快照的摘要，重复 ID 拒绝歧义，精确条件见[源规范第6节](../工程报告源格式_v1_规范.md)。
+前两条校验引用附件；IR 输出是派生文件，不覆盖原 Markdown。A0 的七种读取为 `summary/objects/get/references/diagnostics/outline/get-block`，输出 `hrs-agent-read-v1` JSON，不写工程、不执行文稿代码。匿名块读取必须携带同一快照的摘要，重复 ID 拒绝歧义，精确条件见[源规范第6节](../source_format_v1.md)。
 
 随包 `IR_EXAMPLE_SOURCE.md` / `IR_EXAMPLE.json` 是结构示例，未附四个示意附件。可直接运行的结构读取命令见同一规范第6节；不能把示例的结构读取成功当成完整附件验证成功。`sourceContractValid` 只是结构入场条件，不证明资源齐全、领域参数正确或下游编译成功。
 

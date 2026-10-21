@@ -97,7 +97,9 @@ FEATURES = {
     'lifecycle': ('Window credentials, reconnect generations, request drain and control-frame boundary', 'portable_contract'),
     'memory': ('Current-document cache reuse, release across project loads and original-source protection', 'memory_browser'),
     'distribution': ('Installed command, generated Conda recipe, shared release identity and separate user state',
-                     'distribution_contract release_contract run_checks_contract test_system_contract'),
+                     '''distribution_contract release_contract run_checks_contract test_system_contract
+                        doc_layout_contract:DocumentationHTTP
+                        doc_layout_contract:DocumentLayout.test_documented_ir_example_commands_succeed_without_source_changes'''),
 }
 
 # Existing Full commands remain accepted as aliases for declared current work.

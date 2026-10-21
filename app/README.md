@@ -12,7 +12,7 @@ Mermaid使用本地官方12.2.0完整引擎，普通围栏、正式图形和阅�
 
 - [使用手册](web/help.html) / [手册 Markdown](docs/USER_GUIDE.md)：当前操作与排错。
 - [模块说明](web/MODULE_OVERVIEW.html)：当前职责与数据流。
-- [源格式规范](工程报告源格式_v1_规范.md)：唯一对象、编号、引用、资源及程序接口契约。
+- [源格式规范](source_format_v1.md)：唯一对象、编号、引用、资源及程序接口契约。
 - [Word/WPS 下游接口](docs/WORD_COMPILER_HANDOFF.md)：可提供的数据及边界。
 - [更新记录](docs/CHANGELOG_READABLE.html) / [技术 CHANGELOG](CHANGELOG.md)：按版本保存演进。
 
