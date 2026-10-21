@@ -60,7 +60,7 @@ A0 七种查询仍只读。HRS 的 app/block_cli.py 提供显式 plan/apply，Br
 
 发行文件由包内清单及摘要核对，下载见[发行记录](docs/HISTORY_INDEX.md)。独立解压包可脱离Git阅读。
 
-标准Python/conda基础安装通过hrs命令复用同一服务，用户数据默认在安装环境外；可用hrs info/hrs license只读查看。基础包不含独立Word编译器或解释器，继续使用明确选择的原配套组件。源码根packaging/README.md说明本地安装/升级/卸载；本批尚未上传公开频道。
+标准Python/conda基础安装分发名为hrstudio，通过hrs命令复用同一服务，模块名html_report_studio保持；用户数据默认在安装环境外，可用hrs info/hrs license只读查看。基础包不含独立Word编译器或解释器，继续使用明确选择的原配套组件。源码根packaging/README.md说明本地安装/升级/卸载；PyPI尚未上传，conda-forge公开安装须等配方审核及频道构建完成。
 
 ## 安装命令
 

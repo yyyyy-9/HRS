@@ -28,6 +28,6 @@ Windows浏览器便携包使用本地Chromium系浏览器。桌面宿主源码�
 
 任意Word/HTML无损双向转换、跨来源混合合稿和复杂编辑后回编仍按[长期路线](LONG_TERM_ROADMAP.md)逐项扩展。旧浏览器输入时可能出现图片重绘，优化安排见[短期计划](SHORT_TERM_PLAN.md)。
 
-标准wheel/sdist可本地安装；PyPI与conda频道未提供本项目发行。自有代码使用GPL-3.0-or-later，依赖和文稿权利见随包LICENSING.md。
+标准wheel/sdist以hrstudio为安装分发名，命令仍为hrs，模块为html_report_studio；1.1.2的Python/Conda元数据与公开tag使用同一版本。v1 Conda配方从相同元数据生成，本地与提交版仅来源位置不同。PyPI尚未上传，conda-forge公开安装须等配方审核及频道构建完成；PR本身不等于已发布。自有代码使用GPL-3.0-or-later，依赖和文稿权利见随包LICENSING.md。
 
 相关入口：[发行记录](HISTORY_INDEX.md) · [发行说明](CHANGELOG_READABLE.md) · [短期计划](SHORT_TERM_PLAN.md)。

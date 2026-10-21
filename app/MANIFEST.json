@@ -1,14 +1,14 @@
 {
-  "version": "1.1.1",
-  "package_revision": "R2",
-  "stage": "v1.1.1 R2 app",
-  "generated_utc": "2026-10-21T15:01:43.095016+00:00",
+  "version": "1.1.2",
+  "package_revision": "R1",
+  "stage": "v1.1.2 R1 app",
+  "generated_utc": "2026-10-21T22:59:51.978959+00:00",
   "file_count_without_manifest": 157,
   "files": [
     {
       "path": "CHANGELOG.md",
-      "bytes": 567,
-      "sha256": "06964b61c3d62690a7acc77c6e0db5bb9bcabf72ae3adfd20ae213e5577480e3"
+      "bytes": 1080,
+      "sha256": "e0ab39abd05c8e55ac314ef9276b666fe28e3ff313a8ade302292f5b0cea0fdf"
     },
     {
       "path": "COPYRIGHT",
@@ -27,8 +27,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 8082,
-      "sha256": "f23a66ae0123bbc804bd3167ff661c1413cacaae08731eae20c94523f901fe81"
+      "bytes": 8192,
+      "sha256": "54c5749e9214fe08545ac6af90d84eda812ef9e4f1669082441c10c21a78f886"
     },
     {
       "path": "RIGHTS.json",
@@ -77,23 +77,23 @@
     },
     {
       "path": "docs/CHANGELOG_READABLE.html",
-      "bytes": 92124,
-      "sha256": "f009a4094fbad53a259508df6514c96a10d4071f7358d4975e32721665b3168a"
+      "bytes": 92495,
+      "sha256": "8cc893e9ca121b6044922ad20bd078ceefda6d1adf40323c1370d32fa9d15268"
     },
     {
       "path": "docs/CHANGELOG_READABLE.md",
-      "bytes": 552,
-      "sha256": "bb88f70c01e957163c085c0d410010c0235c2a462304c785048b411a773a697a"
+      "bytes": 825,
+      "sha256": "7f494e471a61648303d4264f821f67d93492ffda5b8f2ab8c45db8558951f0ec"
     },
     {
       "path": "docs/CURRENT_STATUS.html",
-      "bytes": 94394,
-      "sha256": "2bb399ff6695788180904449d33c02a67e8298e76b84617ec1b30afe9b8e4ac5"
+      "bytes": 94669,
+      "sha256": "e672714535fbae10f386dceee9d6b03a1c7367623703efe69a8bad4173f6d8f0"
     },
     {
       "path": "docs/CURRENT_STATUS.md",
-      "bytes": 2551,
-      "sha256": "53fe0d2bd9d4066becd23b1586a87136771aa1d641445712c8d19090919081de"
+      "bytes": 2826,
+      "sha256": "b4e3d85ca5378c25b5795f23dd523477b8817722c62ba5fdb6f23f1cf7f7a62d"
     },
     {
       "path": "docs/DOC_MAINTENANCE.md",
@@ -123,7 +123,7 @@
     {
       "path": "docs/LONG_TERM_ROADMAP.html",
       "bytes": 103190,
-      "sha256": "c922d74b192799c588513e140a22a97ab9b7e4579bc8e33bfe5a891f19e53db1"
+      "sha256": "4b22d77cb21ecbec0078f2866b6e70987b8ebd775d05bc406194d58c956142a1"
     },
     {
       "path": "docs/LONG_TERM_ROADMAP.md",
@@ -133,12 +133,12 @@
     {
       "path": "docs/MODULE_CATALOG.json",
       "bytes": 53037,
-      "sha256": "0d9b2b0497e41ed854d68db478005e4b1fe246d4071e3fbe6805b719d63bec22"
+      "sha256": "8fa038c2e40538fae7e4a70143b2ab94560de7ca25039960cd811a4270798170"
     },
     {
       "path": "docs/MODULE_OVERVIEW.html",
       "bytes": 112094,
-      "sha256": "fdf2c68b6a882d88076b6e1d6811cca8f1953e89d563b8e68c95bc0084fd3cc1"
+      "sha256": "bb6df552ed203521ba2c433b1485b4759028988759225ed8677afac5150bb5a4"
     },
     {
       "path": "docs/MODULE_OVERVIEW.md",
@@ -152,13 +152,13 @@
     },
     {
       "path": "docs/SHORT_TERM_PLAN.html",
-      "bytes": 92104,
-      "sha256": "d9b747f2000479459f9712436605e16e9a17bfeda5e413de493b53d21bd57ad8"
+      "bytes": 92214,
+      "sha256": "aff12a6df302435e83e78925383f6f3d2b49e1c587e79bd73f86d03aab30b960"
     },
     {
       "path": "docs/SHORT_TERM_PLAN.md",
-      "bytes": 607,
-      "sha256": "672645a286b5ee08a08c4d1edb23e737ce1fa7c0357065376a5a14146186df27"
+      "bytes": 710,
+      "sha256": "01708ce9bd7f5a00d619c28f7fb357eb790e656720a84c5f0aac988e8f49e429"
     },
     {
       "path": "docs/TOOLBAR_COMMANDS.json",
@@ -168,7 +168,7 @@
     {
       "path": "docs/USER_GUIDE.html",
       "bytes": 398842,
-      "sha256": "70166208003fb5eaa7a6a22f606fabb9968471c50a878f6ffa9996348392094f"
+      "sha256": "a8f16d99fc0aec5dbfa6593c839fea607a9ac5192a12131092eaa18c861c9f6f"
     },
     {
       "path": "docs/USER_GUIDE.md",
@@ -183,7 +183,7 @@
     {
       "path": "docs/WORD_COMPILER_HANDOFF.html",
       "bytes": 110484,
-      "sha256": "f97ad7e8f4098bc78e22cb242a1d3f43e2bd20d706b74b457b4488d8ec4148fc"
+      "sha256": "1be8243e2af2c6e6e08f11f1cd2d814c5811ee7379a9668dd164d9f270b3f1eb"
     },
     {
       "path": "docs/WORD_COMPILER_HANDOFF.md",
@@ -338,7 +338,7 @@
     {
       "path": "release.json",
       "bytes": 53,
-      "sha256": "ef3fea32790599f8d116b03e1b66adc375359332bc265d5a89378a8546d4ccf9"
+      "sha256": "92fa5bf2b3ecca9d3a40aac04cc2d22285e38966a32c7301c6b22b9b94260a4c"
     },
     {
       "path": "release_info.py",
@@ -407,18 +407,18 @@
     },
     {
       "path": "web/CHANGELOG_READABLE.html",
-      "bytes": 92128,
-      "sha256": "b5d71e426f90ed58c993f1220979836046e905fa4191d6968d539f58b273caca"
+      "bytes": 92499,
+      "sha256": "f218a968d81910bbba24f79f86779f61e30217cf40919be56e026a94aca87873"
     },
     {
       "path": "web/MODULE_OVERVIEW.html",
       "bytes": 112114,
-      "sha256": "48f43f1d39fcaea7859139d607ea76810f8f3e4a5e904a7777ffd725505a6b4d"
+      "sha256": "0f057205176c8aae22c640d708ea4a195e518701a2084d1dca01bb6c6866bbb5"
     },
     {
       "path": "web/WORD_COMPILER_HANDOFF.html",
       "bytes": 110494,
-      "sha256": "7bd45e3a3795e89c39f072175f2f3ce1f09ba78c3ca129d0f2d15b7534049bb9"
+      "sha256": "21bd4bb082c9b34a408af7e3637719decab3304a65b0872ab57947d9c8296ef2"
     },
     {
       "path": "web/app-icon.ico",
@@ -508,7 +508,7 @@
     {
       "path": "web/help.html",
       "bytes": 398836,
-      "sha256": "c190ec90768fb4f4cc97f59fdd346cc2063b15452aa6e1160893943a469c87a7"
+      "sha256": "d0f8b2e4259238a580224028a3362fe89f45cfdb8e6e4924553a110c2f619c92"
     },
     {
       "path": "web/index.html",

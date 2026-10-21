@@ -54,6 +54,34 @@ class InstalledCommands(unittest.TestCase):
         self.assertEqual(project['authors'][0]['name'], rights['holder'])
         self.assertEqual((ROOT / 'LICENSE').read_bytes(), (ROOT / 'app/LICENSE').read_bytes())
 
+    def test_conda_recipe_uses_the_same_distribution_identity_and_entry_point(self):
+        """DIST-02: local and staged recipes differ only in their source location."""
+        import sys
+        import tomllib
+        sys.path.insert(0, str(ROOT / 'tools'))
+        from build_conda_recipe import render
+        project = tomllib.loads((ROOT / 'pyproject.toml').read_text('utf8'))['project']
+        self.assertEqual(project['name'], 'hrstudio')
+        self.assertEqual(project['scripts'], {'hrs': 'html_report_studio.cli:main'})
+        local = render(ROOT)
+        self.assertEqual((ROOT / 'packaging/conda/recipe.yaml').read_text('utf8'), local)
+        remote = render(ROOT, source_url='https://example.org/source.tar.gz', source_sha256='a' * 64)
+        self.assertEqual(local.replace('  path: ../..',
+            '  url: "https://example.org/source.tar.gz"\n  sha256: ' + 'a' * 64), remote)
+        self.assertNotIn('source_tag', local)
+        self.assertFalse((ROOT / 'packaging/conda/meta.yaml').exists())
+
+    def test_conda_release_source_requires_a_secure_url_and_complete_digest(self):
+        """DIST-02: never emit a submission recipe with an unchecked source."""
+        import sys
+        sys.path.insert(0, str(ROOT / 'tools'))
+        from build_conda_recipe import render
+        for url, digest in [('https://example.org/a.tar.gz', None), (None, 'a' * 64),
+                            ('http://example.org/a.tar.gz', 'a' * 64),
+                            ('https://example.org/a.tar.gz', 'a' * 63)]:
+            with self.subTest(url=url, digest=digest), self.assertRaises(ValueError):
+                render(ROOT, source_url=url, source_sha256=digest)
+
     def test_info_and_license_do_not_create_user_data(self):
         with tempfile.TemporaryDirectory() as tmp:
             data = Path(tmp) / 'new user data'

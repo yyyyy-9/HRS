@@ -19,7 +19,7 @@ python -m pip install .
 hrs
 ```
 
-也可从Release下载wheel后本地安装。当前没有向PyPI或conda-forge上传，不把同名远端包当作本项目。标准包不含Python、浏览器或可选Word组件；资源与用户数据分开，服务只监听127.0.0.1。
+也可从Release下载wheel后本地安装。安装分发名为`hrstudio`，启动命令为`hrs`，Python模块保持`html_report_studio`。PyPI尚未上传；conda-forge在配方审核与频道构建完成后提供安装。当前状态和本地构建见[安装与构建](packaging/README.md)。标准包不含Python、浏览器或可选Word组件；资源与用户数据分开，服务只监听127.0.0.1。
 
 ## 可以做什么
 

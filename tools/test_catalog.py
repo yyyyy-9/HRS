@@ -96,7 +96,8 @@ FEATURES = {
         pf137_contract run_checks_contract test_system_contract interfaces_contract release_contract'''),
     'lifecycle': ('Window credentials, reconnect generations, request drain and control-frame boundary', 'portable_contract'),
     'memory': ('Current-document cache reuse, release across project loads and original-source protection', 'memory_browser'),
-    'distribution': ('Installed command, license metadata and separate user state', 'distribution_contract'),
+    'distribution': ('Installed command, generated Conda recipe, shared release identity and separate user state',
+                     'distribution_contract release_contract run_checks_contract test_system_contract'),
 }
 
 # Existing Full commands remain accepted as aliases for declared current work.
@@ -112,6 +113,7 @@ ALIASES = {
 }
 
 GATES = {
+    'conda_recipe': ('python', 'tools/build_conda_recipe.py'),
     'settings_generation': ('node', 'app/tools/build_settings.js'),
     'reader_bundle': ('node', 'app/tools/build_reader_bundle.js'),
     'readable_docs': ('node', 'app/tools/build_readable_docs.js'),
