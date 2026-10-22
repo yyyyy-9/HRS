@@ -990,6 +990,7 @@ class Handler(BaseHTTPRequestHandler):
             if p=='/api/pdf/store':return self.pdf_store_to_project(req)
             if p=='/api/upload':return self.upload(req)
             if p=='/api/clipboard/paste':return self.paste_native_clipboard(req)
+            if p=='/api/clipboard/document':return self.paste_native_document(req)
             with self.server.lock:
                 if p.startswith('/api/export/modules/'):return self.export_modules(p.rsplit('/',1)[1],req)
                 if p=='/api/project/migrate':return self.project_migrate(req)
@@ -1674,6 +1675,18 @@ class Handler(BaseHTTPRequestHandler):
         graphic=read_windows_graphic()
         if graphic is None:return self.fail('剪贴板中没有可读取的 EMF/PNG/DIB 图形',404)
         return self._store_clipboard_graphic(req,graphic)
+
+    def paste_native_document(self,req):
+        if not self._native_origin_ok():return self.fail('剪贴板接口仅接受当前编辑器的显式粘贴操作',403)
+        if set(req)-{'text'}:raise ValueError('剪贴板接口不接受文件路径或其他参数')
+        if not native_clipboard_available():
+            if req.get('text') is None:return self.resp({'ok':True,'available':False})
+            return self.fail('读取本地 Word 图片需要 Windows 剪贴板',404)
+        from clipboard_document import read_document
+        # Returns a prepared resource bundle only. The original objects/paste
+        # endpoint validates/stages all assets before one source transaction.
+        prepared=read_document(req.get('text'),check_image)
+        return self.resp({'ok':True,'available':prepared is not None,**(prepared or {})})
 
     def upload(self,req):
         # Validate the destination first, but only create/write it under the

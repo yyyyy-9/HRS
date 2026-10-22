@@ -6,6 +6,16 @@ global.ReportTableContent=require('../app/web/table_content.js');
 global.ReportLayout=require('../app/web/report_layout.js');
 global.SourceBlocks=require('../app/web/source_blocks.js');
 const SourceMap=require('../app/web/source_map.js');
+// PASTE-01: Word indentation must not invalidate shared source ranges. The
+// Marked lexical expansion must leave source bytes and reference offsets exact.
+for(const source of ['正文\n\t第二行','\t正文\n','\t\n正文','正文\r\n\t \r\n后文',
+ '  \t\t代码😀\r\n\r\n正文 @fig:fig-one\r\n','\t \t代码\n\n## 目的\n\n甲\t乙']){
+ const normalized=SourceBlocks.normalized(source),tokens=marked.lexer(normalized.text),map=SourceMap.create(source,tokens);
+ assert.equal(normalized.sourceOffset(normalized.text.length),source.length);
+ for(const record of map.blocks)assert.equal(record.raw,source.slice(record.start,record.end));
+ const reference=map.blocks.flatMap(block=>block.references)[0];
+ if(reference)assert.equal(source.slice(reference.start,reference.end),'@fig:fig-one');
+}
 const figure=id=>'```report-figure\r\n'+JSON.stringify({schema:'report-figure-v1',id,caption:'保留😀',kind:'image',src:'assets/demo.png',alt:''})+'\r\n```\r\n';
 const source='# 测试😀\r\n\r\n## 目的 {#sec-purpose}\r\n\r\n正文 @sec:sec-purpose。\r\n\r\n<div>\r\n\r\n<p>卡片</p>\r\n</div>\r\n\r\n'+figure('fig-one')+'\r\n'+figure('fig-one');
 const tokens=marked.lexer(SourceBlocks.normalized(source).text);

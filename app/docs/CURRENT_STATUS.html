@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>当前版本状态 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="b4e3d85ca5378c25b5795f23dd523477b8817722c62ba5fdb6f23f1cf7f7a62d"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>当前版本状态 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="3c5fae7de78157b4dbfb389677c58c1b8607c987ac23ec676bf581836b65047d"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -583,7 +583,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v1.1.3<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">编辑与文稿</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v1.1.4<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">编辑与文稿</a>
 <a class="level2" href="#section-3">HTML与Word</a>
 <a class="level2" href="#section-4">程序接口</a>
 <a class="level2" href="#section-5">支持范围</a></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">当前状态</h1>
@@ -591,6 +591,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <h2 id="section-2">编辑与文稿</h2>
 <p>支持自由笔记、工程报告、Markdown源编辑、分屏预览及阅读。自由笔记可按H1查看专题并控制章节/图表编号；工程报告复用统一结构规则。图表对象、脚注、引用、公式、Mermaid、查找、恢复草稿和附件管理使用同一源模型。</p>
 <p>report.md和assets是内容真源。保存导入的独立本地图片时创建正常图片对象。临时工程稿可独立检查和编译，回写须先查看差异并显式提交；来源或附件变化时拒绝覆盖。</p>
+<p>源码区支持Word/WPS混合粘贴：字面正文、图片对象和普通／合并表格按原顺序一次插入，草稿附件及撤销复用原机制。Windows显式剪贴板读取补足浏览器未暴露的图片；不下载外图，嵌套表／表内图片等明确拒绝整段。具体限制见使用手册。原生应用、浏览器与纯契约的本次执行结果分别记录，不互相代替。</p>
 <h2 id="section-3">HTML与Word</h2>
 <p>HTML支持阅读和可回编归档，资源随文件携带。可回编归档保留Markdown和所需附件；普通任意HTML不属于可回编输入。</p>
 <p>Word输出复用Bridge/WPS原生转换、样式、编号、公式、脚注和引用。模板工具可将报告样式设置到带封面/目录/页眉的模板中，通过正文书签装配内容。附带通用模板由项目生成，格式母模板版本0.3.11，工具版本1.0.3。</p>

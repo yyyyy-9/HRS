@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>更新记录 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="4602027a3bad457bf73a158bb3ccb2161dbc7fda2bfeafe3cf768525264727e4"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>更新记录 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="08a6c306682931c507f431897b43b5360f66e472e8defbe82b67b17d168f597e"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -583,21 +583,28 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v1.1.3<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">v1.1.3</a>
-<a class="level2" href="#section-3">v1.1.2</a>
-<a class="level2" href="#section-4">v1.1.1</a></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">HRS 发行说明</h1>
-<h2 id="section-2">v1.1.3</h2>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v1.1.4<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">v1.1.4</a>
+<a class="level2" href="#section-3">v1.1.3</a>
+<a class="level2" href="#section-4">v1.1.2</a>
+<a class="level2" href="#section-5">v1.1.1</a></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">HRS 发行说明</h1>
+<h2 id="section-2">v1.1.4</h2>
+<ul>
+<li>可以从Word/WPS一次复制正文、图片和普通／合并表格，再在源码编辑区Ctrl+V。正文去掉Word排版，图表成为现有可编辑对象，整段可以一次撤销。</li>
+<li>修复含行首Tab的文字粘贴时报“Markdown块无法可靠定位”；不再把Word整段内容误插成一张预览大图。</li>
+<li>图片不能完整取得或遇到尚不支持的嵌套表／表内图片时明确提示，保留当前稿件。</li>
+</ul>
+<h2 id="section-3">v1.1.3</h2>
 <ul>
 <li>修正Windows分发检查中的规范文档文件名编码问题，旧帮助地址继续可用。</li>
 <li>hrstudio安装名、hrs命令与原有文稿功能保持。</li>
 </ul>
-<h2 id="section-3">v1.1.2</h2>
+<h2 id="section-4">v1.1.2</h2>
 <ul>
 <li>标准安装分发名简化为hrstudio，启动继续使用hrs。</li>
 <li>同一公开版本用于Python和Conda发行，并准备conda-forge的v1配方。</li>
 <li>浏览器便携形式与标准安装继续使用同一应用核心，文稿、渲染和Word规则保持。</li>
 </ul>
-<h2 id="section-4">v1.1.1</h2>
+<h2 id="section-5">v1.1.1</h2>
 <ul>
 <li>本地Markdown编辑、阅读与分屏预览。</li>
 <li>自由笔记与工程报告、专题查看、章节和图表编号。</li>

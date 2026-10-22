@@ -27,7 +27,7 @@ function referenceRanges(tokens,source,base,normalized){
  return result;
 }
 function create(source,tokens){
- const normalized=root.SourceBlocks.normalized(source),fences=root.SourceBlocks.scan(source,tokens)
+ const normalized=root.SourceBlocks.normalized(source,{tabs:true}),fences=root.SourceBlocks.scan(source,tokens)
   .filter(f=>['report-table','report-figure','report-image-group'].includes(f.language)),blocks=[];
  // One document-wide lexical mask: Marked may split \( and \) into
  // separate escape/text tokens, so masking per token is NOT reliable.
@@ -100,7 +100,7 @@ function create(source,tokens){
  * neither code examples nor arbitrary HTML inputs become editable tasks. */
 function taskRanges(source,record,marked,{frames=false}={}){
  if(!['list','blockquote','hrsStyledList'].includes(record.type))return [];
- const normalized=root.SourceBlocks.normalized(record.raw),result=[];
+ const normalized=root.SourceBlocks.normalized(record.raw,{tabs:true}),result=[];
  const positions=Array.from({length:normalized.text.length+1},(_,i)=>record.start+normalized.sourceOffset(i));
  // Marked trims trailing spaces from empty nested items. Align that token's
  // own characters through the parent's map; it remains the sole nominator.

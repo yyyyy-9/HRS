@@ -5,7 +5,7 @@ const $=x=>document.getElementById(x);
 const RENDER_CONTROLS=[['show-object-numbers','show_object_numbers'],['show-heading-numbers','show_heading_numbers'],['preserve-blank-lines','preserve_blank_lines']];
 // Check bundled scripts before touching any of them, so a missing file shows
 // a readable message instead of a silent ReferenceError on "正在加载".
-const REQUIRED_SCRIPTS=['marked','Flow','ReportClone','ReportTableContent','ReportTables','ReportPipeTables','ReportTableEditor','ReportDialogs','ReportLayout','ReportListStyles','ReportEquations','SourceEditor','ReportSourceProjection','SourceBlocks','SourceActions','ReportObjectClipboard','SourceMap','ScrollFollow','ReportNotes','ReportLinks','ReportWordExport','ReportWorkspace','ReportBridgeModel'];
+const REQUIRED_SCRIPTS=['marked','Flow','ReportClone','ReportTableContent','ReportTables','ReportPipeTables','ReportTableEditor','ReportDialogs','ReportLayout','ReportListStyles','ReportEquations','SourceEditor','ReportSourceProjection','SourceBlocks','SourceActions','ReportObjectClipboard','ReportRichClipboard','SourceMap','ScrollFollow','ReportNotes','ReportLinks','ReportWordExport','ReportWorkspace','ReportBridgeModel'];
 REQUIRED_SCRIPTS.push('ReportDocumentSearch','ReportSettings','ReportProfile','ReportTheme','ReportNotebook','ReportPreviewImages','ReportPreflight','ReportOperations','ReportPreviewCommit');
 const missingScripts=REQUIRED_SCRIPTS.filter(name=>typeof window[name]==='undefined');
 if(missingScripts.length){
@@ -43,6 +43,11 @@ const objectClipboard=ReportObjectClipboard.attach(editor,{
  request:(path,data)=>api(path,'POST',data,{'X-Report-Studio-Clipboard':'user-action'}),
  context:()=>({session:state.session,markdown:state.md,document_id:state.documentId,draft_id:state.draftId,start:editor.selectionStart,end:editor.selectionEnd}),
  commit:(from,to,text,kind)=>{if(state.saving)return;editor.setRangeText(text,from,to,'end');changed(editor.value,kind,true);},
+ prepareRich:(html,plain,nativeReply=null)=>ReportRichClipboard.prepare(html,plain,{
+  native:text=>api('/api/clipboard/document','POST',{text},{'X-Report-Studio-Clipboard':'user-action'}),
+  figure:path=>{const object=figureDefault('image',path);object.caption='';return object;},figureSnippet,
+  table:rows=>({...tableDefault(rows.length,rows[0].length),rows}),tableSnippet,nativeReply
+ }),
  chooseImage:async url=>{
   let field;const file=await modal({title:'选择图片来源',kicker:'本地 Markdown 图片',note:'无法确定 '+url+' 的来源。请选择这张图片；程序不会猜测其他目录。',body:outer=>{field=document.createElement('input');field.type='file';field.accept='.png,.jpg,.jpeg,.gif,.webp,.svg';outer.append(field);},onOk:()=>{if(!field.files[0])throw Error('请选择对应图片');return field.files[0];},okText:'导入所选图片'});
   return file?await blobToB64(file):null;
@@ -2115,10 +2120,22 @@ async function insertImage(file,linkedFiles=[],context=imageInsertionContext()){
   addUploadedFigure(reply,context);
  }catch(e){toast('图片插入失败：'+e.message);}
 }
-async function pasteNativeGraphic({fallbackFile=null,manual=false}={}){
+async function pasteNativeGraphic({fallbackFile=null,manual=false,mixed=false}={}){
  if(state.saving)return toast('正式保存过程中，请稍后粘贴图片');
  const context=imageInsertionContext();
  try{
+  if(mixed){
+   const document=await api('/api/clipboard/document','POST',{text:null},{'X-Report-Studio-Clipboard':'user-action'});
+   const block=documentModel(context.md).map.at(context.bookmark.start);
+   const literal=block?.type==='code'&&block.start<context.bookmark.start&&block.end>context.bookmark.start&&!/^report-(?:figure|table|image-group)$/.test(block.token.lang||'');
+   if(literal&&!document.available)throw Error('普通代码块内只能粘贴文字，请先复制所需文本');
+   if(document.available){
+    if(state.documentId!==context.docId||state.draftId!==context.draftId||state.md!==context.md||editor.selectionStart!==context.bookmark.start||editor.selectionEnd!==context.bookmark.end)throw Error('文稿或选区在粘贴期间变化，请重新操作');
+    if(literal){insertAtSelection(document.text,context.bookmark);return;}
+    await objectClipboard.pasteRich(document);return;
+   }
+   mixed=false;
+  }
   const response=await fetch('/api/clipboard/paste',{
    method:'POST',headers:{'Content-Type':'application/json','X-Report-Studio-Clipboard':'user-action'},
    body:JSON.stringify({document_id:context.docId,draft_id:context.draftId})});
@@ -2126,7 +2143,7 @@ async function pasteNativeGraphic({fallbackFile=null,manual=false}={}){
   if(!response.ok||!reply.ok)throw Error(reply.error||`HTTP ${response.status}`);
   addUploadedFigure(reply,context);
  }catch(error){
-  if(fallbackFile)await insertImage(fallbackFile,[],context);
+  if(fallbackFile&&!mixed)await insertImage(fallbackFile,[],context);
   else if(manual||!/没有可读取的|仅在 Windows/.test(error.message))toast('原生图形粘贴失败：'+error.message);
  }
 }
@@ -2139,7 +2156,7 @@ function handleGraphicsPaste(event){
  // Only intercept graphic-oriented clipboard formats. Ordinary text/Excel
  // and rich-text paragraph paste must retain CodeMirror's normal behavior.
  if(file||(!plain&&(!rich||/<(?:img|svg)\b/i.test(rich)))){
-  event.preventDefault();pasteNativeGraphic({fallbackFile:file});
+  event.preventDefault();pasteNativeGraphic({fallbackFile:file,mixed:!plain&&!rich});
  }
 }
 async function blobToB64(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result.split(',')[1]);r.onerror=reject;r.readAsDataURL(blob);});}

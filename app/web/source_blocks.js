@@ -43,7 +43,7 @@ function scan(markdown,tokens=null){
  // its outer element so a blank line inside a card does not split the fold.
  const htmlStarts=new Map();
  if(root.marked&&/^ {0,3}<(?:div|details|table|section|article|aside|figure|blockquote|pre)\b/im.test(markdown))try{
-  const norm=normalized(markdown);let at=0;
+  const norm=normalized(markdown,{tabs:true});let at=0;
   for(const token of tokens||root.marked.lexer(norm.text)){
    if(token.type==='html')htmlStarts.set(norm.sourceOffset(at),token.raw);
    at+=token.raw.length;
@@ -140,10 +140,30 @@ function readObject(raw,language){
  if(blocks.length!==1||!block||block.language!==language||raw.slice(0,block.from).trim()||raw.slice(block.to).trim())throw Error('对象代码块格式错误');
  return JSON.parse(block.body);
 }
-function normalized(markdown){
- const removed=[];let count=0;
- const text=markdown.replace(/\r\n?/g,(match,offset)=>{if(match.length===2){removed.push(offset-count);count++;}return '\n';});
- return {text,sourceOffset(position){let lo=0,hi=removed.length;while(lo<hi){const middle=(lo+hi)>>>1;if(removed[middle]<position)lo=middle+1;else hi=middle;}return position+lo;}};
+function normalized(markdown,{tabs=false}={}){
+ // Marked's block lexer expands only the first run of indentation tabs.
+ // Map that same lexical view back to the unchanged UTF-16 source, including
+ // CRLF and positions after mixed tabs/spaces. Interior tabs stay literal.
+ const changes=[],parts=[];let cursor=0,length=0;
+ for(const match of markdown.matchAll(/\r\n?|^( *)(\t+)/gm)){
+  if(match[2]&&!tabs)continue;
+  const leading=match[1]||'',start=match.index+leading.length;
+  const prefix=markdown.slice(cursor,start);parts.push(prefix);length+=prefix.length;
+  if(match[2]){
+   for(let i=0;i<match[2].length;i++){
+    changes.push({start:length,end:length+4,source:start+i,after:start+i+1});parts.push('    ');length+=4;
+   }
+  }else{
+   changes.push({start:length,end:length+1,source:start,after:start+match[0].length});parts.push('\n');length++;
+  }
+  cursor=match.index+match[0].length;
+ }
+ parts.push(markdown.slice(cursor));const text=parts.join('');
+ return {text,sourceOffset(position){
+  let lo=0,hi=changes.length;while(lo<hi){const middle=(lo+hi)>>>1;if(changes[middle].end<=position)lo=middle+1;else hi=middle;}
+  if(changes[lo]?.start<=position)return changes[lo].source;
+  return position+(lo?changes[lo-1].after-changes[lo-1].end:0);
+ }};
 }
 function replacement(original,snippet){
  const newline=original.includes('\r\n')?'\r\n':'\n';

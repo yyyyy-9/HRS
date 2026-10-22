@@ -79,7 +79,7 @@ FEATURES = {
         pf1310_rc3_node
         v062_editor_browser r5_feedback_browser preview_follow_browser pf1310_rc2_browser'''),
     'objects': ('Object selection, clipboard identity/assets and draft recovery', '''
-        rc2_clipboard_contract pf1310_clipboard_browser pf1310_rc2_browser
+        rc2_clipboard_contract pf1310_clipboard_browser pf1310_rc2_browser word_clipboard_contract word_clipboard_browser
         report_workspace_browser:ReportExperience.test_scoped_tail_object_allows_new_paragraphs_and_undo
         report_workspace_browser:ReportExperience.test_image_tail_enter_in_scoped_last_topic_and_whole_document'''),
     'import': ('Relative local images, save failure protection and real manual/read packs', '''

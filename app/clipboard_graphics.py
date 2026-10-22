@@ -183,16 +183,45 @@ def dib_to_png(data: bytes) -> bytes:
     return _render_with_gdi(w,h,draw)
 
 
-def _read_global_memory(user32,kernel32,handle) -> bytes:
+def _read_global_memory(user32,kernel32,handle,*,minimum=8,maximum=MAX_SOURCE) -> bytes:
     kernel32.GlobalSize.argtypes=[wintypes.HGLOBAL];kernel32.GlobalSize.restype=ctypes.c_size_t
     kernel32.GlobalLock.argtypes=[wintypes.HGLOBAL];kernel32.GlobalLock.restype=ctypes.c_void_p
     kernel32.GlobalUnlock.argtypes=[wintypes.HGLOBAL];kernel32.GlobalUnlock.restype=wintypes.BOOL
     length=kernel32.GlobalSize(handle)
-    if length<8 or length>MAX_SOURCE:raise ValueError('剪贴板图片大小超过限制')
+    if length<minimum or length>maximum:raise ValueError('剪贴板数据大小超过限制')
     ptr=kernel32.GlobalLock(handle)
     if not ptr:raise ValueError('无法读取剪贴板图片内存')
     try:return ctypes.string_at(ptr,length)
     finally:kernel32.GlobalUnlock(handle)
+
+
+def _open_clipboard(user32):
+    # Office releases the clipboard shortly after Copy. Reuse the original
+    # bounded acquisition wait; never retry a document conversion or commit.
+    for attempt in range(6):
+        if user32.OpenClipboard(None):return
+        time.sleep(0.06)
+    raise RuntimeError('Windows 剪贴板被其他软件占用，请稍后再粘贴')
+
+
+def read_windows_formats(formats):
+    """One explicit clipboard snapshot of bounded HGLOBAL formats (no writes)."""
+    if os.name!='nt':raise ValueError('读取本地 Word 图片需要 Windows 剪贴板')
+    user32=ctypes.WinDLL('user32',use_last_error=True)
+    kernel32=ctypes.WinDLL('kernel32',use_last_error=True)
+    user32.OpenClipboard.argtypes=[wintypes.HWND];user32.OpenClipboard.restype=wintypes.BOOL
+    user32.CloseClipboard.argtypes=[];user32.CloseClipboard.restype=wintypes.BOOL
+    user32.GetClipboardData.argtypes=[wintypes.UINT];user32.GetClipboardData.restype=wintypes.HANDLE
+    user32.RegisterClipboardFormatW.argtypes=[wintypes.LPCWSTR];user32.RegisterClipboardFormatW.restype=wintypes.UINT
+    _open_clipboard(user32)
+    try:
+        result={}
+        for name in formats:
+            identifier=name if isinstance(name,int) else user32.RegisterClipboardFormatW(name)
+            handle=user32.GetClipboardData(identifier)
+            if handle:result[name]=_read_global_memory(user32,kernel32,handle,minimum=1,maximum=64*1024*1024)
+        return result
+    finally:user32.CloseClipboard()
 
 
 def read_windows_graphic() -> ClipboardGraphic | None:
@@ -211,10 +240,7 @@ def read_windows_graphic() -> ClipboardGraphic | None:
     user32.RegisterClipboardFormatW.argtypes=[wintypes.LPCWSTR];user32.RegisterClipboardFormatW.restype=wintypes.UINT
     gdi.GetEnhMetaFileBits.argtypes=[wintypes.HANDLE,wintypes.UINT,ctypes.c_void_p]
     gdi.GetEnhMetaFileBits.restype=wintypes.UINT
-    for attempt in range(6):
-        if user32.OpenClipboard(None):break
-        time.sleep(0.06)
-    else:raise RuntimeError('Windows 剪贴板被其他软件占用，请稍后再粘贴')
+    _open_clipboard(user32)
     emf=None;png=None;dib=None;fmt_name=None
     try:
         if user32.IsClipboardFormatAvailable(CF_ENHMETAFILE):

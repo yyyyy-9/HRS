@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="02e1c4cfc3cfe4007abcab3473df5e5d566d9b337b365967f2fff40f5986b8a4"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="a87537e733635666d50861c1fbe78b9e67fa353dbc364b11f45d4eacd6c5b4c5"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -583,7 +583,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v1.1.3<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v1.1.4<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
 <a class="level2" href="#section-3">同源桌面宿主</a>
 <a class="level2" href="#section-4">Word beta 界面适配</a>
 <a class="level2" href="#section-5">渲染与输出配置</a>
@@ -603,6 +603,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <p><code>release.json</code>只维护产品版本和包修订，<code>release_info.py</code>派生服务、构建与帮助使用的身份；运行界面从health读取同一结果。协议schema和安全信任摘要有独立生命周期，不随产品发布机械变更。</p>
 <p><code>product_settings.json</code>只维护产品级选择目录、中文标签、配色样式文件以及新稿／旧工程显示默认值。<code>product_settings.py</code>提供不可变Python视图；<code>tools/build_settings.js</code>生成不可变的<code>web/product_settings.js</code>，构建和文档门禁检查同源。界面主题颜色仍由theme*.css维护；高亮语义颜色/符号映射由product_settings唯一维护；渲染语义仍归原ReportProfile，归档边界不另写主题目录和默认值。</p>
 <p><code>SourceMap.create</code>复用已有tokens，位置/行号二分查找，对象身份索引按实际赋值失效重建。app只缓存一个正在编辑的源快照，不持久化第二份模型；章号和摘要集合在本次渲染建立；preview_commit.js只复用未变安全正文DOM，结构/对象变化不增量猜测语义，目录/定义行更新位置但保持节点。呈现设置写入复用同一请求适配并绑定文稿会话。</p>
+<p>源码范围映射同时处理CRLF与Marked行首Tab展开，原文不改写。<code>rich_clipboard.js</code>仅适配剪贴板HTML：惰性解析后将正文变成字面文本、图片和表格变成既有对象；<code>clipboard_document.py</code>在显式同源粘贴时读取同一Windows快照，优先取得可对应的RTF原图片，或只读取该HTML声明的本地图片。资源校验、身份、草稿暂存与一次源码提交仍由原<code>object_clipboard</code>链持有，不另建文稿、编号或保存逻辑。</p>
 <h2 id="section-3">同源桌面宿主</h2>
 <p>浏览器与桌面共用同一App；<code>desktop/</code>只维护窗口、私有preload、固定运行库和更新器。<code>host_services.py</code>适配私有PDF和父进程句柄，<code>portable_host/portable_window</code>继续拥有页面租约；窗口关闭共用app的原草稿冲刷，不另存正文。<code>host_capabilities.json</code>定义核心支持的宿主协议，产品版本仍来自release.json。原build_release可由同一冻结负载生成两端，独立verify_desktop核对最终包与Python/Word组件，详见源码安装说明。</p>
 <h2 id="section-4">Word beta 界面适配</h2>

@@ -309,3 +309,13 @@ IR 是结构基础，不是完整 Word 排版 IR；完整行内/列表 AST、模
 ## 本机单篇 Markdown 导入
 
 本机“导入Markdown/HTML”从系统文件选择窗口取得MD的真实来源；HTTP请求不得指定任意源路径。markdown_import仅适配既有report_contract与object_clipboard资源/范围改写，整批准备成功后经原draft-import进入草稿。只改写真实图片目的路径；代码、普通链接、其余文字/数值/公式不推断改写。来源目录及其子目录可确定的图片一次处理，缺失/越界集中失败，原件只读。该入口不改变归档Schema、正式对象语法、普通粘贴或Word契约。
+
+## Word混合剪贴板适配
+
+源码区的显式粘贴可将Word/WPS HTML适配为字面正文、report-figure和report-table，复用既有对象格式及objects/paste事务，不增加源Schema。图片／表格按原顺序获得独立ID，题注默认空白；不把附近段落猜作题注，不从Word字体猜标题。普通代码围栏内保留字面粘贴；HRS自身富剪贴板优先使用原资源包。
+
+原SourceBlocks/SourceMap分别保留换行视图及Marked行首Tab展开的词法映射，所有范围回到未改写的原始UTF-16文本。不能通过删除Tab、吞掉定位错误或放宽过期范围检查处理粘贴。
+
+内部POST /api/clipboard/document要求当前编辑器同源及X-Report-Studio-Clipboard:user-action，只接受text参数。text为字符串时核对本次Windows Unicode文字（仅等价换行）；text=null用于浏览器未暴露格式时的显式原生探测。格式在一次剪贴板打开期间读取；不接受调用方文件路径，不做后台读取。返回HTML及准备好的资源包，不写源稿／正式附件；无原生富格式时返回available=false供原单图入口继续处理。
+
+CF_HTML的UTF-8字节范围必须有效，HTML不超过2 MB、图片不超过100张／单张12 MiB／总计30 MiB。仅在同一原生快照的RTF逻辑图片数量和HTML图片顺序可对应时使用原图，忽略nonshppict备用副本；否则只使用实际HTML声明且可读取的本地图片。图片和资源仍由原校验器拒绝危险／无效内容；不下载外链图片，不读取UNC地址。嵌套表、表内图片及不能表达的嵌入对象明确拒绝整段。全部资源准备完成后再经原对象接口暂存，并核对源／会话／选区后一次提交；失败不静默保留部分文字。

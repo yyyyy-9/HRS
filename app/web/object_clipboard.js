@@ -19,7 +19,7 @@ function eligible(text){
  const records=root.SourceMap.create(text,root.marked.lexer(root.SourceBlocks.normalized(text).text)).blocks;
  return records.some(r=>r.type!=='code'&&r.type!=='html'&&/!\[[^\]]*\]\([^)]+\)/.test(r.raw||r.token.raw));
 }
-function attach(editor,{request,context,commit,chooseImage,onError}={}){
+function attach(editor,{request,context,commit,chooseImage,prepareRich,onError}={}){
  let pasting=false;
  const same=before=>{const now=context();if(now.session!==before.session||now.markdown!==before.markdown||editor.selectionStart!==before.start||editor.selectionEnd!==before.end)throw Error('文稿或选区在剪贴板处理期间变化，请重新操作');};
  async function copy(text,item,operation='copy'){
@@ -34,6 +34,7 @@ function attach(editor,{request,context,commit,chooseImage,onError}={}){
  async function paste(bundle,replaceAll=false){
   if(pasting)return;pasting=true;const before=context();let local_files={};
   try{
+   if(typeof bundle==='function'){bundle=await bundle();same(before);if(!bundle)return;}
    let result;
    for(;;){
     same(before);
@@ -55,20 +56,27 @@ function attach(editor,{request,context,commit,chooseImage,onError}={}){
  editor.addEventListener('paste',event=>{
   if(event.defaultPrevented||editor.readOnly)return;
   const data=event.clipboardData,plain=data?.getData('text/plain')||'';
-  if(!plain)return;
+  const html=data?.getData('text/html')||'';
+  if(!plain&&!html)return;
+  try{
   // Pasting source examples inside a normal code fence remains literal text.
   const range=root.SourceMap.create(editor.value,root.marked.lexer(root.SourceBlocks.normalized(editor.value).text)).blocks.find(r=>r.start<editor.selectionStart&&r.end>editor.selectionStart);
   if(range?.type==='code'&&!/^report-(?:figure|table|image-group)$/.test(range.token.lang||''))return;
-  let bundle;try{bundle=parse(data.getData('text/html'),plain);}catch(error){event.preventDefault();onError?.(error.message);return;}
+  const bundle=parse(html,plain);
+  if(!bundle&&prepareRich&&root.ReportRichClipboard.matches(html)){
+   event.preventDefault();paste(()=>prepareRich(html,plain));return;
+  }
   if(!bundle&&!eligible(plain))return;
   event.preventDefault();paste(bundle||{format:FORMAT,markdown:plain,assets:{},operation:'copy'});
+  }catch(error){event.preventDefault();onError?.(error.message);}
  });
  for(const operation of ['copy','cut'])editor.view.dom.addEventListener(operation,event=>{
   if(event.defaultPrevented||editor.selectionStart===editor.selectionEnd||editor.readOnly&&operation==='cut')return;
   const before=context(),text=editor.value.slice(before.start,before.end);if(!eligible(text))return;
   event.preventDefault();event.stopImmediatePropagation();copy(text,null,operation).then(()=>{same(before);if(operation==='cut')commit(before.start,before.end,'','object-cut');}).catch(e=>onError?.(e.message));
  },true);
- return {copy,importMarkdown:text=>paste({format:FORMAT,markdown:text,assets:{},operation:'import'},true)};
+ return {copy,pasteRich:document=>paste(()=>prepareRich(document.html,document.text,document)),
+  importMarkdown:text=>paste({format:FORMAT,markdown:text,assets:{},operation:'import'},true)};
 }
 root.ReportObjectClipboard={attach,parse,eligible};
 })(typeof window==='undefined'?globalThis:window);

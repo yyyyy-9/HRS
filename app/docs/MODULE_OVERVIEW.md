@@ -8,6 +8,8 @@
 
 `SourceMap.create`复用已有tokens，位置/行号二分查找，对象身份索引按实际赋值失效重建。app只缓存一个正在编辑的源快照，不持久化第二份模型；章号和摘要集合在本次渲染建立；preview_commit.js只复用未变安全正文DOM，结构/对象变化不增量猜测语义，目录/定义行更新位置但保持节点。呈现设置写入复用同一请求适配并绑定文稿会话。
 
+源码范围映射同时处理CRLF与Marked行首Tab展开，原文不改写。`rich_clipboard.js`仅适配剪贴板HTML：惰性解析后将正文变成字面文本、图片和表格变成既有对象；`clipboard_document.py`在显式同源粘贴时读取同一Windows快照，优先取得可对应的RTF原图片，或只读取该HTML声明的本地图片。资源校验、身份、草稿暂存与一次源码提交仍由原`object_clipboard`链持有，不另建文稿、编号或保存逻辑。
+
 ## 同源桌面宿主
 
 浏览器与桌面共用同一App；`desktop/`只维护窗口、私有preload、固定运行库和更新器。`host_services.py`适配私有PDF和父进程句柄，`portable_host/portable_window`继续拥有页面租约；窗口关闭共用app的原草稿冲刷，不另存正文。`host_capabilities.json`定义核心支持的宿主协议，产品版本仍来自release.json。原build_release可由同一冻结负载生成两端，独立verify_desktop核对最终包与Python/Word组件，详见源码安装说明。

@@ -48,6 +48,8 @@ python app/block_cli.py apply D:\Reports\edit-plan.json --expect-plan-sha256 <pl
 
 ## 能力与边界
 
+源码区Ctrl+V可接收Word/WPS的文字、图片和普通／合并表格：正文去掉Word排版，图表进入既有对象和附件链，按原顺序一次插入／撤销。Windows从显式剪贴板快照取得图片；不猜题注或标题，不自动下载外链图片，嵌套表／表内图等明确提示，详见使用手册。
+
 CodeMirror Markdown 编辑、GFM/增强表、图片/组图/流程图、公式、稳定引用、快照定位、revision 冲突、保存/草稿、素材回收、HTML 与安全回编沿用原实现。安全 HTML 是显示扩展；普通 HTML 图表不自动取得工程 ID 或编号。HTML 支持范围及源码编辑方式见源规范。
 
 A0 七种查询仍只读。HRS 的 app/block_cli.py 提供显式 plan/apply，Bridge 委托同一实现；apply 重新定位并复核源、候选、资源和范围，复用编辑器备份及原子提交。未显式执行 apply 不写原工程。Word、模板和 OMML 属于独立下游，专业参数含义不由编辑器解释。唯一主标题居中仍是待考虑项。

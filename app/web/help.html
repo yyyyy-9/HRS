@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用手册 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="b9fda9af2d39d23f679e087e54ebd7d770922d8bc708f7bb7e33720c4539b3bd"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用手册 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="8fa5f231b4723ab700cf39bc5259b8b1ed5ea2ec6968de7fa509cc15309f186d"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -583,7 +583,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v1.1.3<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">先看这一页：五分钟完成第一份报告</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v1.1.4<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">先看这一页：五分钟完成第一份报告</a>
 <a class="level2" href="#section-3">Windows桌面运行</a>
 <a class="level2" href="#section-4">章节与图表编号</a>
 <a class="level2" href="#section-5">导出 Word（beta）</a>
@@ -677,6 +677,8 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <p>从最近打开、独立工程预览窗口或启动恢复进入，均使用已确认的恢复草稿；多个草稿可选择。正式源被外部修改时，保存仍会提示冲突。临时工程页可“保存为独立工程”，用系统选择器指定新的父目录和名称，形成新的report.md/assets；原台账与临时稿仍保留。</p>
 <p>准备附件较多的报告时，屏幕显示验证/复制/核对阶段及复制进度，可点取消并等服务完成清理。已交付成功的工程不会因迟到的取消请求被删除。其他窗口可继续备份草稿。</p>
 <h2 id="section-9">操作折叠对象与 HTML 源码</h2>
+<p>从Word或WPS复制包含正文、图片和普通／合并表格的区域后，在源码编辑区按Ctrl+V：文字保留内容和数字，去掉字体、颜色等Word排版；图片成为正常图片对象，表格成为可编辑的增强表格，按复制顺序插入。图表题注先留空，不猜测附近文字的用途。整段粘贴可以一次撤销／重做；附件先进入当前草稿，正式保存后进入工程assets/。粘贴到普通代码围栏内仍按文字处理。</p>
+<p>Windows本机剪贴板还会读取Word实际携带的图片，避免插入整段内容的预览大图或保留失效临时路径。能可靠对应时优先保留RTF中的原图片数据。缺图、格式不支持或粘贴期间源稿／选区变化时，整段不插入并提示原因。嵌套表格、表内图片及没有图片替代的嵌入对象暂不在此快捷入口内；不自动下载外部图片。此入口用于快速摘录，不替代完整Word结构识别。</p>
 <p>左侧折叠卡片单击后选中完整源块；右键可复制源码、剪切或删除，也可用 Ctrl+C、Ctrl+X、Delete／Backspace。剪切和删除进入原撤销记录，可用 Ctrl+Z 撤销。原来的“编辑／展开”按钮继续使用。</p>
 <p>复制的是完整对象源码及其引用附件。粘贴时生成新 ID，组图和同一片段内的引用同步映射；片段外引用保持原文，不能找到时由文档检查报告。附件先放目标草稿，未保存的新工程也能预览，首次保存后进入 assets/。同一工程内剪切移动尽量保留原 ID，发生冲突时另分配。撤销、重做和恢复草稿保留附件；删除对象不会立即删除共享资源。完整多行原始 HTML（如 div、details、table）也可折叠；行内 span、sub、sup 保持行内，HTML 围栏继续按代码折叠。</p>
 <h2 id="section-10">图片对象、目录与配色</h2>
