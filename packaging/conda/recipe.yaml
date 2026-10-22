@@ -30,6 +30,9 @@ requirements:
 
 tests:
   - python:
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
       imports:
         - html_report_studio
       pip_check: true

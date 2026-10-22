@@ -1,6 +1,6 @@
 {
   "schema": "hrs-release-policy-v1",
-  "purpose": "PASTE-01: Word mixed clipboard import and exact Marked indentation-tab source mapping; local 1.1.4 candidate from 1.1.3.",
+  "purpose": "PASTE-01: Word mixed clipboard import and exact Marked indentation-tab source mapping; release 1.1.4 from the verified 1.1.3 baseline.",
   "allowed_application_changes": [
     "app/CHANGELOG.md",
     "app/MANIFEST.json",

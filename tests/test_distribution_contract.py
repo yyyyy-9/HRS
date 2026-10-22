@@ -72,6 +72,7 @@ class InstalledCommands(unittest.TestCase):
         self.assertEqual(project['scripts'], {'hrs': 'html_report_studio.cli:main'})
         local = render(ROOT)
         self.assertEqual((ROOT / 'packaging/conda/recipe.yaml').read_text('utf8'), local)
+        self.assertIn('python_version:\n        - ${{ python_min }}.*\n        - "*"', local)
         remote = render(ROOT, source_url='https://example.org/source.tar.gz', source_sha256='a' * 64)
         self.assertEqual(local.replace('  path: ../..',
             '  url: "https://example.org/source.tar.gz"\n  sha256: ' + 'a' * 64), remote)
