@@ -71,9 +71,9 @@ class PF137(unittest.TestCase):
                 ir = analyze(text)
                 self.assertTrue(ir['ok'], ir['diagnostics'])
                 entries = {entry['id']: entry for entry in ir['objects']['entries']}
-                self.assertEqual(entries[table_id]['number'], 1)
+                self.assertEqual(entries[table_id]['number'], 2)
                 self.assertEqual(entries[figure_id]['number'], 1)
-                self.assertFalse(entries['tbl-native']['numbered'])
+                self.assertTrue(entries['tbl-native']['numbered'])
                 self.assertEqual([r['target'] for r in ir['references']], [table_id, figure_id, 'tbl-native'])
                 for entry in (entries[table_id], entries[figure_id]):
                     self.assertEqual(len(entry['referencedBy']), 1)

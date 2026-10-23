@@ -991,6 +991,9 @@ class Handler(BaseHTTPRequestHandler):
             if p=='/api/upload':return self.upload(req)
             if p=='/api/clipboard/paste':return self.paste_native_clipboard(req)
             if p=='/api/clipboard/document':return self.paste_native_document(req)
+            if p=='/api/clipboard/math':
+                if not self._native_origin_ok():return self.fail('仅允许显式同源公式转换',403)
+                return self.resp({'ok':True,'formulas':self.server.word_export.clipboard_math(req.get('formulas'))})
             with self.server.lock:
                 if p.startswith('/api/export/modules/'):return self.export_modules(p.rsplit('/',1)[1],req)
                 if p=='/api/project/migrate':return self.project_migrate(req)
@@ -1685,7 +1688,7 @@ class Handler(BaseHTTPRequestHandler):
         from clipboard_document import read_document
         # Returns a prepared resource bundle only. The original objects/paste
         # endpoint validates/stages all assets before one source transaction.
-        prepared=read_document(req.get('text'),check_image)
+        prepared=read_document(req.get('text'),check_image,self.server.word_export.clipboard_math)
         return self.resp({'ok':True,'available':prepared is not None,**(prepared or {})})
 
     def upload(self,req):

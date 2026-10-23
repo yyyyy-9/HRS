@@ -19,9 +19,9 @@ const records=[
  {kind:'equation',id:'eq-a',numbered:true},
 ];
 const numbers=ctx.ReportObjectCatalog.numbering(records).items.map(r=>r.number);
-assert.deepEqual(Array.from(numbers),[1,null,1,2,2,1]);
+assert.deepEqual(Array.from(numbers),[1,2,1,3,2,1]);
 assert(ctx.ReportObjectCatalog.validObject('report-table',{
  schema:'report-table-v1',id:'tbl-untitled',caption:'',rows:[[{text:'x',rowspan:1,colspan:1}]]}));
 assert(ctx.ReportObjectCatalog.validObject('report-figure',{
  schema:'report-figure-v1',id:'fig-untitled',kind:'image',caption:'',src:'assets/0123456789abcdef.svg',alt:''}));
-console.log('PF13.6 Node: Edge92 API emulation, numbered/un-numbered objects and SVG picture OK');
+console.log('PF13.6 Node: Edge92 API emulation, all source forms share numbers and SVG picture OK');

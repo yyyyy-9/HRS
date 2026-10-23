@@ -81,7 +81,7 @@ def verify(source,portable,baseline,policy,baseline_source=None):
     added_word={n for n in portable.keys()-baseline.keys() if n.startswith('word_support/')}
     if added_word-set(materials):raise ValueError('Undeclared Word component additions')
     word_adapters={'word_support/MANIFEST.json',*('word_support/bridge/hrs_bridge/'+name for name in
-                   ('__init__.py','__main__.py','runtime.py','docx_export.py','docx_import.py','workflow.py'))}
+                   ('__init__.py','__main__.py','runtime.py','docx_export.py','docx_import.py','workflow.py','browser_model.js','math_adapter.py'))}
     for name in protected:
         if portable.get(name)!=baseline[name]:
             approval=policy.get('approved_css_changes',{}).get(name)

@@ -30,8 +30,8 @@ const fig='```report-figure\n'+JSON.stringify({schema:'report-figure-v1',id:'fig
 const str=wrap('invalid')+'\n'+cases.canonicalCaption+'\n'+wrap('tbl-good')+'\n'+fig+'\n'+group+'\n'+wrap('tbl-second');
 const blocks=Source.scan(str);
 assert.equal(blocks[0].summary,'结构化表格 · 源码待检查');
-assert.ok(blocks.find(x=>x.object?.id==='tbl-good').summary.startsWith('表 1'));
-assert.ok(blocks.find(x=>x.object?.id==='tbl-second').summary.startsWith('表 2'));
+assert.ok(blocks.find(x=>x.object?.id==='tbl-good').summary.startsWith('表 2'));
+assert.ok(blocks.find(x=>x.object?.id==='tbl-second').summary.startsWith('表 3'));
 assert.ok(blocks.find(x=>x.object?.id==='fig-one').summary.startsWith('图 1'));
 assert.ok(blocks.find(x=>x.object?.id==='fig-group').summary.startsWith('图 2'));
 const dup=ObjectCatalog.numbering([{kind:'table',id:'tbl-same',numbered:true},{kind:'table',id:'tbl-same',numbered:true}]);

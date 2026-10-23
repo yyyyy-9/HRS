@@ -49,7 +49,7 @@ def main():
   cases.append('cli-prefix-notice-requires-explicit-snapshot-acceptance')
   (project/'meta.json').write_text(json.dumps({'render_profile':'free','render_options':{'show_object_numbers':False}}),encoding='utf8')
   export_html(project,folder/'free.html');recover_html(folder/'free.html',folder/'recovered')
-  restored=json.loads((folder/'recovered/meta.json').read_text(encoding='utf8'));assert restored['render_options']=={'show_object_numbers':False,'show_heading_numbers':False,'preserve_blank_lines':False}
+  restored=json.loads((folder/'recovered/meta.json').read_text(encoding='utf8'));assert restored['render_options']=={'show_object_numbers':False,'show_heading_numbers':False,'show_equation_numbers':False,'preserve_blank_lines':False}
   cases.append('cli-export-recovery-retains-display-options')
  (out/'cases.json').write_text(json.dumps(cases,ensure_ascii=False,indent=2),encoding='utf8');print('RC2 import/output focused cases PASS:',len(cases))
 

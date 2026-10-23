@@ -32,7 +32,7 @@ function build(req){
   for(const index of abstractIndices)if(parsed[index]?.type==='blockquote')parsed[index].type='hrsAbstract';
   return ReportProfile.wordTokens(expand(parsed));
  };
- const result={schema:SCHEMA,request_sha256:req.request_sha256,output_options:req.output_options,
+ const result={schema:SCHEMA,numbering_policy:'document-v2',render_options:req.render_options,request_sha256:req.request_sha256,output_options:req.output_options,
   tokens:req.sections.map((source,i)=>rich(source,false,req.sectionStarts[i])),
   inline:req.inline.map(source=>rich(source,true)),profile:profilePlan,diagrams:{},svgAssets:{}};
  result.footnotes=Object.fromEntries([...notes.definitions].map(([key,body])=>[key,rich(body,false)]));

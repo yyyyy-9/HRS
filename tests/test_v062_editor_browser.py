@@ -132,7 +132,9 @@ class EditorFeedback(ManualService):
     def test_07_supplied_manual_reading_keeps_source_and_has_no_paragraph_frames(self):
         imported=self.import_manual();self.page.locator('[data-view=reading]').click()
         self.page.wait_for_selector('#edit-layout.reading')
-        self.page.locator('#toc a').filter(has_text='顺手的几组按键').click()
+        # Public releases use the project-authored fixture, not the earlier
+        # external manual. Keep the same navigation/readonly/RGB assertions.
+        self.page.locator('#toc a').filter(has_text='高亮与快捷键').click()
         self.assertTrue(self.page.locator('#edit-layout.reading').is_visible())
         self.assertEqual(self.page.locator('#preview-content [data-block-editor]').count(),0)
         self.assertEqual(self.page.locator('#preview-content [contenteditable=true]').count(),0)

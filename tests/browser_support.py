@@ -154,13 +154,22 @@ class LiveDocument:
             self.page = self.context.new_page()
             self.page.set_default_timeout(12000)
             self.errors = []
+            self.network_failures = []
             self.page.on('pageerror', lambda error: self.errors.append(str(getattr(error, 'stack', None) or error)))
+            self.page.on('requestfailed',lambda request:self.network_failures.append((request.url,request.failure)))
             self.url = f'http://127.0.0.1:{self.server.server_port}'
             self.page.goto(self.url + '/web/index.html?programmatic=1')
+            # Bootstrap loads the full offline renderer before the API is
+            # exposed. Keep its I/O budget separate from normal UI actions.
+            try:self.page.wait_for_function('typeof ReportStudioProgrammatic!=="undefined"',timeout=30000)
+            except Exception as error:raise AssertionError('Editor bootstrap failed; JavaScript errors: '+repr(self.errors)) from error
             self.page.evaluate('async id=>{await ReportStudioProgrammatic.ready();await ReportStudioProgrammatic.open(id)}', document_id)
             self.page.locator('#render-profile').select_option(profile)
             self.page.wait_for_function("profile=>!document.querySelector('#render-profile').disabled&&document.body.dataset.renderProfile===profile",arg=profile)
         except BaseException:
+            if getattr(self,'network_failures',None):print('Browser setup request failures:',self.network_failures,flush=True)
+            if getattr(self,'page',None) and not self.page.is_closed():
+                print('Browser setup status:',self.page.locator('#save-indicator').all_text_contents(),self.page.locator('#toast').all_text_contents(),flush=True)
             if getattr(self, 'errors', None):
                 print('Browser setup errors:', self.errors, flush=True)
             self.resources.close()
@@ -231,5 +240,6 @@ class ManualService(unittest.TestCase):
         self.page.locator('#modal-body input[type=file]').set_input_files(str(image))
         self.page.locator('#modal-ok').click()
         self.page.wait_for_function("document.querySelector('#preview-content img')?.naturalWidth>0")
+        self.page.wait_for_function("document.querySelector('#preview-content h1')?.textContent==='HRS 合成使用示例'")
         return value(self.page)
 

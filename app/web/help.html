@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用手册 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="8fa5f231b4723ab700cf39bc5259b8b1ed5ea2ec6968de7fa509cc15309f186d"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用手册 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="6f961d80fa5077b21f5d9f666130f4d2c6a241edbcafc4a83b083cc891c4554c"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -583,9 +583,9 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v1.1.4<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">先看这一页：五分钟完成第一份报告</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">先看这一页：五分钟完成第一份报告</a>
 <a class="level2" href="#section-3">Windows桌面运行</a>
-<a class="level2" href="#section-4">章节与图表编号</a>
+<a class="level2" href="#section-4">章节、图表与公式编号</a>
 <a class="level2" href="#section-5">导出 Word（beta）</a>
 <a class="level2" href="#section-6">选择渲染与输出模式</a>
 <a class="level2" href="#section-7">选择配色与辨认导出件</a>
@@ -633,7 +633,8 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <a class="level2" href="#section-49">Codex 风格 Markdown 阅读包：单独的阅读器</a>
 <a class="level2" href="#section-50">常用快捷键</a>
 <a class="level2" href="#section-51">遇到问题先看这里</a>
-<a class="level2" href="#section-52">帮助文档与技术资料</a></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">HTML Report Studio 使用手册</h1>
+<a class="level2" href="#section-52">帮助文档与技术资料</a>
+<a class="level2" href="#section-53">从Word/WPS粘贴公式</a></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">HTML Report Studio 使用手册</h1>
 <p><strong>适用版本：以本包 release.json 为准；历次差异见更新记录。</strong></p>
 <p>左侧写 Markdown，右侧看排版；插入图表、公式和流程图，保存为工程并导出可以直接分享的 HTML。本文按实际操作查阅，历次版本变化见<a href="CHANGELOG_READABLE.html">更新记录</a>。</p>
 <h2 id="section-2">先看这一页：五分钟完成第一份报告</h2>
@@ -651,8 +652,8 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <p>桌面版与浏览器版使用同一编辑器和文稿格式。窗口右上角关闭、文件菜单退出和程序内退出都会先确认恢复草稿；操作尚未完成或草稿写入失败时，窗口保持打开。草稿备份仍不等于正式保存，正式保存继续使用Ctrl+S。</p>
 <p>桌面文件菜单可直接导出PDF或调用系统打印，视图菜单可放大/缩小/恢复实际大小。外部链接交给系统浏览器，编辑窗口保持；Word仍使用上文同一导出入口和模板。桌面不要求安装Chrome/Edge，浏览器版继续保持原运行方式。</p>
 <p>桌面默认草稿、设置和工程索引在 <code>%LOCALAPPDATA%/HTMLReportStudioDesktop</code>；工程文件仍在自己选择的项目目录。文件菜单“离线更新…”先显示目标版本和摘要，确认后安全退出、更新并重启；可“回退上一次核心更新…”。若更新后无法启动，可退出其他相关窗口后运行包内“回退核心.cmd”。只用适用于当前桌面基础版本的核心更新包，不要将三合一覆盖包直接覆盖到桌面目录。强制结束程序可能留下运行记录，下次启动会核对原实例并接续恢复；未送达的最后输入不能保证保留。</p>
-<h2 id="section-4">章节与图表编号</h2>
-<p>自由笔记的模式选择旁有上下排列的“章节编号”和“图表编号”，可独立开启。章节编号默认关闭；开启后从二级标题开始显示 1、1.1 等编号，目录和 HTML 同步，一级标题不编号。工程模式固定按工程规则编号；切回自由笔记仍记住原选择。显示设置随工程、草稿及可回编 HTML 保存，不写进 Markdown。</p>
+<h2 id="section-4">章节、图表与公式编号</h2>
+<p>模式选择旁的编号设置包括“章节编号”“图表编号”“公式编号”。自由笔记可分别开关；新自由稿均默认关闭。工程报告固定章节及图表编号，公式仍可选，默认关闭。一级题名不编号，二级标题开始显示1、1.1等章号。普通Markdown表与增强表共用表号，普通Mermaid与图片/组图共用图号，所有块公式共用公式号。切换设置不修改Markdown，随工程、草稿及可回编HTML保存。Word按工程章节/图表规则输出，公式服从本次勾选。</p>
 <p>标题里自己输入的 <code>1.1</code>、<code>2</code> 是普通文字，程序不会猜测或删掉。若开启程序编号，这些文字也会保留；新稿需要自动编号时直接写不带号的标题即可。工程检查会提醒数字开头的标题供核对，仍按已有导出确认规则处理。</p>
 <p>章节引用 <code>@sec:sec-purpose</code> 在分屏和阅读均可单击定位；代码示例保持原文。切换文稿会清除旧检查面板、状态与短提示。左上角完整版本及悬浮提示与服务端 <code>/api/health</code> 一致。</p>
 <h2 id="section-5">导出 Word（beta）</h2>
@@ -678,7 +679,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <p>准备附件较多的报告时，屏幕显示验证/复制/核对阶段及复制进度，可点取消并等服务完成清理。已交付成功的工程不会因迟到的取消请求被删除。其他窗口可继续备份草稿。</p>
 <h2 id="section-9">操作折叠对象与 HTML 源码</h2>
 <p>从Word或WPS复制包含正文、图片和普通／合并表格的区域后，在源码编辑区按Ctrl+V：文字保留内容和数字，去掉字体、颜色等Word排版；图片成为正常图片对象，表格成为可编辑的增强表格，按复制顺序插入。图表题注先留空，不猜测附近文字的用途。整段粘贴可以一次撤销／重做；附件先进入当前草稿，正式保存后进入工程assets/。粘贴到普通代码围栏内仍按文字处理。</p>
-<p>Windows本机剪贴板还会读取Word实际携带的图片，避免插入整段内容的预览大图或保留失效临时路径。能可靠对应时优先保留RTF中的原图片数据。缺图、格式不支持或粘贴期间源稿／选区变化时，整段不插入并提示原因。嵌套表格、表内图片及没有图片替代的嵌入对象暂不在此快捷入口内；不自动下载外部图片。此入口用于快速摘录，不替代完整Word结构识别。</p>
+<p>Windows本机剪贴板还会读取Word实际携带的图片，避免插入整段内容的预览大图或保留失效临时路径。能可靠对应时优先保留RTF中的原图片数据。缺图、格式不支持或粘贴期间源稿／选区变化时，整段不插入并提示原因。嵌套表格、表内普通图片及无法取得完整数学的嵌入对象暂不在此快捷入口内；不自动下载外部图片。此入口用于快速摘录，不替代完整Word结构识别。</p>
 <p>左侧折叠卡片单击后选中完整源块；右键可复制源码、剪切或删除，也可用 Ctrl+C、Ctrl+X、Delete／Backspace。剪切和删除进入原撤销记录，可用 Ctrl+Z 撤销。原来的“编辑／展开”按钮继续使用。</p>
 <p>复制的是完整对象源码及其引用附件。粘贴时生成新 ID，组图和同一片段内的引用同步映射；片段外引用保持原文，不能找到时由文档检查报告。附件先放目标草稿，未保存的新工程也能预览，首次保存后进入 assets/。同一工程内剪切移动尽量保留原 ID，发生冲突时另分配。撤销、重做和恢复草稿保留附件；删除对象不会立即删除共享资源。完整多行原始 HTML（如 div、details、table）也可折叠；行内 span、sub、sup 保持行内，HTML 围栏继续按代码折叠。</p>
 <h2 id="section-10">图片对象、目录与配色</h2>
@@ -782,8 +783,8 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <td>无</td>
 </tr>
 <tr>
-<td><strong>∑ 编号</strong>：插入带编号、可引用的行间公式</td>
-<td><strong>∑ 不编号公式</strong></td>
+<td><strong>∑ 块公式</strong>：插入独立公式，自动建立可引用身份</td>
+<td>编号由文档设置统一控制</td>
 </tr>
 <tr>
 <td><strong>⎘ 粘贴图形</strong>：直接读取 MATLAB/Origin 剪贴板</td>
@@ -802,7 +803,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <td>数字、字母、括号数字或括号字母</td>
 </tr>
 <tr>
-<td><strong>↗ 引用</strong>：选择图、表、编号公式</td>
+<td><strong>↗ 引用</strong>：选择图、表或块公式</td>
 <td>章节引用</td>
 </tr>
 <tr>
@@ -854,7 +855,7 @@ H&lt;sub&gt;2&lt;/sub&gt;O，x&lt;sup&gt;2&lt;/sup&gt;，&lt;kbd&gt;Ctrl&lt;/kbd
 <h3 id="section-26">行内公式和独立公式</h3>
 <ul>
 <li><strong>行内公式：</strong> 点 <strong>「∑ 行内」</strong>，输入或选中 LaTeX。例如 <code>$\eta=0.88$</code>，会和正文排在同一行。</li>
-<li><strong>独立公式：</strong> 点 <strong>「∑ 编号」右侧的 ▾ → 不编号公式</strong>，用 <code>$$...$$</code> 让公式单独成行。</li>
+<li><strong>独立公式：</strong> 点 <strong>「∑ 块公式」</strong>，插入可编辑、可引用的独立公式；文档“公式编号”控制是否显示号，不再分别插入编号/不编号公式。</li>
 <li><strong>快捷键：</strong> 在 Markdown 输入区，按 <strong>Ctrl+Alt+M</strong> 可插入行内公式。</li>
 </ul>
 <p>代码区里的公式源文本不会被真正执行；预览用的是离线 MathJax。</p>
@@ -864,7 +865,7 @@ H&lt;sub&gt;2&lt;/sub&gt;O，x&lt;sup&gt;2&lt;/sup&gt;，&lt;kbd&gt;Ctrl&lt;/kbd
 K=\left|\frac{d\beta}{d\lambda}\right|
 \]
 </code></pre>
-<p><code>\[...\]</code> 和普通 <code>$$...$$</code> 默认不编号。需要编号与引用时，点击 <strong>「∑ 编号」</strong>，或者双击已有块公式勾选“自动编号并允许引用”。源码示例：</p>
+<p><code>\[...\]</code>和<code>$$...$$</code>都进入块公式序列，打开“公式编号”即可显示。工具栏插入会自动建立身份；手写公式不强制补ID，显式选择引用时才补身份。身份示例：</p>
 <pre><code class="language-markdown">&lt;!-- hrs:eq id=eq-energy --&gt;
 $$
 E=mc^2
@@ -872,7 +873,7 @@ $$
 
 由 @eq:eq-energy 可得。
 </code></pre>
-<p>编号随文稿顺序派生，原始 LaTeX 保留。取消编号后，仍指向该公式的正文引用会由“文档检查”提醒；行内数学和复杂嵌套公式不自动成为编号对象。</p>
+<p>编号随块公式顺序派生，原始LaTeX保留。关闭公式编号时，已有引用显示“该公式”并仍可定位；不删除ID或引用。行内公式始终不编号。</p>
 <h3 id="section-28">代码：选择语言便于阅读</h3>
 <p>点 <strong>「{ } 代码」</strong> 可以先插入示例代码，再把围栏后的语言改为 <code>python</code>、<code>java</code>、<code>matlab</code>、<code>powershell</code>、<code>javascript</code>、<code>json</code> 或 <code>bash</code>。</p>
 <pre><code class="language-markdown">```matlab
@@ -907,7 +908,7 @@ exportgraphics(fig, &quot;result.pdf&quot;, ContentType=&quot;vector&quot;);
 <li>先用 <strong>「图片 / 图题」「并排组图」</strong> 或 <strong>「表格」</strong> 插入一个带题注的对象。</li>
 <li>把输入光标放在正文中需要引用的位置。</li>
 <li>点击 <strong>「↗ 引用」</strong>。</li>
-<li>弹窗列出图、组图、增强表或编号公式，按对象选择即可。</li>
+<li>弹窗列出图、组图、普通/增强表或块公式，按对象选择即可。</li>
 <li>右侧预览会自动显示例如 <strong>“图 3”</strong> 或 <strong>“表 2”</strong>。调整图表顺序，显示编号也会跟着更新。</li>
 </ol>
 <p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAAiCAIAAAAlNuVaAAABFklEQVR4nOyWy87BQBiGZ/pPp3+cIgQRITauwtqmFyCxcwsSW3sLd2Bj555YkIgIIhGn6IHxSrEgSNtZWPRNm7ST6ZOv7RweNhjtiPtQSriqhP7/4jGVMeo0MpylYpi4jBDCtMR2b4+nh3RSi0XYjeWpLqpxHDwaZrOlgRbgFOIvGleyKW2xMmxbeKzrCYevtt5Yfutygjc9HE8S6kK4Sk3rLIeFXyEEkcNyErACljvWvN9s9yb3u3yl29EL73t/no+ZWqNyfzhRb3wCfWURktNb1cT1oqzXcl/6UqzRHtbV1wzH+2BMBKzfZ0EJYBhyWHALqIocFiQFziNh3zbMMwTgKk/EXwCC50CbYGEeWQ//QkUP/7oAAAD//7G02D4AAAAGSURBVAMAL9lVT+3EL6kAAAAASUVORK5CYII=" alt="图/表引用按钮插入稳定引用后，右侧自动显示图 1 和表 1"></p>
@@ -918,7 +919,7 @@ exportgraphics(fig, &quot;result.pdf&quot;, ContentType=&quot;vector&quot;);
 <p><code>fig-beam</code>、<code>tbl-results</code> 是<strong>对象 ID</strong>，不是数字编号。请不要把 <code>@fig:fig-beam</code> 改成 <code>@fig:3</code>。软件使用稳定 ID 查找真正的图表；如果目标不存在或 ID 重复，<strong>「文档检查」</strong> 会提醒。</p>
 <p><strong>章节引用</strong>在同一菜单里的 <strong>「章节引用」</strong>。首次引用还没有 ID 的章节时，软件会为标题补充稳定 ID。</p>
 <blockquote>
-<p><strong>现在支持什么？</strong> 图/表/章节引用在预览中自动显示并可点击定位。块公式可选择自动编号，并使用 <code>@eq:eq-…</code> 引用；Word 域引用尚未实现。</p>
+<p><strong>现在支持什么？</strong> 图/表/章节/块公式引用在预览中可点击定位。公式开启编号后显示式号，关闭显示“该公式”。Word输出可编辑OMML；开启编号使用原生SEQ/REF，关闭仍保留内部定位。</p>
 </blockquote>
 <h2 id="section-36">表格：原生 Markdown 与增强表格</h2>
 <h3 id="section-37">直接粘贴 Markdown 管道表格</h3>
@@ -929,7 +930,7 @@ exportgraphics(fig, &quot;result.pdf&quot;, ContentType=&quot;vector&quot;);
 : 结果汇总 {#tbl-results}
 </code></pre>
 <p><code>:---</code> 左对齐、<code>---:</code> 右对齐、<code>:---:</code> 居中。可选题注直接放在最后一行数据之后；旧文稿间隔一个空行仍兼容，两空行不绑定。ID 用于稳定引用，普通表不强制添加。左侧源码能高亮、折叠，展开不改原文。</p>
-<p><strong>编号区别：</strong> 原生 GFM 表即使有题注和 ID，也不占“表 1、表 2”的正式编号；需要正式表号、合并单元格或精确列宽时使用增强表格。</p>
+<p><strong>统一编号：</strong> 原生GFM表与增强表共用表号，工程报告始终显示，自由笔记服从“图表编号”。题注和ID可选；只有合并、精确列宽等需要增强表，编号不再是升级理由。</p>
 <p><img src="data:image/png;base64,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EqezYLLMtZasN3LZcUfIus81UCVLB1g0OD/m51oPlG2jk6i7+KizK0voXmuobCittTBdmlJPuC45cNYTNFz3mHHZAARtvGylQXY8/i873NpNdAj2Ip2qMvNY1BXkUfgyllCwgxehDWxP3rm0BhrubFx0HjaqucfOdOhlwaToNmzV9TU0063YvF2H8lRzXHUrndpaW7mZfVLTmcgMH+/J8jiJSituUN219XYkprmPSzqMe40BBC004Fz5uhYfJwd0GzYnHd9a2+e1PLVcC9KkBcYtSO1G0xDvHgAIZN6TV95g95pM+Ssf0SfRCas3WMVui/+HoGHclr0kLchHBvApULaad2/rXKnqMfUN9LhmRhe8ntb8idtQo+Wb04vH7UnxfmvRxrwi3vNCQwAEowP819l7gaJTWsbvpVRU6vofmYkxqAUgSIF6AlR7ygPMeW0gtUpdY4sOo3a4FqZlvop1XTboWIVOHbg9puoyF4CpQSOTf5JFui414+WyoNeTBm3qlkNVqlxNSGJfritqlO9kv4G2AARL+Tuv+BNvMP3hbxHCA4EGquvvvAIAgEDIVgAA8ZCtAADi8WwNCWEAACCEnKhhD80MDQlFuAIAiDFjRsiM0JCwR2aFjt65ywAAQISZYSFhVLKGz55569YYAwAAEW6P3qVcDX14VujvHplxaxSlKwDAZFGWUqjSP/6Z199rZv188w7iFQBgMihFKUspUel2yN27SqT+Y/DmLzfHwmaGjN6+e+eOczIAAPgVEsJPXlGP9bZUscrBytTZSihbR26M/nxz7NYoOrAAAEF5aGboI7P4uSvKVufEEBSoAADC/T8AAAD//1dF9soAAAAGSURBVAMA7fv/V03NV58AAAAASUVORK5CYII=" alt="原生 Markdown 表格预览和编辑器的已有实际界面示例"></p>
 <h3 id="section-38">插入和编辑增强表格</h3>
 <p>点 <strong>「▦ 表格」</strong> 选择行列数，插入后双击表格打开编辑器。可添加/删除行列、合并与拆分、调整列宽、在单元格中输入公式，以及粘贴 Excel 多格区域。按 Shift 选择另一格可指定合并范围。</p>
@@ -948,7 +949,7 @@ exportgraphics(fig, &quot;result.pdf&quot;, ContentType=&quot;vector&quot;);
   B --&gt;|否| D[检查]
 </code></pre>
 <p>节点中可使用 <code>&lt;br/&gt;</code> 换行，例如 <code>A[&quot;PLD100L&lt;br/&gt;0.5 nm&quot;]</code>。每张图放在独立的 <code>mermaid</code> 围栏中，不能在同一个围栏连续声明多个独立的 <code>flowchart</code>。</p>
-<p>双击图形打开同一官方引擎的预览。简单流程图可选节点修改多行文字、形状或连线；子图等复杂结构直接修改源码。布局由 Mermaid 自动计算，保留原始源码；不再以简易拖拽布局限制完整渲染。HTML/PDF使用已经生成的SVG，离线阅读不需要携带渲染库；回编仍恢复原Markdown。需要正式图题、编号及Word图形输出时使用带ID的<code>report-figure</code>，普通代码与普通Mermaid围栏的Word规则不变。</p>
+<p>双击图形打开同一官方引擎的预览。简单流程图可改节点/连线，复杂结构直接改源码。普通Mermaid和带ID图形都进入图号并支持Word输出；需要题名可在原图形窗口填写。HTML/PDF使用已生成SVG，离线阅读不需携带渲染库，回编恢复原Markdown。</p>
 <h2 id="section-41">发布前整理图片素材</h2>
 <p>从正文删除图片后，<strong>文件还会留在项目 <code>assets/</code> 里</strong>，这是为了避免误删原始科研图。想收拾这些不用的文件，不需要在编辑器里找新按钮：</p>
 <ol>
@@ -1054,10 +1055,10 @@ exportgraphics(fig, &quot;result.pdf&quot;, ContentType=&quot;vector&quot;);
 <h3 id="section-47">图表与公式导航：两种阅读方式</h3>
 <p>导出 HTML 打开后，左侧的<strong>章节目录</strong>保持原样。下面的 <strong>「图表与公式导航」</strong> 有两个选项：</p>
 <ul>
-<li><strong>按正文顺序（默认）：</strong> 图、表、编号公式按在报告中出现的顺序排列。例如“图 4 → 公式（1） → 表 2”。</li>
+<li><strong>按正文顺序（默认）：</strong> 图、表、块公式按在报告中出现的顺序排列。例如“图 4 → 公式（1） → 表 2”。</li>
 <li><strong>按类型分类：</strong> 依次显示 <strong>图（张数）／表（张数）／公式（数量）</strong> 三组，每组内按自身的编号顺序排列。点组标题可以折叠／展开。</li>
 </ul>
-<p>这两种方式只是换一种方法<strong>寻找同一批图表</strong>，并不会改变正文顺序、图表 ID、交叉引用或 HTML 可回编内容。编号公式现在会写明 <strong>“公式（1）”</strong>，不再只显示 <code>(1)</code>。当文稿在正文中给公式明确说明时，导航才跟着显示说明；不会自动猜 LaTeX 的物理含义。</p>
+<p>这两种方式只是换一种方法<strong>寻找同一批图表</strong>，并不会改变正文顺序、图表 ID、交叉引用或 HTML 可回编内容。开启公式编号时写明 <strong>“公式（1）”</strong>，关闭时写“公式”，不再只显示 <code>(1)</code>。当文稿在正文中给公式明确说明时，导航才跟着显示说明；不会自动猜 LaTeX 的物理含义。</p>
 <p>左侧 <strong>正文搜索</strong>、点击定位、当前对象高亮和打印隐藏导航在两个模式下都保持一致。可使用左右方向键在两个切换按钮间选择。老的 HTML 文件也照常打开；要获得新的分类界面需要从新版重新导出，但无需修改旧 Markdown 工程。</p>
 <p><img src="data:image/png;base64,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3HlCx4vu5Dpr7JXn+OSVEyV39Gb/bXfcw5NbnDUb70JP/ECwlm2+j66r5K76i2KItzQ+LKYTnLvstA63aK/sbGNBCe1tB8b8pa56vNhz+Ofs4W/TZ065A8Tq2Yw9j0lOt17u8S4VrdU+sm8cDz63zWvdbvvBr4XspSL/f8PpPIvibmDWEFTw93SgghahghahghahghahghahghahghahghahghahghahghahghahghahghahghahghahghahghahghahghahghahghahghahghahghahghahghahghahYmfnXnkKM2eyhahP1KZieYrZ0WsFg9+Rzs538R613PNzq3txR8zIqOTyi+bVYv0e8T2Hf/6O+xa/5Tp1/8ViLhdPebfftFHeil3YZEZa1IyChntxD39yuHTn3rNaf1tuEG+Hzt8L1K6C35r/aEyn/W3fTWgdrc3/ccOFUpmUqU7qi5zWhrdP589dmm6d7Wm47Xu72S2Fh6tmZbU6F23dm9nW0zdsVhcfFCopdtBvv06vi3Ztu93TeGzXeGPtKG7lO1jI5tZKpv/yeNy93oQOEL1RpobV8W3XyRbd6YvZYviU2/8e6F96WJ3jUn9Lw/Otc3QZivY70MnzaLvn3XQCQDBV6sNSxh8PaHfH3lsqpVgy1b0RzLXsaVwXcwZvvQ5dXyznb5mxzebzuNmUV5fMO73d7qOuVObnT95xA1eqb+lKpVj2fu86tC6urz1buReMrGq4HFif2evtiKuHj30X5zL5lD2/tvvoqDPltXunRu8FH3pTp/F261CLidP5uXaf82b2ugeV0stXN9JXT2av1EZNtR+rxj7694dZQ1DB342AClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEClqEih1pseDdCL6tvotzp/e2zoAJzX2pTjaIVbc2UTra7t7drbNk3J3oE9VPzcYz/uNgGk0rZsnskk61GNwgPnIERu3JYnY039swWcg+42ZddaUy+YP5iZx3v+7G2qrzXWpvqZQ24vG2qbjtpMLfVma2zSvrjTZ+uWL2/IbBbuhUi6X4p/6dt21bV3MHm+dYeWyvbsrLYvrMjeozdkXc/NbIbjBMqTHul+VXi3fCY7NCuMX8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UEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUEGLUPEPAAAA//94XImaAAAABklEQVQDABAtgqAJjbBjAAAAAElFTkSuQmCC" alt="按类型分类导航的已有实际界面示例"></p>
 <p>点击图表/公式目录会保持当前选择；读者用滚轮、触摸或方向键继续阅读后恢复自动跟随。编号和原文顺序不因此改变。</p>
@@ -1119,6 +1120,9 @@ exportgraphics(fig, &quot;result.pdf&quot;, ContentType=&quot;vector&quot;);
 <h2 id="section-52">帮助文档与技术资料</h2>
 <p>手册正文只维护在 <code>docs/USER_GUIDE.md</code>，由随包 Marked 和原有 Reader 生成离线 HTML；截图已内嵌。网页中的复制、折叠不会改手册或用户报告。</p>
 <p>日常功能变化见<a href="CHANGELOG_READABLE.html">更新记录</a>，程序组成见<a href="MODULE_OVERVIEW.html">模块说明</a>，下游接入见<a href="WORD_COMPILER_HANDOFF.html">Word/WPS 数据接口</a>，格式规则见<a href="../source_format_v1.md">源格式规范</a>。</p>
+<h2 id="section-53">从Word/WPS粘贴公式</h2>
+<p>在源码区Ctrl+V含文字、图表和公式的片段，公式转换为可编辑LaTeX，正文和表格内数学保留原位置。独立公式建立块身份；外部独立括号式号在能明确对应时去掉，数学表达式中的数字不删除。整段仍可一次撤销/重做。</p>
+<p>本机已验证WPS原生OMML以及旧公式编辑器KSEE3的Equation Native/MTEF3分式。OMML和标准MathML需要使用现有“公式支持”配置Pandoc及同版Word组件；旧KSEE3读取本身使用标准库。MTEF3支持常见字符、分式、上下标、根式、括号和矩阵的明确子集；MathType MTEF5、自定义字符/未知模板明确拒绝，不能保证所有第三方公式都可转换。没有数学数据时保留原稿并说明原因，不将预览图当成公式。Microsoft Word的原生复制需另按实际剪贴板格式验证，不能以WPS结果代替。</p>
 </article><div class="docs-bottom">HTML Report Studio · 来自项目 Markdown · 离线 Marked</div></main></div><script id="hrs-reader-runtime">/* Generated by tools/build_reader_bundle.js; DO NOT edit. */
 /* PF13.5: one browser-side contract for object validation and derived numbering.
  * SourceBlocks, editor preview, reference picker and offline reader all call
@@ -1179,15 +1183,15 @@ function figureValidate(obj){
 }
 
 // Input order is document order; invalid/duplicate IDs never consume a number.
-// GFM tables can have stable IDs while staying unnumbered.
+// Object sequence is independent of source representation and display settings.
 function numbering(records){
  const counts={figure:0,table:0,equation:0},seen=new Set(),items=[],byId=new Map();
  for(const input of records){
   const type=input.kind==='image-group'?'figure':input.kind;
   const sourceKind=input.sourceKind||null;
-  const numbered=input.numbered!==false&&!(type==='table'&&sourceKind==='gfm-pipe');
+  const numbered=Object.prototype.hasOwnProperty.call(counts,type);
   const id=typeof input.id==='string'&&input.id?input.id:null;
-  const valid=input.valid!==false && (id ? /^(fig|tbl|eq)-[A-Za-z0-9_-]{1,60}$/.test(id) : !numbered);
+  const valid=input.valid!==false && (id ? /^(fig|tbl|eq)-[A-Za-z0-9_-]{1,60}$/.test(id) : true);
   const duplicate=!!id&&seen.has(id);
   if(id&&valid)seen.add(id);
   const countable=valid&&!duplicate&&numbered&&Object.prototype.hasOwnProperty.call(counts,type);
@@ -1200,12 +1204,12 @@ function numbering(records){
  return {items,byId,counts};
 }
 function indexDOM(article){
- const nodes=[...article.querySelectorAll('.report-table-wrap, .report-figure-wrap, [data-equation-id]')];
+ const nodes=[...article.querySelectorAll('.report-table-wrap, .report-figure-wrap, .report-equation')];
  const result=numbering(nodes.map(node=>{
-  const kind=node.hasAttribute('data-equation-id')?'equation':node.classList.contains('report-table-wrap')?'table':'figure';
+  const kind=node.classList.contains('report-equation')?'equation':node.classList.contains('report-table-wrap')?'table':'figure';
   const pipe=kind==='table'&&node.hasAttribute('data-pipe-table');
   return {node,kind,id:node.dataset.equationId||node.dataset.tableId||node.dataset.figureId||null,
-   sourceKind:pipe?'gfm-pipe':kind==='table'?'enhanced':null,numbered:!pipe,valid:true};
+   sourceKind:pipe?'gfm-pipe':kind==='table'?'enhanced':null,valid:true};
  }));
  const source=article._sourceObjectCatalog;
  if(source)for(const entry of result.items){
@@ -1216,7 +1220,8 @@ function indexDOM(article){
 }
 function sourceObject(record,next=null){
  const token=record.token;
- if(token.type==='reportEquation'&&token.equation?.id)return {kind:'equation',id:token.equation.id};
+ if(token.type==='reportEquation')return {kind:'equation',id:token.equation.id};
+ if(token.type==='code'&&token.lang?.trim()==='mermaid')return {kind:'figure',id:null,sourceKind:'mermaid'};
  if(token.type==='reportImageGroup')return {kind:'figure',...root.ReportLayout.parseGroup(record.raw)};
  if(token.type==='code'&&['report-table','report-figure'].includes(token.lang?.trim())){
   const object=root.SourceBlocks.readObject(record.raw,token.lang.trim());
@@ -1225,7 +1230,10 @@ function sourceObject(record,next=null){
  }
  if(token.type==='table'){
   const suffix=next?.type==='paragraph'&&root.ReportPipeTables.parseCaption(next.raw.trim())?next.raw:'';
-  const table=root.ReportPipeTables.parseRaw(record.raw+(suffix?'\n'+suffix:''));
+  let table=root.ReportPipeTables.parseRaw(record.raw);
+  // SourceMap raw already includes the original separating newline(s).
+  // An unattached caption paragraph must not hide an otherwise valid table.
+  if(suffix)try{table=root.ReportPipeTables.parseRaw(record.raw+suffix);}catch{/* The original table remains anonymous. */}
   return {...table.model,id:table.id,kind:'table',sourceKind:'gfm-pipe'};
  }
  return null;
@@ -1290,7 +1298,6 @@ function objectTitle(entry,show=true,profile='engineering'){
  if(kind==='table'){
   const name=tableName(node);
   if(profile==='free')return show&&entry.label?entry.label+(name==='表格'?'':'  '+name):name;
-  if(entry.sourceKind==='gfm-pipe')return 'Markdown 表格 · '+name+'（未编号）';
  }
  return node.querySelector(kind==='table'?'caption':'figcaption')?.textContent?.trim()||entry.label||(kind==='table'?'表格':'图');
 }
@@ -1301,7 +1308,7 @@ function tableChrome(article,profile='engineering',editTable=null){
   const wrap=entry.node,tools=wrap.querySelector('.hrs-table-tools');if(!tools)continue;
   tools.classList.toggle('hrs-table-mini',free);
   const kind=tools.querySelector('.hrs-table-kind');
-  if(kind)kind.textContent=free?objectTitle(entry,show,'free'):(entry.sourceKind==='gfm-pipe'?'Markdown 表格 · 不编号':'增强表格');
+  if(kind)kind.textContent=free?objectTitle(entry,show,'free'):'表格';
   tableHeading(wrap);
   let menu=tools.querySelector('.hrs-table-menu');
   if(!free){
@@ -1322,16 +1329,16 @@ function tableChrome(article,profile='engineering',editTable=null){
   }
  }
 }
-function applyDisplay(article,show=true){
+function applyDisplay(article,show=true,showEquations=false){
+ article.dataset.hrsShowEquationNumbers=showEquations?'1':'0';
  const entries=indexDOM(article);article.dataset.hrsShowObjectNumbers=show?'1':'0';
  for(const entry of entries.items){
-  if(!['figure','table'].includes(entry.kind))continue;
-  if(entry.sourceKind==='gfm-pipe'){
-   if(article.dataset.hrsRenderProfile==='free'&&entry.id)for(const link of article.querySelectorAll('a.object-xref')){
-    if(link.getAttribute('href')==='#object-'+entry.id)link.textContent=tableName(entry.node);
-   }
+  if(entry.kind==='equation'){
+   entry.node.querySelectorAll('.equation-number').forEach(n=>n.hidden=!showEquations);
+   for(const link of article.querySelectorAll('a.object-xref'))if(link.getAttribute('href')==='#object-'+entry.id)link.textContent=showEquations?entry.label:'该公式';
    continue;
   }
+  if(!['figure','table'].includes(entry.kind))continue;
   const caption=entry.node.querySelector(entry.kind==='table'?'caption':'figcaption');
   const fallback=entry.kind==='figure'?'图':'表';
   const text=caption?.dataset.captionText??'';
@@ -1376,7 +1383,7 @@ function objectOutline(article){
   let title='';
   if(pipe&&!element.id)element.id='hrs-md-table-'+(index+1);
   if(type==='equation'){
-   title='公式（'+number+'）';
+   title=article.dataset.hrsShowEquationNumbers==='1'?'公式（'+number+'）':'公式';
    const description=element.getAttribute('data-equation-description')||element.querySelector('.equation-description')?.textContent?.trim();
    if(description)title+=' '+description.slice(0,150);
   }else{
@@ -1442,7 +1449,7 @@ function installTableCards(doc,article){
   table.classList.add('hrs-table-rendered');
   let tools=wrap.querySelector('.hrs-table-tools');if(tools){catalog.tableHeading(wrap);continue;}
   tools=docElement(doc,'div','hrs-table-tools');
-  const kind=docElement(doc,'span','hrs-table-kind');kind.textContent=wrap.hasAttribute('data-pipe-table')?'Markdown 表格 · 不编号':'增强表格';
+  const kind=docElement(doc,'span','hrs-table-kind');kind.textContent='表格';
   const controls=docElement(doc,'div','hrs-table-actions');
   const source=wrap.querySelector('.hrs-table-source');
   if(source){const toggle=makeButton(doc,'查看 MD','hrs-table-toggle','切换原始 Markdown 与可视表格');toggle.dataset.tableToggle='1';toggle.setAttribute('aria-pressed','false');controls.append(toggle);}
@@ -1581,15 +1588,15 @@ function mount(doc=root.document){
  }
  installPDFOriginals(doc,article);
  const originalDocs=!!article.closest('.docs-shell');
- let profile='engineering',show=article.dataset.hrsShowObjectNumbers!=='0';
+ let profile='engineering',show=article.dataset.hrsShowObjectNumbers!=='0',showEquations=article.dataset.hrsShowEquationNumbers==='1';
  if(!originalDocs){
   const declared=doc.documentElement.dataset.hrsRenderProfile;
   profile=declared==='engineering'?'engineering':declared==='free'?'free':null;
   const archiveNode=doc.getElementById('report-source');
-  if(archiveNode){try{const saved=JSON.parse(archiveNode.textContent);profile=profile||(saved.renderProfile==='engineering'?'engineering':'free');show=saved.renderOptions?.show_object_numbers!==false;}catch{/* Archive validity belongs to the existing inert reader. */}}
+  if(archiveNode){try{const saved=JSON.parse(archiveNode.textContent);profile=profile||(saved.renderProfile==='engineering'?'engineering':'free');show=saved.renderOptions?.show_object_numbers!==false;showEquations=saved.renderOptions?.show_equation_numbers===true;}catch{/* Archive validity belongs to the existing inert reader. */}}
   profile=profile||'engineering';
   doc.body.dataset.renderProfile=profile;article.dataset.hrsRenderProfile=profile;
-  installTableCards(doc,article);catalog.applyDisplay(article,profile==='engineering'||show);catalog.tableChrome(article,profile);
+  installTableCards(doc,article);catalog.applyDisplay(article,profile==='engineering'||show,showEquations);catalog.tableChrome(article,profile);
   taskInteraction(article,profile);
  }
  const shell=article.closest('.docs-shell');

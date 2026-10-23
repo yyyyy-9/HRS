@@ -107,10 +107,17 @@ class Writer:
             if len(titles) > 1 or (titles and headings[0] is not titles[0]):
                 raise BridgeError('AMBIGUOUS_SINGLE_REPORT_TITLE: a single-report H1 title must precede its chapters; organize multiple reports explicitly')
         self.heading_output = {}
+        snapshot_ids=set(self.ir['objects']['ids'])
         for index, b in enumerate(self.ir['blocks']):
             b['index'] = index  # snapshot-local bridge receipt, never a persistent source ID
             if b['type'] == 'markdown':
                 self.markdown_parts[index] = self.project_markdown(b)
+            if b['type']=='mermaid':
+                base='fig-snapshot-'+str(index);key=base;suffix=0
+                while key in snapshot_ids:
+                    suffix+=1;key=base+'-'+str(suffix)
+                snapshot_ids.add(key)
+                b.update(type='figure',id=key,data={'kind':'mermaid','source':b['body'],'caption':''})
             texts = list(self.texts(b))
             if b['type'] == 'heading':
                 style = self.heading_style(b)
@@ -121,7 +128,7 @@ class Writer:
                 if text not in self.inline_index:
                     self.inline_index[text] = len(self.inline_text)
                     self.inline_text.append(text)
-        self.model_request={'schema':'hrs-word-model-request-v1','markdown':self.raw.decode('utf8'),
+        self.model_request={'schema':'hrs-word-model-request-v1','numbering_policy':'document-v2','render_options':self.source_options,'markdown':self.raw.decode('utf8'),
                             'sections':self.block_text,'sectionStarts':self.block_starts,'inline':self.inline_text,
                             'template_sha256':self.template_sha256,'source_sha256':sha(self.raw),'output_options':self.options,
                             'assets':{name:sha((self.source/name).read_bytes()) for name in sorted(self.ir['assets'])},
@@ -138,8 +145,9 @@ class Writer:
     def validate_model(self):
         """The editor model is bound to this exact source/assets/template request."""
         m=self.model
-        if not isinstance(m,dict) or m.get('schema')!='hrs-word-browser-model-v1' or m.get('request_sha256')!=self.model_request['request_sha256']:
+        if not isinstance(m,dict) or m.get('schema')!='hrs-word-browser-model-v1' or m.get('request_sha256')!=self.model_request['request_sha256'] or m.get('numbering_policy')!='document-v2':
             raise BridgeError('Word 页面模型与当前源稿、附件或模板快照不一致，请重新导出')
+        if m.get('render_options')!=self.source_options:raise BridgeError('Word 页面模型与当前编号设置不一致，请重新导出')
         if m.get('output_options')!=self.options:raise BridgeError('Word 页面模型与当前输出策略不一致，请重新导出')
         for field,expected in (('tokens',len(self.block_text)),('inline',len(self.inline_text))):
             values=m.get(field)
@@ -239,7 +247,12 @@ class Writer:
                     elif ref[1] == 'sec':
                         field(p, ' REF ' + self.number_name(ref[2]) + ' \\h ', target['text'])
                     else:
-                        raise BridgeError('WPS profile has unnumbered equations; equation references require an explicit output policy')
+                        if self.source_options['show_equation_numbers']:
+                            self.run(p,'式（',bold,italic,strike)
+                            field(p,' REF '+self.number_name(ref[2])+' \\h ',self.output_numbers[ref[2]])
+                            self.run(p,'）',bold,italic,strike)
+                        else:
+                            field(p,' HYPERLINK \\l "'+self.number_name(ref[2])+'" ','该公式')
                     cursor = ref.end()
                 self.run(p, text[cursor:], bold, italic, strike, pre_wrap)
             elif kind == 'codespan':
@@ -683,8 +696,6 @@ class Writer:
                                 if old.tag==qn('w:jc'):props.remove(old)
                             props.append(element('w:jc',val=choice))
                     column+=int(span.get(qn('w:val'))) if span is not None else 1
-        if not b.get('numbered'):
-            self.diagnostic('OUTPUT_TABLE_NUMBER_POLICY', b, 'WPS profile numbers this native table; HRS unnumbered source policy is retained in provenance.')
 
     def group(self, b):
         d = b['data']
@@ -754,8 +765,8 @@ class Writer:
             if b['type'] == 'table':
                 table_number += 1
                 self.output_numbers[self.identity(b)] = table_number
-            elif b['type'] in ('figure','image-group'):
-                self.output_numbers[b['id']] = b['number']
+            elif b['type'] in ('figure','image-group','equation'):
+                self.output_numbers[self.identity(b)] = b['number']
         self.bookmark_id+=1;scope_id=self.bookmark_id
         scope_name='HBD_'+self.document_key
         self.body.insert(len(self.body)-1,element('w:bookmarkStart',id=scope_id,name=scope_name))
@@ -786,9 +797,16 @@ class Writer:
             elif kind == 'equation':
                 p = self.paragraph('公式')
                 if self.math is None: self.math = MathAdapter(self.rt)
-                p._p.append(self.math.omml(b['latex'], True))
-                if b.get('numbered'):
-                    self.diagnostic('OUTPUT_EQUATION_NUMBER_POLICY', b, 'WPS profile has unnumbered equations; source identity and numbered flag are retained.')
+                key=self.identity(b)
+                math=self.math.omml(b['latex'],True)
+                if self.source_options['show_equation_numbers']:
+                    from docx.enum.text import WD_TAB_ALIGNMENT
+                    p.paragraph_format.tab_stops.add_tab_stop(Twips(self.width),WD_TAB_ALIGNMENT.RIGHT)
+                    p._p.append(math);p.add_run('\t（')
+                    self.mark_inline(p,self.number_name(key),lambda:field(p,' SEQ 公式 \\* ARABIC ',self.output_numbers[key]))
+                    p.add_run('）')
+                else:
+                    self.mark_inline(p,self.number_name(key),lambda:p._p.append(math))
             elif kind == 'table': self.data_table(b)
             elif kind == 'image-group': self.group(b)
             elif kind == 'figure':

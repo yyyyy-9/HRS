@@ -65,7 +65,7 @@ def main():
    assert not page.locator('#show-object-numbers').is_checked();cases.append('draft-recovery-source-options-and-staged-images')
    html=page.evaluate("async()=>await ReportStudioProgrammatic.exportHTML({quality:'original',sourceMode:'recompilable'})")
    restored=page.evaluate("async html=>{const t=document.createElement('template');t.innerHTML=html;return ReportExportArchive.readArchive(JSON.parse(t.content.querySelector('#report-source').textContent),t.content)}",html)
-   assert restored['markdown']==snapshot;assert restored['renderOptions']=={'show_object_numbers':False,'show_heading_numbers':False,'preserve_blank_lines':True};cases.append('archive-restores-source-and-hidden-number-option')
+   assert restored['markdown']==snapshot;assert restored['renderOptions']=={'show_object_numbers':False,'show_heading_numbers':False,'show_equation_numbers':False,'preserve_blank_lines':True};cases.append('archive-restores-source-and-hidden-number-option')
    (out/'all-objects.html').write_text(html,encoding='utf8');page.screenshot(path=str(out/'table-caption.png'))
    assert not errors,errors
   (out/'cases.json').write_text(json.dumps(cases,ensure_ascii=False,indent=2),encoding='utf8')

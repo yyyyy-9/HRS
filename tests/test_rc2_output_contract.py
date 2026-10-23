@@ -23,10 +23,10 @@ class OutputPolicy(unittest.TestCase):
   self.assertEqual(self.codes('# 一\n\n# 二\n\n##### 五\n','free'),{})
   self.assertEqual(self.codes('# 一\n\n```markdown\n# 二\n##### 五\n```\n'),{})
  def test_options_default_show_and_validate_boolean(self):
-  self.assertEqual(policy.normalize_options(None),{'show_object_numbers':True,'show_heading_numbers':False,'preserve_blank_lines':False})
-  self.assertEqual(policy.normalize_options({'show_object_numbers':False}),{'show_object_numbers':False,'show_heading_numbers':False,'preserve_blank_lines':False})
+  self.assertEqual(policy.normalize_options(None),{'show_object_numbers':True,'show_heading_numbers':False,'show_equation_numbers':False,'preserve_blank_lines':False})
+  self.assertEqual(policy.normalize_options({'show_object_numbers':False}),{'show_object_numbers':False,'show_heading_numbers':False,'show_equation_numbers':False,'preserve_blank_lines':False})
   with self.assertRaises(ValueError):policy.normalize_options({'show_object_numbers':'no'})
-  self.assertEqual(policy.normalize_options({'show_heading_numbers':True}),{'show_object_numbers':True,'show_heading_numbers':True,'preserve_blank_lines':False})
+  self.assertEqual(policy.normalize_options({'show_heading_numbers':True}),{'show_object_numbers':True,'show_heading_numbers':True,'show_equation_numbers':False,'preserve_blank_lines':False})
   with self.assertRaises(ValueError):policy.normalize_options({'show_heading_numbers':1})
  def test_real_feedback_has_both_heading_failures(self):
   fixture=Path(__file__).with_name('fixtures')/'rc2_feedback'

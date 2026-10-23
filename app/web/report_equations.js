@@ -6,10 +6,10 @@ function parse(source){
  if(String(source).startsWith('\uFEFF')){const value=parse(String(source).slice(1));if(value)value.raw='\uFEFF'+value.raw;return value;}
  const text=String(source),meta=text.match(marker),offset=meta?meta[0].length:0;
  const rest=text.slice(offset);
- // \[ ... \] is conventional display TeX but does NOT imply equation
- // numbering; opt-in numbered equations remain <!-- hrs:eq --> + $$.
+ // Delimiters carry content; the optional marker supplies stable identity.
+ // Number visibility is a document render setting.
  let open=rest.match(/^ {0,3}\$\$/),bracket=false;
- if(!open&&!meta){open=rest.match(/^ {0,3}\\\[/);bracket=!!open;}
+ if(!open){open=rest.match(/^ {0,3}\\\[/);bracket=!!open;}
  if(!open)return null;
  const begin=open[0].length;
  // The closing delimiter must be at the end of its line; escaped closers
@@ -19,11 +19,12 @@ function parse(source){
  const match=close.exec(rest);if(!match)return null;
  const tex=rest.slice(begin,match.index);if(!tex.trim())return null;
  const length=offset+match.index+match[0].length;
- return {raw:text.slice(0,length),tex,id:meta?.[1]||null,numbered:!!meta,delimiter:bracket?'bracket':'dollar'};
+ return {raw:text.slice(0,length),tex,id:meta?.[1]||null,delimiter:bracket?'bracket':'dollar'};
 }
-function snippet(tex,id=null,newline='\n'){
+function snippet(tex,id=null,newline='\n',delimiter='dollar'){
  if(id&&!/^eq-[A-Za-z0-9_-]{1,60}$/.test(id))throw Error('公式 ID 必须符合 eq-…，最多 63 字符');
- return (id?'<!-- hrs:eq id='+id+' -->'+newline:'')+'$$'+newline+String(tex).replace(/\r\n?/g,'\n').replace(/\n/g,newline)+newline+'$$';
+ const bracket=delimiter==='bracket';
+ return (id?'<!-- hrs:eq id='+id+' -->'+newline:'')+(bracket?'\\[':'$$')+newline+String(tex).replace(/\r\n?/g,'\n').replace(/\n/g,newline)+newline+(bracket?'\\]':'$$');
 }
 function installMarked(marked){marked.use({extensions:[{name:'reportEquation',level:'block',
  start:src=>src.match(/^\uFEFF? {0,3}(?:\$\$|\\\[|<!-- hrs:eq id=)/m)?.index,

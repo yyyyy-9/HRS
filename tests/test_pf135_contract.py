@@ -18,7 +18,7 @@ class PF135(unittest.TestCase):
    md=F[key];ir=analyze(md)
    self.assertTrue(ir['ok'],ir['diagnostics']);self.assertEqual(ir['blocks'][0]['id'],oid)
    self.assertIn(oid,ir['blocks'][0]['source'])
-   self.assertFalse(ir['blocks'][0]['numbered']);self.assertIsNone(ir['objects']['entries'][0]['number'])
+   self.assertTrue(ir['blocks'][0]['numbered']);self.assertEqual(ir['objects']['entries'][0]['number'],1)
   separate=analyze(F['notACaption'])
   self.assertNotIn('id', next(b for b in separate['blocks'] if b['type']=='table'))
  def test_math_ref_exclusions_are_contextual(self):
@@ -47,9 +47,9 @@ class PF135(unittest.TestCase):
   md=invalid+'\n'+F['canonicalCaption']+'\n'+table('tbl-ok')+'\n'+figure('fig-one')+'\n'+grouped+'\n'+table('tbl-second')
   ir=analyze(md)
   self.assertEqual([(b['type'],b.get('number')) for b in ir['blocks'] if b.get('number')],
-   [('table',1),('figure',1),('image-group',2),('table',2)])
+   [('table',1),('table',2),('figure',1),('image-group',2),('table',3)])
   self.assertEqual([(e['id'],e['number']) for e in ir['objects']['entries']],
-   [('tbl-adjacent',None),('tbl-ok',1),('fig-one',1),('fig-group',2),('tbl-second',2)])
+   [('tbl-adjacent',1),('tbl-ok',2),('fig-one',1),('fig-group',2),('tbl-second',3)])
   extra={'schema':'report-table-v1','id':'tbl-extra','caption':'',
    'rows':[[{'text':'1','rowspan':1,'colspan':1,'futureSemantic':'x'}]]}
   out=analyze('```report-table\n'+json.dumps(extra)+'\n```\n')

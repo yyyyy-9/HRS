@@ -144,3 +144,7 @@ Word/WPS 编译与逆向识别由独立项目负责，独立桥接试用包消�
 源码tools/test_catalog.py持有功能归属、具名用例与保留分组别名，run_checks生成去重计划并持有结果分类，Source/Full共用；run_python_tests仅执行明确选择并隔离所需运行时。tests/browser_support复用实际StudioServer，逐用例隔离context/工程/草稿，清理失败现场，不把模拟API当真实服务。纯测试依赖不进入普通运行包。
 
 build_release从显式SHA绑定的现行便携输入构建源码/运行包，消费同一App清单且不写源；verify_release独立读取实际ZIP、清单和release_policy，检查保护范围及历史，不导入生产者自证。Word组件与模板仍由原项目提供，测试/发布工具不复制转换语义。使用与授权边界见维护规则及源码README_TESTS。
+
+## 混合粘贴的数学适配
+
+clipboard_math.py将同次WPS原生选择中的数学位置绑定到HTML图像，核对源文字、数量和关系；legacy_math.py有界读取MS-CFB/Equation Native/MTEF3常见子集，不激活OLE。OMML/MathML调用原word_export子进程与Bridge MathAdapter批量转换。rich_clipboard仅将成功的TeX接入原对象片段；资源/身份/一次提交仍由object_clipboard持有。编辑器与ZIP阅读页经同一numberObjects入口消费原SourceMap，离线HTML由原Reader重建。编号统一归object_catalog和report_contract，低层公式定界符解析不决定编号显隐。

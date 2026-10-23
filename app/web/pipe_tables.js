@@ -38,6 +38,7 @@ function split(line){
  cells.push(part.trim());return cells;
 }
 function parseCaption(raw){
+ const identity=String(raw).trim().match(/^:[ \t]+\{#(tbl-[A-Za-z0-9_-]{1,60})\}$/);if(identity)return {caption:'',id:identity[1]};
  const found=String(raw).trimEnd().match(CAPTION);
  if(!found)return null;
  const caption=found[1].trim();if(!caption||caption.length>300)throw Error('表题须是 1–300 字的单行文字');
@@ -104,8 +105,8 @@ function stringify(model,{newline='\n',id=null,withCaption=false}={}){
  const sep=Array.from({length:columns},(_,i)=>({left:':---',right:'---:',center:':---:',null:'---'})[align[i]||'null']||'---');
  const line=row=>'| '+row.map(cell=>formatCell(cell.text)).join(' | ')+' |';
  const lines=[line(rows[0]),'| '+sep.join(' | ')+' |',...rows.slice(1).map(line)];
- if(withCaption||model.caption.trim()){
-  if(model.caption.trim()){lines.push(': '+model.caption.trim()+(id?' {#'+id+'}':''));}
+ if(withCaption||model.caption.trim()||id){
+  if(model.caption.trim()||id)lines.push(': '+model.caption.trim()+(id?' {#'+id+'}':''));
  }
  return lines.join(newline);
 }

@@ -114,7 +114,7 @@ def _image_record(ext,data,check_image):
     return record
 
 
-def prepare_document(snapshot,expected_text,check_image):
+def prepare_document(snapshot,expected_text,check_image,convert_math=None):
     """Pure preparation: verifies one native snapshot and returns transport data."""
     if not isinstance(expected_text,str) or len(expected_text)>2_000_000:raise ValueError('粘贴文字无效或过长')
     native=snapshot.get(13)
@@ -126,6 +126,8 @@ def prepare_document(snapshot,expected_text,check_image):
     html=html_fragment(snapshot['HTML Format']);sources=ImageSources(html).sources
     if len(sources)>100:raise ValueError('Windows 剪贴板图片数量超限')
     if not sources:return {'html':html,'images':{}}
+    from clipboard_math import native_formulas
+    math_images=native_formulas(snapshot.get('Kingsoft WPS 9.0 Format'),sources,expected_text,convert_math)
     pictures=None
     if snapshot.get('Rich Text Format'):
         try:
@@ -149,6 +151,7 @@ def prepare_document(snapshot,expected_text,check_image):
             assets[name]=asset
         prepared[url]=record
     for index,url in enumerate(sources):
+        if url in math_images:continue
         if urlsplit(url).scheme.lower() in ('http','https'):raise ValueError('不自动下载剪贴板中的外部图片，整段未插入')
         if pictures:
             kind,blob=pictures[index]
@@ -166,14 +169,14 @@ def prepare_document(snapshot,expected_text,check_image):
         local=_file_image(url)
         if not local:raise ValueError('Word 图片与 HTML 无法一一对应，整段未插入；请将图片分别复制后插入')
         retain(url,_image_record(*local,check_image))
-    return {'html':html,'images':prepared}
+    return {'html':html,'images':prepared,'math_images':math_images}
 
 
-def read_document(expected_text,check_image):
-    snapshot=read_windows_formats([13,'HTML Format','Rich Text Format'])
+def read_document(expected_text,check_image,convert_math=None):
+    snapshot=read_windows_formats([13,'HTML Format','Rich Text Format','Kingsoft WPS 9.0 Format'])
     # Chromium sometimes exposes only Office's whole-selection bitmap. This
     # explicit probe still uses one atomic native snapshot, never caller paths.
     if expected_text is None:
         if 13 not in snapshot or 'HTML Format' not in snapshot:return None
         expected_text=snapshot[13].decode('utf-16le').rstrip('\0')
-    return {'text':expected_text,**prepare_document(snapshot,expected_text,check_image)}
+    return {'text':expected_text,**prepare_document(snapshot,expected_text,check_image,convert_math)}

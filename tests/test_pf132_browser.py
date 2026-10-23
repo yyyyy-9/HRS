@@ -37,13 +37,13 @@ class TableMath(unittest.TestCase):
         assert page.locator('.report-table-wrap').nth(1).locator('.markdown-math svg').count()==1
         assert page.locator('.doc-block p .markdown-math svg').count()==1
         assert page.locator('.doc-block p code').filter(has_text=r'\(literal\)').count()==1
-        assert page.locator('.report-table-wrap').first.locator('caption').text_content().startswith('TCC')
+        assert page.locator('.report-table-wrap').first.locator('caption').text_content().startswith('表 1  TCC')
         assert page.locator('.report-table-wrap').first.locator('[data-table-copy]').count()==1
         assert page.evaluate('document.querySelector("#markdown").value')==MD
         page.locator('#btn-fold-all').click()
         folded=page.locator('.source-fold-summary[data-language="gfm-pipe"]')
         folded.first.wait_for(timeout=8000)
-        assert 'Markdown 表格' in folded.first.text_content()
+        assert '表 1' in folded.first.text_content()
         assert page.evaluate('document.querySelector("#markdown").value')==MD
         folded.first.locator('button').last.click()
         assert folded.count()==1
@@ -74,7 +74,7 @@ class TableMath(unittest.TestCase):
         assert r'\(T_{11}\)' in offline.locator('.report-table-wrap').first.locator('.hrs-table-source-code').text_content()
         assert offline.locator('.report-table-wrap').first.locator('.hrs-table-rendered').evaluate('(n)=>getComputedStyle(n).marginTop')=='0px'
         assert offline.locator('.report-table-wrap').nth(1).locator('caption').evaluate('(n)=>getComputedStyle(n).backgroundColor')==css_color(page,'table-heading')
-        assert offline.locator('.report-table-wrap').nth(2).locator('caption').count()==0, 'uncaptioned native GFM must not render empty caption'
+        assert offline.locator('.report-table-wrap').nth(2).locator('caption').inner_text().strip()=='表 3', 'uncaptioned native GFM has a derived number, without a fabricated title'
         offline.emulate_media(media='print')
         assert offline.locator('.report-table-wrap').nth(1).locator('caption').evaluate('(n)=>getComputedStyle(n).backgroundColor')==css_color(page,'table-heading')
         assert offline.locator('.hrs-table-tools').first.evaluate('(n)=>getComputedStyle(n).display')=='none'

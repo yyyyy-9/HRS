@@ -8,11 +8,11 @@ assert CHROMIUM
 page_html='''<!doctype html><html><body>
 <main data-hrs-reader-root="1">
   <div class="doc-block"><h2>目录计数检查</h2></div>
-  <div class="report-table-wrap" data-table-id="tbl-one"><table><caption>表 1  增强表</caption><tr><td>值1</td></tr></table></div>
-  <div class="report-table-wrap" data-pipe-table="1"><table><caption>原生表题</caption><tr><td>GFM</td></tr></table></div>
+  <div class="report-table-wrap" data-table-id="tbl-one"><table><caption data-caption-text="增强表">表 1  增强表</caption><tr><td>值1</td></tr></table></div>
+  <div class="report-table-wrap" data-pipe-table="1"><table><caption data-caption-text="原生表题">原生表题</caption><tr><td>GFM</td></tr></table></div>
   <figure class="report-figure-wrap" data-figure-id="fig-one"><figcaption>图 1</figcaption><svg></svg></figure>
-  <div class="report-table-wrap" data-table-id="tbl-two"><table><caption>表 2  第二表</caption><tr><td>值2</td></tr></table></div>
-  <div data-equation-id="eq-e"><span class="equation-number">(1)</span></div>
+  <div class="report-table-wrap" data-table-id="tbl-two"><table><caption data-caption-text="第二表">表 2  第二表</caption><tr><td>值2</td></tr></table></div>
+  <div class="report-equation" data-equation-id="eq-e"><span class="equation-number">(1)</span></div>
 </main></body></html>'''
 with sync_playwright() as playwright:
  browser=playwright.chromium.launch(executable_path=CHROMIUM,headless=True,args=['--no-sandbox','--disable-dev-shm-usage'])
@@ -27,9 +27,9 @@ with sync_playwright() as playwright:
   const outline=HRSReportReader.objectOutline(document.querySelector('[data-hrs-reader-root]'));
   return {numbers:catalog.items.map(x=>x.number),types:catalog.items.map(x=>x.kind),titles:outline.map(x=>x.title),navCount:document.querySelectorAll('.hrs-reader-object').length};
  }''')
- assert result['numbers']==[1,None,1,2,1],result
+ assert result['numbers']==[1,2,1,3,1],result
  assert result['types']==['table','table','figure','table','equation'],result
- assert result['titles'][1].startswith('Markdown 表格') and '未编号' in result['titles'][1],result
+ assert result['titles'][1].startswith('表 2') and '原生表题' in result['titles'][1],result
  assert result['navCount']==10,result  # chronological and grouped modes
  assert not errors,errors
  browser.close()

@@ -67,7 +67,7 @@ class PF134StyleContract(unittest.TestCase):
             self.assertIn(tokens,body,doc)
             self.assertEqual(body.count('/* PF13.4 · canonical table & source-card components.'),1,doc)
 
-    def test_gfm_caption_stays_one_object_without_becoming_numbered(self):
+    def test_gfm_caption_stays_one_object_in_unified_sequence(self):
         caption=': h {#tbl-1b3d909e5406}'
         table='| FSR | 相邻峰位置处的输入相对谱密度 |\r\n| ---: | ---: |\r\n| 250 pm | 0.5 |\r\n| 500 pm | 0.0625 |\r\n\r\n'+caption+'\r\n'
         src=table+'\r\n继续正文\r\n'
@@ -80,13 +80,13 @@ class PF134StyleContract(unittest.TestCase):
         self.assertEqual(b['data']['caption'],'h')
         self.assertEqual(b['data']['id'],'tbl-1b3d909e5406')
         self.assertEqual(b['sourceKind'],'gfm-pipe')
-        self.assertFalse(b['numbered'])
+        self.assertTrue(b['numbered'])
         self.assertEqual(b['end'],len(table.encode('utf-16-le'))//2)
         obj=project(ir,'get','tbl-1b3d909e5406')
         self.assertTrue(obj['found'])
         self.assertEqual(obj['block']['source'],table)
         self.assertEqual(obj['object']['sourceKind'],'gfm-pipe')
-        self.assertFalse(obj['object']['numbered'])
+        self.assertTrue(obj['object']['numbered'])
         self.assertEqual(len(project(ir,'objects')['objects']),1)
         self.assertEqual(obj['snapshot']['text_utf8_sha256'],__import__('hashlib').sha256(src.encode()).hexdigest())
         self.assertEqual(src,table+'\r\n继续正文\r\n')

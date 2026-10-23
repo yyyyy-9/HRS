@@ -93,7 +93,7 @@ def main():
     page.keyboard.press('Control+Z');page.wait_for_selector('#preview-content .report-figure-wrap img')
     page.wait_for_function("[...document.querySelectorAll('#preview-content .report-figure-wrap img')].every(i=>i.complete&&i.naturalWidth>0)")
     saved=list(destination.glob('*/meta.json'));assert len(saved)==1
-    meta=json.loads(saved[0].read_text(encoding='utf8'));assert meta['render_options']=={'show_object_numbers':False,'show_heading_numbers':False,'preserve_blank_lines':True}
+    meta=json.loads(saved[0].read_text(encoding='utf8'));assert meta['render_options']=={'show_object_numbers':False,'show_heading_numbers':False,'show_equation_numbers':False,'preserve_blank_lines':True}
     assert list(saved[0].parent.joinpath('assets').glob('*.png'));cases.append('first-save-retains-undo-assets-and-options')
     html=page.evaluate("async()=>await ReportStudioProgrammatic.exportHTML({quality:'original',sourceMode:'recompilable'})")
     (out/'free-hidden.html').write_text(html,encoding='utf8')

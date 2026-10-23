@@ -16,11 +16,11 @@ def parse_equation(text, pos=0):
         if result:result['source']='\ufeff'+result['source']
         return result
     meta=_MARKER_AT.match(text,pos);offset=meta.end() if meta else pos
-    # A bracketed display equation is an unnumbered Markdown math block.
-    # Explicit numbered equations retain the original <!-- hrs:eq --> + $$ syntax.
+    # Delimiters carry content; an optional marker supplies stable identity.
+    # Number visibility belongs exclusively to the document render options.
     opening=_OPEN_AT.match(text,offset)
     bracket=False
-    if not opening and not meta:
+    if not opening:
         opening=_BRACKET_OPEN_AT.match(text,offset)
         bracket=bool(opening)
     if not opening:return None
@@ -29,5 +29,5 @@ def parse_equation(text, pos=0):
     tex=text[opening.end():closing.start()]
     if not tex.strip():return None
     return {'source':text[pos:closing.end()],'latex':tex,
-            'id':meta[1] if meta else None,'numbered':bool(meta),
+            'id':meta[1] if meta else None,
             'delimiter':'bracket' if bracket else 'dollar'}

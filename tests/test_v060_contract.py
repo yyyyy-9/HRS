@@ -12,7 +12,7 @@ class ThemeContract(unittest.TestCase):
   for bad in ('missing','../../outside',False,{},'Blue'):
    with self.assertRaises(ValueError):normalize(bad)
   with tempfile.TemporaryDirectory() as d:
-   self.assertEqual(read(d),'blue');self.assertEqual(read_options(d),{'show_object_numbers':True,'show_heading_numbers':False,'preserve_blank_lines':False})
+   self.assertEqual(read(d),'blue');self.assertEqual(read_options(d),{'show_object_numbers':True,'show_heading_numbers':False,'show_equation_numbers':False,'preserve_blank_lines':False})
 
  def test_only_profile_meta_is_allowed(self):
   def html(meta):return '<!doctype html><html><head>'+meta+'</head><body>Text<script id="report-source" type="application/json">{"format":"html-report-studio-v1","markdown":"# Report","assets":{}}</script></body></html>'

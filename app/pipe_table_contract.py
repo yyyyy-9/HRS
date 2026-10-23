@@ -85,8 +85,10 @@ def parse_at(lines,index):
         hit=CAPTION.fullmatch(lines[cap_idx].rstrip('\r\n'))
         if hit:
             caption=hit[1].strip()
-            if not caption or len(caption)>300:raise ValueError('GFM 表题应为 1–300 个字')
-            stable_id=hit[2]
+            identity=re.fullmatch(r'\{#(tbl-[A-Za-z0-9_-]{1,60})\}',caption)
+            if identity:caption='';stable_id=identity[1]
+            if (not caption and not stable_id) or len(caption)>300:raise ValueError('GFM 表题应为 1–300 个字')
+            stable_id=stable_id or hit[2]
             end=cap_idx+1
     source=''.join(lines[index:end])
     return {'source':source,'lines':end-index,'sourceKind':'gfm-pipe','id':stable_id,

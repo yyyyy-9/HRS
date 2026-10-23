@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Word 数据交接 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="5d4f56941059b6912f7a02117cfdf73227ee44baeba8bcf098f2dd8640fd48c2"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Word 数据交接 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="5953b12ef202ea2d15d642ef2d1bc418770b0399d81e4fa7f34db6a922ae7419"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -583,7 +583,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v1.1.4<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">输出模式与模板角色</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">输出模式与模板角色</a>
 <a class="level2" href="#section-3">编辑入口与源稿提交</a>
 <a class="level2" href="#section-4">笔记降级边界</a>
 <a class="level2" href="#section-5">项目分工与内容来源</a>
@@ -599,7 +599,8 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <a class="level2" href="#section-15">当前限制与接入验收</a>
 <a class="level2" href="#section-16">Word 输出配置</a>
 <a class="level2" href="#section-17">桌面宿主边界</a>
-<a class="level2" href="#section-18">本机成品与素材操作</a></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">Word/WPS 下游数据接口</h1>
+<a class="level2" href="#section-18">本机成品与素材操作</a>
+<a class="level2" href="#section-19">2.0 编号与模型绑定</a></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">Word/WPS 下游数据接口</h1>
 <h2 id="section-2">输出模式与模板角色</h2>
 <p>HRS自由笔记与工程报告共用源和对象；请求Word时均进入Bridge工程输出规则。外部Word仅由原生结构及已确认上下文重建语义，普通 <code>@fig:</code>、<code>$…$</code>、<code>==…==</code>、双中括号等文字转义后保留；代码示例不激活语法。自身生成Word结合身份映射恢复当前内容与原显示配置，不能恢复旧快照覆盖编辑。</p>
 <p>配套母模板v0.3.11已预置六级Heading原生编号、HRS Abstract和HRS Code。Bridge复用现有编号定义；旧基础模板仍兼容原编号装配路径，但摘要/代码须有相应新样式。摘要仍按源规范的位置与标记识别；当前输出使用正文段落，只加粗“摘要：”标签，不再使用继承Heading1字重的整段摘要样式。普通代码9pt等宽、无首行缩进，保留换行和缩进且允许跨页；图表/Mermaid等已识别对象不进入普通代码分支。</p>
@@ -672,7 +673,7 @@ python tools/audit_modules.py --check
 </tr>
 <tr>
 <td><code>equation</code></td>
-<td>原始 TeX、完整源文、定界符、编号状态、可选 ID</td>
+<td>原始 TeX、完整源文、定界符、派生序号、可选 ID</td>
 <td>TeX→OMML、原生公式及引用域</td>
 </tr>
 <tr>
@@ -695,14 +696,14 @@ python tools/audit_modules.py --check
 <p>配套Bridge支持显式选择已准备的母模板，复用WPS正文槽位接口，只替换生成正文，保留封面、目录域、页眉页脚和节设置。派生身份映射只覆盖生成区域，回读不把封面/目录加入HRS正文。自身生成Word的同位置书签在WPS另存后可能重排，边界处理只容忍无正文跨越的等价顺序。Word文件本身可独立编辑；伴随映射用于返回HRS时恢复身份和未变源片段。</p>
 <p>HRS已提供block_cli的显式plan/apply；Bridge委托它，不再另写候选和提交器。A0读取、HTML导出和Word转换仍不改源工程。Bridge已有run-job/v2批量调度及review/resume，WPS已有声明多来源的原生总稿；Markdown/Word混合总稿及通用跨文档引用/编号域合并仍未完成，不能混为一个状态。</p>
 <h2 id="section-12">编号、题注与表格映射</h2>
-<p>图（含组图）、增强表、显式编号公式分别按有效对象的正文顺序派生编号。GFM 表即使含题注和 <code>tbl-</code> ID 也 <code>numbered:false</code>，不能仅依据 <code>type=table</code> 递增。下游装配应保留这一区别，并在对象顺序确定后建立书签及 REF/SEQ 等机制。</p>
+<p>图（含组图、普通Mermaid及对象Mermaid）、表（含GFM及增强表）、全部块公式分别按有效正文顺序派生序号。ID与可选题名不决定是否计数。匿名对象保留原语法，不在源文捏造身份；只读编译可使用本次快照的局部标识装配图形。章节/图表在Word中始终编号，块公式按render_options.show_equation_numbers显示。</p>
 <p>空题注的编号对象仍显示“图 N／表 N”；caption 只存用户文字。增强表的 <code>align[]</code>、<code>verticalAlign</code> 与可选 <code>columnWidths</code> 是布局来源；未提供的值不应擅自强制补成居中。GFM 水平对齐来自分隔行，没有垂直对齐或合并语义。两种表格都应生成可编辑表格，源码视图和复制按钮不改变其类型。</p>
 <h2 id="section-13">图形原件、预览与资源</h2>
 <p><code>src</code> 是显示图，<code>sourceAsset</code> 可指向归档 EMF/PDF 等原件，<code>rendition</code> 记录预览信息。选择 Word 兼容格式时应先检查原件，再决定矢量或栅格降级；不能从 HTML 提取 PNG 后丢掉原件关系。旧 <code>vectorSource/rasterFallback</code> 按现行规范兼容。</p>
 <p>PDF 作为插图导入时保留完整原件，PNG 预览是第一页；DPI 为实际有效值，未知时省略，不假定 300。普通外部 PDF 文献链接只是引用，不自动复制或栅格化整本资料。HTML 的 PDF 打开按钮、附件压缩和阅读索引不是新的 Word 数据类型。</p>
 <p>组图保留 <code>rows/columns/images/showSubfigureLabels</code>；关闭字母仅隐藏前缀，保留子图说明、顺序和整组题注。每组一个图号，目前没有子图稳定 ID 或子图级交叉引用。</p>
 <h2 id="section-14">公式、源范围与结构门槛</h2>
-<p>下游从原始 <code>source</code> / <code>latex</code> 读取 TeX；行内 <code>$...$</code>、<code>\(...\)</code> 与块级 <code>$$...$$</code>、<code>\[...\]</code> 保留原定界符。只有显式标记的 <code>$$</code> 块参与公式编号。MathJax SVG 是离线显示结果，不是 OMML。</p>
+<p>下游从原始source/latex读取TeX；行内$...$、(...)与块级$$...$$、[...]保留原定界符。所有块公式共用序列，行内数学不编号。公式编号开启时输出原生SEQ 公式及数字书签、REF；关闭时无公式SEQ，已有公式引用输出指向该公式的“该公式”内部链接。MathJax SVG是显示结果，不是OMML。</p>
 <p>所有 UTF-16 范围只对同一源摘要有效；BOM、CRLF/LF 与非 BMP 字符都参与偏移计算。源文修改后重新解析，不用旧坐标定位。CLI 原始文件摘要与 HTTP 提交文本摘要的区别见源规范。</p>
 <p><code>UNSUPPORTED_OBJECT_FIELDS</code> 保留原始 source，不支持的根扩展还留在派生 <code>data.extensions</code>；A0 据此将 <code>sourceContractValid</code> 置为 false。下游须明确支持或拒绝这些结构，不静默忽略未知字段。</p>
 <h2 id="section-15">当前限制与接入验收</h2>
@@ -715,6 +716,8 @@ python tools/audit_modules.py --check
 <p>桌面与浏览器使用同一App、IR、预检、保存和Word组件。核心声明 <code>host_capabilities.json</code> 的桌面协议，由宿主与离线更新器核对；不是report.md字段。私有preload仅承接退出准备/打印，私有PDF通道只接受所属服务的口令及已审计临时HTML，保留原源/附件前后校验和output提交。<code>/api/health</code>增加App清单摘要与桌面状态，仍不表示文稿可编译。没有任意文件/命令接口，A0及plan/apply范围不变，AI沿原CLI/HTTP契约调用，不模拟桌面控件逐步骤转换。</p>
 <h2 id="section-18">本机成品与素材操作</h2>
 <p>机器交接中的 <code>export_result_ui</code> 和 <code>project_asset_ui</code> 描述编辑器专用同源操作，不是Agent批量写接口。HTML/分册/PDF的成功回执增加 <code>result_token</code>，<code>/api/export/open-folder</code>仅凭该本次成品凭证打开目录；Word继续复用原<code>/api/word/open</code>。素材清空需当前正式revision、扫描得到的<code>trash_revision</code>、明确确认及原用户操作头；只清理已校验的项目回收文件，保护当前源/备注/恢复草稿引用。A0、plan/apply、完整预检与下游编译契约不变。</p>
+<h2 id="section-19">2.0 编号与模型绑定</h2>
+<p>HRS 2.0配套Bridge 0.3.0；页面模型请求声明numbering_policy=document-v2，并绑定source render_options（含公式开关）及源快照。build/validate消费相同值，模型摘要拒绝旧组件或配置变化，不能将旧页面模型用于新编号。公式批量粘贴与Word编译共用MathAdapter，不增加第二套TeX→OMML链；clipboard-math子进程只返回转换结果，原粘贴事务持有身份、资源及提交。</p>
 </article><div class="docs-bottom">HTML Report Studio · 来自项目 Markdown · 离线 Marked</div></main></div><script id="hrs-reader-runtime">/* Generated by tools/build_reader_bundle.js; DO NOT edit. */
 /* PF13.5: one browser-side contract for object validation and derived numbering.
  * SourceBlocks, editor preview, reference picker and offline reader all call
@@ -775,15 +778,15 @@ function figureValidate(obj){
 }
 
 // Input order is document order; invalid/duplicate IDs never consume a number.
-// GFM tables can have stable IDs while staying unnumbered.
+// Object sequence is independent of source representation and display settings.
 function numbering(records){
  const counts={figure:0,table:0,equation:0},seen=new Set(),items=[],byId=new Map();
  for(const input of records){
   const type=input.kind==='image-group'?'figure':input.kind;
   const sourceKind=input.sourceKind||null;
-  const numbered=input.numbered!==false&&!(type==='table'&&sourceKind==='gfm-pipe');
+  const numbered=Object.prototype.hasOwnProperty.call(counts,type);
   const id=typeof input.id==='string'&&input.id?input.id:null;
-  const valid=input.valid!==false && (id ? /^(fig|tbl|eq)-[A-Za-z0-9_-]{1,60}$/.test(id) : !numbered);
+  const valid=input.valid!==false && (id ? /^(fig|tbl|eq)-[A-Za-z0-9_-]{1,60}$/.test(id) : true);
   const duplicate=!!id&&seen.has(id);
   if(id&&valid)seen.add(id);
   const countable=valid&&!duplicate&&numbered&&Object.prototype.hasOwnProperty.call(counts,type);
@@ -796,12 +799,12 @@ function numbering(records){
  return {items,byId,counts};
 }
 function indexDOM(article){
- const nodes=[...article.querySelectorAll('.report-table-wrap, .report-figure-wrap, [data-equation-id]')];
+ const nodes=[...article.querySelectorAll('.report-table-wrap, .report-figure-wrap, .report-equation')];
  const result=numbering(nodes.map(node=>{
-  const kind=node.hasAttribute('data-equation-id')?'equation':node.classList.contains('report-table-wrap')?'table':'figure';
+  const kind=node.classList.contains('report-equation')?'equation':node.classList.contains('report-table-wrap')?'table':'figure';
   const pipe=kind==='table'&&node.hasAttribute('data-pipe-table');
   return {node,kind,id:node.dataset.equationId||node.dataset.tableId||node.dataset.figureId||null,
-   sourceKind:pipe?'gfm-pipe':kind==='table'?'enhanced':null,numbered:!pipe,valid:true};
+   sourceKind:pipe?'gfm-pipe':kind==='table'?'enhanced':null,valid:true};
  }));
  const source=article._sourceObjectCatalog;
  if(source)for(const entry of result.items){
@@ -812,7 +815,8 @@ function indexDOM(article){
 }
 function sourceObject(record,next=null){
  const token=record.token;
- if(token.type==='reportEquation'&&token.equation?.id)return {kind:'equation',id:token.equation.id};
+ if(token.type==='reportEquation')return {kind:'equation',id:token.equation.id};
+ if(token.type==='code'&&token.lang?.trim()==='mermaid')return {kind:'figure',id:null,sourceKind:'mermaid'};
  if(token.type==='reportImageGroup')return {kind:'figure',...root.ReportLayout.parseGroup(record.raw)};
  if(token.type==='code'&&['report-table','report-figure'].includes(token.lang?.trim())){
   const object=root.SourceBlocks.readObject(record.raw,token.lang.trim());
@@ -821,7 +825,10 @@ function sourceObject(record,next=null){
  }
  if(token.type==='table'){
   const suffix=next?.type==='paragraph'&&root.ReportPipeTables.parseCaption(next.raw.trim())?next.raw:'';
-  const table=root.ReportPipeTables.parseRaw(record.raw+(suffix?'\n'+suffix:''));
+  let table=root.ReportPipeTables.parseRaw(record.raw);
+  // SourceMap raw already includes the original separating newline(s).
+  // An unattached caption paragraph must not hide an otherwise valid table.
+  if(suffix)try{table=root.ReportPipeTables.parseRaw(record.raw+suffix);}catch{/* The original table remains anonymous. */}
   return {...table.model,id:table.id,kind:'table',sourceKind:'gfm-pipe'};
  }
  return null;
@@ -886,7 +893,6 @@ function objectTitle(entry,show=true,profile='engineering'){
  if(kind==='table'){
   const name=tableName(node);
   if(profile==='free')return show&&entry.label?entry.label+(name==='表格'?'':'  '+name):name;
-  if(entry.sourceKind==='gfm-pipe')return 'Markdown 表格 · '+name+'（未编号）';
  }
  return node.querySelector(kind==='table'?'caption':'figcaption')?.textContent?.trim()||entry.label||(kind==='table'?'表格':'图');
 }
@@ -897,7 +903,7 @@ function tableChrome(article,profile='engineering',editTable=null){
   const wrap=entry.node,tools=wrap.querySelector('.hrs-table-tools');if(!tools)continue;
   tools.classList.toggle('hrs-table-mini',free);
   const kind=tools.querySelector('.hrs-table-kind');
-  if(kind)kind.textContent=free?objectTitle(entry,show,'free'):(entry.sourceKind==='gfm-pipe'?'Markdown 表格 · 不编号':'增强表格');
+  if(kind)kind.textContent=free?objectTitle(entry,show,'free'):'表格';
   tableHeading(wrap);
   let menu=tools.querySelector('.hrs-table-menu');
   if(!free){
@@ -918,16 +924,16 @@ function tableChrome(article,profile='engineering',editTable=null){
   }
  }
 }
-function applyDisplay(article,show=true){
+function applyDisplay(article,show=true,showEquations=false){
+ article.dataset.hrsShowEquationNumbers=showEquations?'1':'0';
  const entries=indexDOM(article);article.dataset.hrsShowObjectNumbers=show?'1':'0';
  for(const entry of entries.items){
-  if(!['figure','table'].includes(entry.kind))continue;
-  if(entry.sourceKind==='gfm-pipe'){
-   if(article.dataset.hrsRenderProfile==='free'&&entry.id)for(const link of article.querySelectorAll('a.object-xref')){
-    if(link.getAttribute('href')==='#object-'+entry.id)link.textContent=tableName(entry.node);
-   }
+  if(entry.kind==='equation'){
+   entry.node.querySelectorAll('.equation-number').forEach(n=>n.hidden=!showEquations);
+   for(const link of article.querySelectorAll('a.object-xref'))if(link.getAttribute('href')==='#object-'+entry.id)link.textContent=showEquations?entry.label:'该公式';
    continue;
   }
+  if(!['figure','table'].includes(entry.kind))continue;
   const caption=entry.node.querySelector(entry.kind==='table'?'caption':'figcaption');
   const fallback=entry.kind==='figure'?'图':'表';
   const text=caption?.dataset.captionText??'';
@@ -972,7 +978,7 @@ function objectOutline(article){
   let title='';
   if(pipe&&!element.id)element.id='hrs-md-table-'+(index+1);
   if(type==='equation'){
-   title='公式（'+number+'）';
+   title=article.dataset.hrsShowEquationNumbers==='1'?'公式（'+number+'）':'公式';
    const description=element.getAttribute('data-equation-description')||element.querySelector('.equation-description')?.textContent?.trim();
    if(description)title+=' '+description.slice(0,150);
   }else{
@@ -1038,7 +1044,7 @@ function installTableCards(doc,article){
   table.classList.add('hrs-table-rendered');
   let tools=wrap.querySelector('.hrs-table-tools');if(tools){catalog.tableHeading(wrap);continue;}
   tools=docElement(doc,'div','hrs-table-tools');
-  const kind=docElement(doc,'span','hrs-table-kind');kind.textContent=wrap.hasAttribute('data-pipe-table')?'Markdown 表格 · 不编号':'增强表格';
+  const kind=docElement(doc,'span','hrs-table-kind');kind.textContent='表格';
   const controls=docElement(doc,'div','hrs-table-actions');
   const source=wrap.querySelector('.hrs-table-source');
   if(source){const toggle=makeButton(doc,'查看 MD','hrs-table-toggle','切换原始 Markdown 与可视表格');toggle.dataset.tableToggle='1';toggle.setAttribute('aria-pressed','false');controls.append(toggle);}
@@ -1177,15 +1183,15 @@ function mount(doc=root.document){
  }
  installPDFOriginals(doc,article);
  const originalDocs=!!article.closest('.docs-shell');
- let profile='engineering',show=article.dataset.hrsShowObjectNumbers!=='0';
+ let profile='engineering',show=article.dataset.hrsShowObjectNumbers!=='0',showEquations=article.dataset.hrsShowEquationNumbers==='1';
  if(!originalDocs){
   const declared=doc.documentElement.dataset.hrsRenderProfile;
   profile=declared==='engineering'?'engineering':declared==='free'?'free':null;
   const archiveNode=doc.getElementById('report-source');
-  if(archiveNode){try{const saved=JSON.parse(archiveNode.textContent);profile=profile||(saved.renderProfile==='engineering'?'engineering':'free');show=saved.renderOptions?.show_object_numbers!==false;}catch{/* Archive validity belongs to the existing inert reader. */}}
+  if(archiveNode){try{const saved=JSON.parse(archiveNode.textContent);profile=profile||(saved.renderProfile==='engineering'?'engineering':'free');show=saved.renderOptions?.show_object_numbers!==false;showEquations=saved.renderOptions?.show_equation_numbers===true;}catch{/* Archive validity belongs to the existing inert reader. */}}
   profile=profile||'engineering';
   doc.body.dataset.renderProfile=profile;article.dataset.hrsRenderProfile=profile;
-  installTableCards(doc,article);catalog.applyDisplay(article,profile==='engineering'||show);catalog.tableChrome(article,profile);
+  installTableCards(doc,article);catalog.applyDisplay(article,profile==='engineering'||show,showEquations);catalog.tableChrome(article,profile);
   taskInteraction(article,profile);
  }
  const shell=article.closest('.docs-shell');

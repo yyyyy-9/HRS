@@ -114,11 +114,11 @@ function scan(markdown,tokens=null){
   const indexed=catalog.numbering(blocks.map(block=>{
    const {language,object}=block;
    const kind=language==='report-table'||language==='gfm-pipe'?'table':
-    language==='report-figure'||language==='report-image-group'?'figure':null;
+    language==='report-figure'||language==='report-image-group'||language==='mermaid'?'figure':null;
    return {kind,id:object?.id||null,
     sourceKind:language==='gfm-pipe'?'gfm-pipe':language==='report-table'?'enhanced':null,
-    numbered:language!=='gfm-pipe',
-    valid:language==='gfm-pipe'?true:!!(kind&&object&&catalog.validObject(language,object))};
+    numbered:true,
+    valid:['gfm-pipe','mermaid'].includes(language)?true:!!(kind&&object&&catalog.validObject(language,object))};
   })).items;
   blocks.forEach((block,i)=>{
    const entry=indexed[i],obj=block.object;
@@ -129,6 +129,8 @@ function scan(markdown,tokens=null){
    }
    if(!entry.number)return;
    if(block.language==='report-table')block.summary=`表 ${entry.number}：${obj.caption||'未填写表题'} · ${obj.rows.length} 行 × ${obj.rows[0].length} 列`;
+   else if(block.language==='gfm-pipe')block.summary=`表 ${entry.number}：${block.summary}`;
+   else if(block.language==='mermaid')block.summary=`图 ${entry.number}：Mermaid 流程图`;
    else if(block.language==='report-figure')block.summary=`图 ${entry.number}：${obj.caption||'未填写图题'} · ${obj.kind==='mermaid'?'Mermaid 流程图':'图片对象'}`;
    else if(block.language==='report-image-group')block.summary=`图 ${entry.number}：${obj.caption||'未填写图题'} · ${obj.images.length} 张组图 / 每行 ${obj.columns} 列`;
   });

@@ -60,7 +60,7 @@ async function showDocument(path,addHistory=true){
    return '<a href="'+escape(href||'')+'"'+(title?' title="'+escape(title)+'"':'')+'>'+label+'</a>';
   };
   const slugger=new marked.Slugger(),tokens=marked.lexer(SourceBlocks.normalized(doc.markdown).text);
-  const records=SourceMap.create(doc.markdown,tokens).blocks,plan=ReportProfile.plan(doc.markdown,profile,records,doc.render_options);
+  const map=SourceMap.create(doc.markdown,tokens),records=map.blocks,plan=ReportProfile.plan(doc.markdown,profile,records,doc.render_options);
   const numbers=new Map(plan.headings.map(h=>[records[h.index].token,h.number])),ordered=[];
   marked.walkTokens(tokens,t=>{if(t.type==='heading')ordered.push(numbers.get(t)||'');});
   const safeOptions={
@@ -77,13 +77,29 @@ async function showDocument(path,addHistory=true){
   };
   // The low-level token parser does not merge Marked's defaults itself. Keep
   // the same installed extension renderers that produced these tokens.
-  article.replaceChildren(ReportSafeHTML.fragment(marked.parser(tokens,{...marked.defaults,renderer,gfm:true,breaks:false,headerIds:true,mangle:false,hrsRenderProfile:profile}),safeOptions));
-  ReportNotes.finalize(article,ReportNotes.prepare(marked,tokens),{prefix:'hrs-pack-note',render:body=>ReportSafeHTML.fragment(marked.parse(body,{renderer,hrsRenderProfile:profile}),safeOptions)});
+  const notes=ReportNotes.prepare(marked,tokens),catalog=ReportObjectCatalog.indexSource(map),skip=new Set();
+  article.replaceChildren();article._sourceObjectCatalog=catalog;
+  for(const record of records){
+   if(skip.has(record.index))continue;
+   const block=document.createElement('div');block.className='doc-block';block.dataset.mapIndex=record.index;
+   const chunk=[record.token];chunk.links=tokens.links;
+   block.append(ReportSafeHTML.fragment(marked.parser(chunk,{...marked.defaults,renderer,gfm:true,breaks:false,headerIds:true,mangle:false,hrsRenderProfile:profile}),safeOptions));
+   const entry=catalog.byRecord.get(record.index);
+   if(entry?.kind==='table'&&entry.sourceKind==='gfm-pipe'){
+    const table=block.querySelector('table');
+    if(table){const wrap=document.createElement('div');wrap.className='report-table-wrap';wrap.dataset.pipeTable='1';if(entry.id)wrap.dataset.tableId=entry.id;
+     const caption=document.createElement('caption');caption.dataset.captionText=entry.caption||'';table.prepend(caption);table.before(wrap);wrap.append(table);}
+    const following=records[record.index+1];
+    if(following?.type==='paragraph'&&ReportPipeTables.parseCaption(following.raw.trim()))skip.add(following.index);
+   }
+   article.append(block);
+  }
   ReportLinks.decorate(article);
   article.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach((heading,i)=>{if(ordered[i])heading.prepend(document.createTextNode(ordered[i]+' '));});
   article.querySelectorAll('img').forEach(image=>image.classList.add('reader-image'));
   for(const code of article.querySelectorAll('pre > code.language-mermaid')){
-   const host=document.createElement('div');host.className='hrs-mermaid-render';host.dataset.hrsMermaid='1';host._mermaidSource=code.textContent;code.closest('pre').replaceWith(host);
+   const card=document.createElement('figure');card.className='report-figure-wrap mermaid-card';
+   const host=document.createElement('div');host.className='hrs-mermaid-render';host.dataset.hrsMermaid='1';host._mermaidSource=code.textContent;card.append(host);code.closest('pre').replaceWith(card);
   }
   const diagramErrors=await root.ReportMermaid.renderAll(article);
   if(diagramErrors.length)throw Error(diagramErrors.join('；'));
@@ -97,15 +113,23 @@ async function showDocument(path,addHistory=true){
   // Marked's engineering equation extension renders source as safe <pre>.
   // Read-only bundles must turn those formula blocks into MathJax SVG too,
   // without changing raw Markdown or treating fenced code as mathematics.
-  if(root.MathJax?.startup?.promise){
-   root.MathJax.startup.promise.then(async()=>{
-    for(const pre of [...article.querySelectorAll('pre')]){
+  const equations=[];
+  for(const pre of [...article.querySelectorAll('pre')]){
      if(pre.querySelector('code'))continue;
      const eq=root.ReportEquations?.parse(pre.textContent);
      if(!eq||eq.raw.trim()!==pre.textContent.trim())continue;
      const span=document.createElement('span');span.className='markdown-math math-display';
      span.dataset.raw=eq.raw;span.dataset.tex=eq.tex;span.dataset.display='1';
-     pre.replaceWith(span);
+     const equation=document.createElement('div');equation.className='report-equation';if(eq.id)equation.dataset.equationId=eq.id;equation.append(span);pre.replaceWith(equation);
+     equations.push({span,eq});
+  }
+  root.ReportObjectNumbering.apply(article,map,{profile,options:ReportProfile.normalizeOptions(doc.render_options),editable:false,error:message=>status(message,true),remember:()=>{},
+   captionInline:(target,text)=>target.append(ReportSafeHTML.fragment(marked.parseInline(text,{renderer,hrsRenderProfile:profile}),safeOptions))});
+  ReportNotes.finalize(article,notes,{prefix:'hrs-pack-note',render:body=>ReportSafeHTML.fragment(marked.parse(body,{renderer,hrsRenderProfile:profile}),safeOptions)});
+  if(root.MathJax?.startup?.promise){
+   root.MathJax.startup.promise.then(async()=>{
+    for(const {span,eq} of equations){
+     if(!span.isConnected)continue;
      if(/\\(?:href|url|require|includegraphics|htmlClass|htmlId|htmlStyle|htmlData|html)\b/i.test(eq.tex)){
       span.textContent='不支持的公式命令';continue;
      }

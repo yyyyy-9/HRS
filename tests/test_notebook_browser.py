@@ -53,7 +53,7 @@ class NotebookViews(unittest.TestCase):
             self.assertEqual(page.locator('#preview-content .report-figure-caption').inner_text(),'图 2 b')
             self.assertEqual(page.locator('#preview-content .object-xref-invalid').count(),0)
             self.assertEqual(page.locator('#preview-content .object-xref').first.inner_text(),'图 1')
-            self.assertEqual(page.locator('#preview-content .object-xref').last.inner_text(),'参数表')
+            self.assertEqual(page.locator('#preview-content .object-xref').last.inner_text(),'表 1')
             page.locator('#preview-content .object-xref').first.click()
             page.wait_for_function("document.querySelector('#preview-content h1').textContent==='A'")
             self.assertEqual(page.locator('#preview-content a[href="https://example.com/"]').inner_text(),'链接')

@@ -10,12 +10,12 @@ for(const newline of ['\n','\r\n']){
  const raw=[String.raw`\[`,String.raw`K=\left|\frac{d\beta}{d\lambda}\right|`,String.raw`\]`,''].join(newline);
  const eq=parse(raw);
  assert(eq);assert.equal(eq.raw,raw);assert.equal(eq.delimiter,'bracket');
- assert.equal(eq.numbered,false);assert.equal(eq.id,null);
+ assert(!Object.prototype.hasOwnProperty.call(eq,'numbered'));assert.equal(eq.id,null);
  assert(eq.tex.includes(String.raw`\frac`));
 }
 assert.equal(parse('$$\nE=mc^2\n$$\n').delimiter,'dollar');
 assert.equal(parse('<!-- hrs:eq id=eq-check -->\n$$\nE=mc^2\n$$\n').id,'eq-check');
-assert.equal(parse('<!-- hrs:eq id=eq-check -->\n\\[\nE=mc^2\n\\]'),null);
+assert.equal(parse('<!-- hrs:eq id=eq-check -->\n\\[\nE=mc^2\n\\]').id,'eq-check');
 assert.equal(parse('\\[\nE=mc^2'),null);
 assert.equal(parse('\\\\[\\nnot math\\n\\]'),null);
 equations.installMarked(marked);

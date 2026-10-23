@@ -236,6 +236,19 @@ class WordExport:
             stale=[token for token,job in self.jobs.items() if time.monotonic()-job['at']>300]
             for token in stale:self.jobs.pop(token)['temporary'].cleanup()
 
+    def clipboard_math(self,items):
+        if not isinstance(items,list) or not 1<=len(items)<=100:raise ValueError('粘贴公式数量无效')
+        from clipboard_math import xml
+        for item in items:
+            if not isinstance(item,dict) or set(item)!={'format','source'} or item['format'] not in ('omml','mathml') or not isinstance(item['source'],str):raise ValueError('公式转换请求无效')
+            root=xml(item['source'].encode('utf8'))
+            local=root.tag.rsplit('}',1)[-1]
+            if local not in ('oMath','oMathPara','math'):raise ValueError('公式根节点无效')
+            if any(n.tag.rsplit('}',1)[-1] in ('script','img','iframe','object','annotation-xml') for n in root.iter()):raise ValueError('公式含不支持的外部内容')
+        if sum(len(item['source']) for item in items)>2_000_000:raise ValueError('公式数据超过限制')
+        with tempfile.TemporaryDirectory(prefix='clipboard-math-',dir=self.config.parent) as folder:
+            return self._worker(Path(folder)/'snapshot',None,None,False,action='clipboard-math',model=items)
+
     def prepare(self,key,temporary,request,freeze,template,template_sha):
         snapshot=Path(temporary.name)/'snapshot'
         try:
@@ -293,7 +306,16 @@ def worker(request_path,result_path):
         # The GUI has an explicit formula selection; an ambient PATH or a test
         # process's PANDOC_PATH must not silently supply another converter.
         rt.pandoc=req['pandoc']
-        if req['action']=='inspect-template':
+        if req['action']=='clipboard-math':
+            from hrs_bridge.math_adapter import MathAdapter
+            from lxml import etree as E
+            adapter=MathAdapter(rt);items=req['model'];receipt=[None]*len(items)
+            for kind in ('omml','mathml'):
+                selected=[(i,x['source']) for i,x in enumerate(items) if x['format']==kind]
+                if not selected:continue
+                values=adapter.tex_many([E.fromstring(x.encode('utf8'),E.XMLParser(resolve_entities=False,no_network=True)) for _,x in selected]) if kind=='omml' else adapter.mathml_many([x for _,x in selected])
+                for (i,_),value in zip(selected,values):receipt[i]=value
+        elif req['action']=='inspect-template':
             from wps_pipeline.resolve_styles import inspect_template
             receipt=inspect_template(req['template'])
         elif req['action']=='prepare':

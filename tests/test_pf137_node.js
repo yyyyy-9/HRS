@@ -20,7 +20,7 @@ const numbers=catalog.numbering([
  {kind:'figure',id:figureId,numbered:true},
  {kind:'table',id:tableId,numbered:true},
 ]);
-assert.deepEqual(numbers.items.map(item=>item.number),[null,1,1,null]);
+assert.deepEqual(numbers.items.map(item=>item.number),[1,2,1,null]);
 assert.equal(numbers.items[3].duplicate,true);
-assert.equal(numbers.byId.get(tableId).number,1);
+assert.equal(numbers.byId.get(tableId).number,2);
 console.log(`PF13.7 Node: ${cases.length} shared cases / ${checked} object validations; ID boundaries, no mutation, GFM/duplicate numbering OK`);

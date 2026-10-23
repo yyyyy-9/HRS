@@ -183,15 +183,7 @@
               </div>
               <button data-insert="code" class="tool" title="插入代码块">{ } 代码</button>
               <button data-insert="inline-math" data-command-id="equation.inline" class="tool" title="直接插入行内公式 $...$ · Ctrl+Alt+M">∑ 行内</button>
-              <div class="tool-action-split" role="group" aria-label="行间公式">
-                <button data-insert="numbered-math" data-command-id="equation.numbered" class="tool tool-split-main" title="直接插入可引用的编号行间公式">∑ 编号</button>
-                <details class="tool-picker tool-split-menu" id="math-picker">
-                  <summary class="tool tool-split-arrow" title="其他行间公式样式" aria-label="更多行间公式">▾</summary>
-                  <div class="tool-menu" aria-label="行间公式类型">
-                    <button data-insert="math" data-command-id="equation.unnumbered" class="tool" title="不自动编号的独立公式">∑ 不编号公式<small>独立成行 $$…$$</small></button>
-                  </div>
-                </details>
-              </div>
+              <button data-insert="math" data-command-id="equation.block" class="tool" title="插入块公式；编号由文档设置控制">∑ 块公式</button>
             </div>
             <div class="tool-cluster" aria-label="表格与图形对象">
               <button data-insert="table" class="tool" title="结构化表格，支持 Excel 区域粘贴">▦ 表格</button>
@@ -205,15 +197,7 @@
                   </div>
                 </details>
               </div>
-              <div class="tool-action-split" role="group" aria-label="流程图">
-                <button data-insert="figure" data-command-id="diagram.captioned" class="tool tool-split-main" title="默认插入带图题、自动编号并可引用的流程图">◇ 流程图</button>
-                <details class="tool-picker tool-split-menu" id="diagram-picker">
-                  <summary class="tool tool-split-arrow" title="不带图题的流程图" aria-label="更多流程图选项">▾</summary>
-                  <div class="tool-menu" aria-label="流程图类型">
-                    <button data-insert="mermaid" data-command-id="diagram.plain" class="tool" title="插入没有图题的普通 Mermaid 流程图">◇ 普通流程图<small>不带图题、不自动编号</small></button>
-                  </div>
-                </details>
-              </div>
+              <button data-insert="figure" data-command-id="diagram.insert" class="tool" title="插入流程图，题名可选；编号由文档设置控制">◇ 流程图</button>
             </div>
             <div class="tool-cluster" aria-label="章节与交叉引用">
               <div class="tool-action-split" role="group" aria-label="交叉引用">
@@ -233,6 +217,7 @@
             <div id="number-display-options" class="number-display-options">
               <label id="heading-number-option" title="自由笔记按 H2 起自动显示章节号；不改写 Markdown，工程输出始终编号"><input id="show-heading-numbers" type="checkbox"><span data-render-option-label="show_heading_numbers"></span></label>
               <label id="object-number-option" title="自由笔记的图表编号显示；工程输出始终编号"><input id="show-object-numbers" type="checkbox" checked><span data-render-option-label="show_object_numbers"></span></label>
+              <label id="equation-number-option" title="控制块公式编号；工程报告与自由笔记均可选择"><input id="show-equation-numbers" type="checkbox"><span data-render-option-label="show_equation_numbers"></span></label>
             </div>
             <button id="btn-validate" class="tool" title="检查对象 ID、交叉引用和结构错误">✓ 文档检查</button>
             <button id="btn-search" class="tool" title="全文查找 · Ctrl+F">⌕ 查找</button>

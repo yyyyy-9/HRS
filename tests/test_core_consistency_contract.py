@@ -32,7 +32,7 @@ class CoreConsistency(unittest.TestCase):
     def test_python_and_browser_normalizers_have_the_same_boundary(self):
         cases=[None,{},[],True,3,'free',{'show_object_numbers':False},{'show_heading_numbers':True},
                {'show_heading_numbers':None},{'show_object_numbers':None},{'show_heading_numbers':1},
-               {'show_object_numbers':'false'},{'unknown':True},{'preserve_blank_lines':True},{'preserve_blank_lines':None},{'preserve_blank_lines':'yes'}]
+               {'show_object_numbers':'false'},{'unknown':True},{'show_equation_numbers':False,'preserve_blank_lines':True},{'show_equation_numbers':False,'preserve_blank_lines':None},{'show_equation_numbers':False,'preserve_blank_lines':'yes'}]
         def probe(value):
             try:return {'ok':True,'value':render_profile.normalize_options(value)}
             except (ValueError,TypeError):return {'ok':False}
@@ -40,7 +40,7 @@ class CoreConsistency(unittest.TestCase):
         js="const p=require('./app/web/render_profile.js');process.stdout.write(JSON.stringify(JSON.parse(process.argv[1]).map(v=>{try{return {ok:true,value:p.normalizeOptions(v)}}catch{return {ok:false}}})))"
         actual=json.loads(subprocess.check_output([node,'-e',js,json.dumps(cases)],cwd=ROOT))
         self.assertEqual(actual,[probe(value) for value in cases])
-        self.assertEqual(render_profile.new_options('free'),{'show_object_numbers':False,'show_heading_numbers':False,'preserve_blank_lines':True})
+        self.assertEqual(render_profile.new_options('free'),{'show_object_numbers':False,'show_heading_numbers':False,'show_equation_numbers':False,'preserve_blank_lines':True})
         self.assertEqual(render_profile.new_options('engineering'),render_profile.normalize_options())
 
     def test_palette_and_default_profiles_use_the_catalog(self):
@@ -67,7 +67,7 @@ class CoreConsistency(unittest.TestCase):
             py="import json,render_profile as p,color_theme as t;print(json.dumps([p.new_options('free'),t.normalize()]))"
             python=json.loads(subprocess.check_output([sys.executable,'-X','utf8','-B','-c',py],cwd=app))
             self.assertEqual(browser[:2],python)
-            self.assertEqual(browser,[{'show_object_numbers':False,'show_heading_numbers':True,'preserve_blank_lines':True},'warm','测试标签'])
+            self.assertEqual(browser,[{'show_object_numbers':False,'show_heading_numbers':True,'show_equation_numbers':False,'preserve_blank_lines':True},'warm','测试标签'])
 
 
 if __name__=='__main__':unittest.main()

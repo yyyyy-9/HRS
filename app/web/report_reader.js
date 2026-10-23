@@ -58,15 +58,15 @@ function figureValidate(obj){
 }
 
 // Input order is document order; invalid/duplicate IDs never consume a number.
-// GFM tables can have stable IDs while staying unnumbered.
+// Object sequence is independent of source representation and display settings.
 function numbering(records){
  const counts={figure:0,table:0,equation:0},seen=new Set(),items=[],byId=new Map();
  for(const input of records){
   const type=input.kind==='image-group'?'figure':input.kind;
   const sourceKind=input.sourceKind||null;
-  const numbered=input.numbered!==false&&!(type==='table'&&sourceKind==='gfm-pipe');
+  const numbered=Object.prototype.hasOwnProperty.call(counts,type);
   const id=typeof input.id==='string'&&input.id?input.id:null;
-  const valid=input.valid!==false && (id ? /^(fig|tbl|eq)-[A-Za-z0-9_-]{1,60}$/.test(id) : !numbered);
+  const valid=input.valid!==false && (id ? /^(fig|tbl|eq)-[A-Za-z0-9_-]{1,60}$/.test(id) : true);
   const duplicate=!!id&&seen.has(id);
   if(id&&valid)seen.add(id);
   const countable=valid&&!duplicate&&numbered&&Object.prototype.hasOwnProperty.call(counts,type);
@@ -79,12 +79,12 @@ function numbering(records){
  return {items,byId,counts};
 }
 function indexDOM(article){
- const nodes=[...article.querySelectorAll('.report-table-wrap, .report-figure-wrap, [data-equation-id]')];
+ const nodes=[...article.querySelectorAll('.report-table-wrap, .report-figure-wrap, .report-equation')];
  const result=numbering(nodes.map(node=>{
-  const kind=node.hasAttribute('data-equation-id')?'equation':node.classList.contains('report-table-wrap')?'table':'figure';
+  const kind=node.classList.contains('report-equation')?'equation':node.classList.contains('report-table-wrap')?'table':'figure';
   const pipe=kind==='table'&&node.hasAttribute('data-pipe-table');
   return {node,kind,id:node.dataset.equationId||node.dataset.tableId||node.dataset.figureId||null,
-   sourceKind:pipe?'gfm-pipe':kind==='table'?'enhanced':null,numbered:!pipe,valid:true};
+   sourceKind:pipe?'gfm-pipe':kind==='table'?'enhanced':null,valid:true};
  }));
  const source=article._sourceObjectCatalog;
  if(source)for(const entry of result.items){
@@ -95,7 +95,8 @@ function indexDOM(article){
 }
 function sourceObject(record,next=null){
  const token=record.token;
- if(token.type==='reportEquation'&&token.equation?.id)return {kind:'equation',id:token.equation.id};
+ if(token.type==='reportEquation')return {kind:'equation',id:token.equation.id};
+ if(token.type==='code'&&token.lang?.trim()==='mermaid')return {kind:'figure',id:null,sourceKind:'mermaid'};
  if(token.type==='reportImageGroup')return {kind:'figure',...root.ReportLayout.parseGroup(record.raw)};
  if(token.type==='code'&&['report-table','report-figure'].includes(token.lang?.trim())){
   const object=root.SourceBlocks.readObject(record.raw,token.lang.trim());
@@ -104,7 +105,10 @@ function sourceObject(record,next=null){
  }
  if(token.type==='table'){
   const suffix=next?.type==='paragraph'&&root.ReportPipeTables.parseCaption(next.raw.trim())?next.raw:'';
-  const table=root.ReportPipeTables.parseRaw(record.raw+(suffix?'\n'+suffix:''));
+  let table=root.ReportPipeTables.parseRaw(record.raw);
+  // SourceMap raw already includes the original separating newline(s).
+  // An unattached caption paragraph must not hide an otherwise valid table.
+  if(suffix)try{table=root.ReportPipeTables.parseRaw(record.raw+suffix);}catch{/* The original table remains anonymous. */}
   return {...table.model,id:table.id,kind:'table',sourceKind:'gfm-pipe'};
  }
  return null;
@@ -169,7 +173,6 @@ function objectTitle(entry,show=true,profile='engineering'){
  if(kind==='table'){
   const name=tableName(node);
   if(profile==='free')return show&&entry.label?entry.label+(name==='表格'?'':'  '+name):name;
-  if(entry.sourceKind==='gfm-pipe')return 'Markdown 表格 · '+name+'（未编号）';
  }
  return node.querySelector(kind==='table'?'caption':'figcaption')?.textContent?.trim()||entry.label||(kind==='table'?'表格':'图');
 }
@@ -180,7 +183,7 @@ function tableChrome(article,profile='engineering',editTable=null){
   const wrap=entry.node,tools=wrap.querySelector('.hrs-table-tools');if(!tools)continue;
   tools.classList.toggle('hrs-table-mini',free);
   const kind=tools.querySelector('.hrs-table-kind');
-  if(kind)kind.textContent=free?objectTitle(entry,show,'free'):(entry.sourceKind==='gfm-pipe'?'Markdown 表格 · 不编号':'增强表格');
+  if(kind)kind.textContent=free?objectTitle(entry,show,'free'):'表格';
   tableHeading(wrap);
   let menu=tools.querySelector('.hrs-table-menu');
   if(!free){
@@ -201,16 +204,16 @@ function tableChrome(article,profile='engineering',editTable=null){
   }
  }
 }
-function applyDisplay(article,show=true){
+function applyDisplay(article,show=true,showEquations=false){
+ article.dataset.hrsShowEquationNumbers=showEquations?'1':'0';
  const entries=indexDOM(article);article.dataset.hrsShowObjectNumbers=show?'1':'0';
  for(const entry of entries.items){
-  if(!['figure','table'].includes(entry.kind))continue;
-  if(entry.sourceKind==='gfm-pipe'){
-   if(article.dataset.hrsRenderProfile==='free'&&entry.id)for(const link of article.querySelectorAll('a.object-xref')){
-    if(link.getAttribute('href')==='#object-'+entry.id)link.textContent=tableName(entry.node);
-   }
+  if(entry.kind==='equation'){
+   entry.node.querySelectorAll('.equation-number').forEach(n=>n.hidden=!showEquations);
+   for(const link of article.querySelectorAll('a.object-xref'))if(link.getAttribute('href')==='#object-'+entry.id)link.textContent=showEquations?entry.label:'该公式';
    continue;
   }
+  if(!['figure','table'].includes(entry.kind))continue;
   const caption=entry.node.querySelector(entry.kind==='table'?'caption':'figcaption');
   const fallback=entry.kind==='figure'?'图':'表';
   const text=caption?.dataset.captionText??'';
@@ -255,7 +258,7 @@ function objectOutline(article){
   let title='';
   if(pipe&&!element.id)element.id='hrs-md-table-'+(index+1);
   if(type==='equation'){
-   title='公式（'+number+'）';
+   title=article.dataset.hrsShowEquationNumbers==='1'?'公式（'+number+'）':'公式';
    const description=element.getAttribute('data-equation-description')||element.querySelector('.equation-description')?.textContent?.trim();
    if(description)title+=' '+description.slice(0,150);
   }else{
@@ -321,7 +324,7 @@ function installTableCards(doc,article){
   table.classList.add('hrs-table-rendered');
   let tools=wrap.querySelector('.hrs-table-tools');if(tools){catalog.tableHeading(wrap);continue;}
   tools=docElement(doc,'div','hrs-table-tools');
-  const kind=docElement(doc,'span','hrs-table-kind');kind.textContent=wrap.hasAttribute('data-pipe-table')?'Markdown 表格 · 不编号':'增强表格';
+  const kind=docElement(doc,'span','hrs-table-kind');kind.textContent='表格';
   const controls=docElement(doc,'div','hrs-table-actions');
   const source=wrap.querySelector('.hrs-table-source');
   if(source){const toggle=makeButton(doc,'查看 MD','hrs-table-toggle','切换原始 Markdown 与可视表格');toggle.dataset.tableToggle='1';toggle.setAttribute('aria-pressed','false');controls.append(toggle);}
@@ -460,15 +463,15 @@ function mount(doc=root.document){
  }
  installPDFOriginals(doc,article);
  const originalDocs=!!article.closest('.docs-shell');
- let profile='engineering',show=article.dataset.hrsShowObjectNumbers!=='0';
+ let profile='engineering',show=article.dataset.hrsShowObjectNumbers!=='0',showEquations=article.dataset.hrsShowEquationNumbers==='1';
  if(!originalDocs){
   const declared=doc.documentElement.dataset.hrsRenderProfile;
   profile=declared==='engineering'?'engineering':declared==='free'?'free':null;
   const archiveNode=doc.getElementById('report-source');
-  if(archiveNode){try{const saved=JSON.parse(archiveNode.textContent);profile=profile||(saved.renderProfile==='engineering'?'engineering':'free');show=saved.renderOptions?.show_object_numbers!==false;}catch{/* Archive validity belongs to the existing inert reader. */}}
+  if(archiveNode){try{const saved=JSON.parse(archiveNode.textContent);profile=profile||(saved.renderProfile==='engineering'?'engineering':'free');show=saved.renderOptions?.show_object_numbers!==false;showEquations=saved.renderOptions?.show_equation_numbers===true;}catch{/* Archive validity belongs to the existing inert reader. */}}
   profile=profile||'engineering';
   doc.body.dataset.renderProfile=profile;article.dataset.hrsRenderProfile=profile;
-  installTableCards(doc,article);catalog.applyDisplay(article,profile==='engineering'||show);catalog.tableChrome(article,profile);
+  installTableCards(doc,article);catalog.applyDisplay(article,profile==='engineering'||show,showEquations);catalog.tableChrome(article,profile);
   taskInteraction(article,profile);
  }
  const shell=article.closest('.docs-shell');

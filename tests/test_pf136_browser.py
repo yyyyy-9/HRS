@@ -48,13 +48,15 @@ class MixedObjects(unittest.TestCase):
         assert page.evaluate("typeof mermaid.render==='function' && Object.hasOwn({x:1},'x') && !Object.hasOwn(Object.create({x:1}),'x')"), 'full vendor initialization must complete with the missing-API fallback'
         assert page.evaluate("(()=>{try{Object.hasOwn(null,'x');return false}catch(error){return error instanceof TypeError}})()"), 'fallback must preserve the native null rejection'
         page.locator('.report-table-wrap').first.wait_for(timeout=18000)
+        page.locator('#show-equation-numbers').check()
+        page.wait_for_function("document.querySelector('#preview-content').dataset.hrsShowEquationNumbers==='1'")
         page.wait_for_function('document.querySelectorAll(".report-figure-wrap").length===3',timeout=16000)
         assert page.locator('.report-table-wrap').count()==4,'2 enhanced + 2 native GFM'
         assert page.locator('.report-figure-wrap').count()==3,'image/mermaid/group'
-        assert page.locator('.report-table-wrap').nth(0).locator('caption').inner_text()=='GFM 题注'
-        assert page.locator('.report-table-wrap').nth(1).locator('caption').inner_text().strip()=='表 1'
-        assert page.locator('.report-table-wrap').nth(2).locator('caption').inner_text().split()==['表','2','有标题的增强表'],repr(page.locator('.report-table-wrap').nth(2).locator('caption').inner_text())
-        assert page.locator('.report-table-wrap').nth(3).locator('caption').count()==0
+        assert page.locator('.report-table-wrap').nth(0).locator('caption').inner_text()=='表 1  GFM 题注'
+        assert page.locator('.report-table-wrap').nth(1).locator('caption').inner_text().strip()=='表 2'
+        assert page.locator('.report-table-wrap').nth(2).locator('caption').inner_text().split()==['表','3','有标题的增强表'],repr(page.locator('.report-table-wrap').nth(2).locator('caption').inner_text())
+        assert page.locator('.report-table-wrap').nth(3).locator('caption').inner_text().strip()=='表 4'
         assert page.locator('[data-figure-id="fig-picture"] figcaption').inner_text().strip()=='图 1'
         assert page.locator('[data-figure-id="fig-flow"] figcaption').inner_text().strip()=='图 2'
         assert page.locator('[data-figure-id="fig-group"] figcaption').inner_text().strip()=='图 3'
@@ -75,9 +77,9 @@ class MixedObjects(unittest.TestCase):
         assert offline.locator('[data-figure-id="fig-picture"] figcaption').inner_text().strip()=='图 1'
         assert offline.locator('[data-figure-id="fig-flow"] figcaption').inner_text().strip()=='图 2'
         assert offline.locator('[data-figure-id="fig-group"] figcaption').inner_text().strip()=='图 3'
-        assert offline.locator('[data-table-id="tbl-a"] caption').inner_text().strip()=='表 1'
-        assert offline.locator('[data-table-id="tbl-b"] caption').inner_text().split()==['表','2','有标题的增强表']
-        assert offline.locator('.report-table-wrap[data-pipe-table] caption').count()==1
+        assert offline.locator('[data-table-id="tbl-a"] caption').inner_text().strip()=='表 2'
+        assert offline.locator('[data-table-id="tbl-b"] caption').inner_text().split()==['表','3','有标题的增强表']
+        assert offline.locator('.report-table-wrap[data-pipe-table] caption').count()==2
         assert offline.locator('[data-equation-id="eq-a"] .equation-number').inner_text()=='(1)'
         assert '未填写题注' not in offline.locator('body').inner_text()
         result=offline.evaluate('''()=>{
@@ -87,7 +89,7 @@ class MixedObjects(unittest.TestCase):
            tabs:document.querySelectorAll('.hrs-reader-object-tab').length,
            index:document.querySelector('[data-hrs-reader-root]').dataset.hrsReaderReady};
         }''')
-        assert result['number']==[None,1,1,2,2,None,3,1],result
+        assert result['number']==[1,2,1,3,2,4,3,1],result
         assert result['nav']==16 and result['tabs']==2,result
         assert not errors,errors
         assert not offerrors,offerrors

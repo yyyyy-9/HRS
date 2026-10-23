@@ -27,6 +27,11 @@ const data={
       "default": false,
       "new_free": false
     },
+    "show_equation_numbers": {
+      "label": "公式编号",
+      "default": false,
+      "new_free": false
+    },
     "preserve_blank_lines": {
       "label": "保留连续空行",
       "default": false,

@@ -43,10 +43,10 @@ class PF131Contract(unittest.TestCase):
         self.assertTrue(ir['ok'], ir['diagnostics'])
         tables = [b for b in ir['blocks'] if b['type'] == 'table']
         self.assertEqual([(b['numbered'], b['sourceKind']) for b in tables],
-                         [(False, 'gfm-pipe'), (True, 'enhanced')])
+                         [(True, 'gfm-pipe'), (True, 'enhanced')])
         self.assertEqual([(x['id'], x['numbered'], x['sourceKind'], x['sequence'])
                           for x in ir['objects']['entries']],
-                         [('tbl-pipe', False, 'gfm-pipe', None),
+                         [('tbl-pipe', True, 'gfm-pipe', 'table'),
                           ('tbl-enhanced', True, 'enhanced', 'table')])
         self.assertEqual(len(ir['objects']['entries'][0]['referencedBy']), 1)
         self.assertEqual(len(ir['objects']['entries'][1]['referencedBy']), 1)

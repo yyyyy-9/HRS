@@ -10,6 +10,11 @@ from pathlib import Path
 EXPLICIT_FEATURES = {'report_word','desktop_runtime'}
 
 FEATURES = {
+    'numbering': ('Unified document numbering and editable mathematical clipboard content', '''numbering_v2_contract numbering_v2_node
+        numbering_v2_browser:UnifiedNumbering.test_01_modes_and_formula_switch_share_objects
+        numbering_v2_browser:UnifiedNumbering.test_02_new_formula_has_identity_without_insert_number_choice
+        numbering_v2_browser:UnifiedNumbering.test_05_plain_objects_gain_identity_only_when_referenced
+        numbering_v2_browser:UnifiedNumbering.test_06_formula_option_survives_archive_and_reading_pack'''),
     'desktop': ('Shared close/print adapter, offline core update/rollback and host integrity boundaries', 'desktop_contract desktop_node portable_contract native_picker release_contract'),
     'desktop_browser': ('Existing browser explicit exit still flushes the original draft and keeps failed closes open', 'maintenance_browser:MaintenanceExperience.test_browser_exit_flushes_latest_large_draft_and_refuses_failed_write'),
     'desktop_runtime': ('Explicit real Electron host save/close/failure/ownership/PDF/Word and final desktop payload', 'desktop_runtime'),
@@ -30,7 +35,10 @@ FEATURES = {
         maintenance_contract maintenance_browser maintenance_node report_workspace_contract report_workspace_browser
         source_index_node notebook_node core_consistency_contract distribution_contract pf131_contract
         interfaces_contract run_checks_contract release_contract block_commit_contract'''),
-    'report_word': ('Explicit native Word component integration for the temporary report workflow; requires HRS_WORD_SUPPORT/PYTHON/PANDOC', 'report_workspace_word_browser'),
+    'report_word': ('Explicit native Word component integration for the temporary report workflow; requires HRS_WORD_SUPPORT/PYTHON/PANDOC', '''report_workspace_word_browser
+        numbering_v2_browser:UnifiedNumbering.test_03_mathml_mixed_paste_preserves_inline_math_and_table
+        numbering_v2_browser:UnifiedNumbering.test_04_word_formula_numbers_and_reference_policy
+        numbering_v2_browser:UnifiedNumbering.test_07_plain_markdown_figures_and_tables_use_native_word_numbers'''),
     'report_workspace': ('R7 real-project feedback: note/scope/scroll/save, report preparation and reading modules', '''
         report_workspace_contract report_workspace_browser notebook_node notebook_contract notebook_browser
         core_consistency_contract interfaces_contract run_checks_contract release_contract pf1310_math_browser
@@ -167,9 +175,13 @@ def select_tests(source, groups, *, require_all=True):
     for item in selected:
         all_cases = ('full' in features or 'contracts' in features and item['kind'] != 'browser' or
                      'browsers' in features and item['kind'] == 'browser')
-        reasons = [feature for feature in item['features'] if feature in features]
+        # A module may contain both core and optional native integrations.
+        # Default/full expands only its non-explicit feature selectors, rather
+        # than promoting the whole module (and hidden native dependencies).
+        reasons = [feature for feature in item['features'] if feature in features or
+                   all_cases and feature not in EXPLICIT_FEATURES]
         choices = [item['feature_selectors'][feature] for feature in reasons]
-        item['selectors'] = None if all_cases or any(choice is None for choice in choices) else sorted({case for choice in choices for case in choice})
+        item['selectors'] = None if any(choice is None for choice in choices) else sorted({case for choice in choices for case in choice})
         item['selected_by'] = sorted(features) if all_cases else reasons
     return sorted(selected, key=lambda item: item['id'])
 

@@ -99,12 +99,11 @@ class MathAdapter:
         return deepcopy(self.cache[key])
 
     def tex(self,omml):
-        # Isolate the observed OMML in a tiny DOCX, rather than feeding an entire
-        # document into another structure recognizer.
-        from docx import Document
-        doc=Document();p=doc.add_paragraph();p._p.append(deepcopy(omml));data=BytesIO();doc.save(data)
-        result=subprocess.run([self.exe,'--fail-if-warnings','-f','docx','-t','json'],input=data.getvalue(),capture_output=True,timeout=30)
-        if result.returncode:raise BridgeError('OMML conversion rejected: '+result.stderr.decode('utf8'))
+        return self.tex_many([omml])[0]
+
+    @staticmethod
+    def math_values(result, count):
+        if result.returncode:raise BridgeError('Math conversion rejected: '+result.stderr.decode('utf8'))
         found=[]
         def walk(n):
             if isinstance(n,dict):
@@ -113,5 +112,19 @@ class MathAdapter:
             elif isinstance(n,list):
                 for v in n:walk(v)
         walk(json.loads(result.stdout))
-        if len(found)!=1:raise BridgeError('OMML could not be recovered as one native math object')
-        return found[0]
+        if len(found)!=count or any(not text.strip() for text in found):raise BridgeError('Math conversion changed the number of formulas')
+        return found
+
+    def tex_many(self,expressions):
+        # One bounded conversion for the paste, with one paragraph per formula.
+        from docx import Document
+        doc=Document()
+        for omml in expressions:doc.add_paragraph()._p.append(deepcopy(omml))
+        data=BytesIO();doc.save(data)
+        result=subprocess.run([self.exe,'--fail-if-warnings','-f','docx','-t','json'],input=data.getvalue(),capture_output=True,timeout=30)
+        return self.math_values(result,len(expressions))
+
+    def mathml_many(self,expressions):
+        body='<!doctype html><html><body>'+''.join('<p>'+x+'</p>' for x in expressions)+'</body></html>'
+        result=subprocess.run([self.exe,'--fail-if-warnings','-f','html','-t','json'],input=body.encode('utf8'),capture_output=True,timeout=30)
+        return self.math_values(result,len(expressions))

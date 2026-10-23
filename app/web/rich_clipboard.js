@@ -6,7 +6,7 @@
 const MAX_HTML=2000000,MAX_IMAGES=100;
 const dropped=new Set(['script','style','link','meta','head']);
 const blocks=new Set(['p','div','section','article','blockquote','li','ul','ol','h1','h2','h3','h4','h5','h6','pre']);
-function matches(html){return /<(?:table|img)\b|urn:schemas-microsoft-com:office|\bMso(?:Normal|Table)|\bmso-/i.test(html);}
+function matches(html){return /<(?:table|img|math)\b|urn:schemas-microsoft-com:office|\bMso(?:Normal|Table)|\bmso-/i.test(html);}
 function inspect(html,force=false){
  if(typeof html!=='string'||html.length>MAX_HTML)throw Error('粘贴的富文本超过 2 MB');
  if(!force&&!matches(html))return null;
@@ -36,7 +36,7 @@ async function resource(data,mime){
  const name=sha.slice(0,16)+ext;
  return {path:'assets/'+name,assets:{[name]:{base64:data,sha256:sha}}};
 }
-async function prepare(html,plain,{native,figure,figureSnippet,table,tableSnippet,nativeReply=null}){
+async function prepare(html,plain,{native,figure,figureSnippet,table,tableSnippet,convertMath,nativeReply=null}){
  let content=inspect(html,!!nativeReply);if(!content)return null;
  const elements=[...content.querySelectorAll('img')];
  if(elements.some(img=>/^https?:/i.test(img.getAttribute('src')||'')))throw Error('不自动下载剪贴板中的外部图片，整段未插入');
@@ -47,9 +47,12 @@ async function prepare(html,plain,{native,figure,figureSnippet,table,tableSnippe
   nativeReply=await native(plain);content=inspect(nativeReply.html,true);
   if(!content)throw Error('Windows 剪贴板没有可转换的富文本内容');
  }
+ const mathImages=nativeReply?.math_images||{},mathNodes=new Map();
+ const ml=[...content.querySelectorAll('math')];
+ if(ml.length){if(!convertMath)throw Error('公式转换器尚未配置');const values=await convertMath(ml.map(node=>({format:'mathml',source:new XMLSerializer().serializeToString(node)})));if(values.length!==ml.length)throw Error('公式转换数量不一致');ml.forEach((node,i)=>mathNodes.set(node,{tex:values[i],display:node.getAttribute('display')==='block'}));}
  const images=new Map(),assets={};
  for(const img of content.querySelectorAll('img')){
-  const src=img.getAttribute('src')||'';if(images.has(src))continue;
+  const src=img.getAttribute('src')||'';if(mathImages[src]||images.has(src))continue;
   let item=nativeReply?.images?.[src];
   if(!item){
    const match=src.match(/^data:(image\/(?:png|jpeg|gif|webp|svg\+xml));base64,([\s\S]+)$/i);
@@ -59,12 +62,21 @@ async function prepare(html,plain,{native,figure,figureSnippet,table,tableSnippe
   for(const [name,asset] of Object.entries(item.assets))if(assets[name]&&assets[name].sha256!==asset.sha256)throw Error('剪贴板图片附件名称冲突，整段未插入');
   images.set(src,item);Object.assign(assets,item.assets);
  }
- const chunks=[];let buffer='';
- function flush(){const text=buffer.replace(/^[ \t\n]+|[ \t\n]+$/g,'');if(text)chunks.push(literal(text));buffer='';}
+ const chunks=[],inlineMath=new Map(),prefix='HRSPASTEMATH'+crypto.randomUUID().replaceAll('-','')+'X';let buffer='';
+ function inline(item){const key=prefix+inlineMath.size+'X';inlineMath.set(key,'$'+item.tex+'$');return key;}
+ function textSource(text){let result=literal(text);for(const [key,value] of inlineMath)result=result.replaceAll(key,value);return result;}
+ function formula(node){return mathNodes.get(node)||(node.localName==='img'?mathImages[node.getAttribute('src')||'']:null);}
+ function blockMath(item){chunks.push(root.ReportEquations.snippet(item.tex,'eq-'+crypto.randomUUID().replaceAll('-','').slice(0,12)));}
+ function flush(){const text=buffer.replace(/^[ \t\n]+|[ \t\n]+$/g,'');if(text)chunks.push(textSource(text));buffer='';}
  function visit(node){
   if(node.nodeType===3){buffer+=(node.nodeValue||'').replace(/[\r\n\t ]+/g,' ');return;}
   if(node.nodeType!==1)return;
   const tag=node.localName;if(dropped.has(tag))return;
+  const math=formula(node);if(math){if(math.display){flush();blockMath(math);}else buffer+=inline(math);return;}
+  if(['p','div','table'].includes(tag)){
+   const found=[...node.querySelectorAll('img,math')].map(formula).filter(Boolean);
+   if(found.length===1&&found[0].display&&(node.textContent||'').trim()===(found[0].source_number||'').trim()){flush();blockMath(found[0]);return;}
+  }
   if(['iframe','object','embed','form'].includes(tag))throw Error('剪贴板包含尚不支持的嵌入对象，整段未插入；请拆开复制所需内容');
   if(tag==='br'){buffer+='\n';return;}
   if(tag==='img'){
@@ -76,7 +88,7 @@ async function prepare(html,plain,{native,figure,figureSnippet,table,tableSnippe
   }
   if(tag==='table'){
    flush();
-   if(node.querySelector('table,img,object,svg'))throw Error('包含嵌套表格或表内图片的区域需拆开分别粘贴；整段尚未插入');
+   if(node.querySelector('table,object,svg')||[...node.querySelectorAll('img')].some(n=>!formula(n)))throw Error('包含嵌套表格或表内图片的区域需拆开分别粘贴；整段尚未插入');
    // Build a clean, text-only table before using the existing merged-grid
    // parser. No original style, URL, event handler or Office namespace survives.
    const clean=document.createElement('table');
@@ -85,13 +97,14 @@ async function prepare(html,plain,{native,figure,figureSnippet,table,tableSnippe
      let text='';function cellText(n){
       if(n.nodeType===3){text+=(n.nodeValue||'').replace(/[\r\n\t ]+/g,' ');return;}
       if(n.nodeType!==1||dropped.has(n.localName))return;
+      const math=formula(n);if(math){text+=inline(math);return;}
       if(n.localName==='br'){text+='\n';return;}
       const block=blocks.has(n.localName);if(block&&text&&!text.endsWith('\n'))text+='\n';
       for(const child of n.childNodes)cellText(child);
       if(block&&!text.endsWith('\n'))text+='\n';
      }
      for(const child of cell.childNodes)cellText(child);
-     td.textContent=literal(text.trim());
+     td.textContent=textSource(text.trim());
     }
    }
    const rows=root.ReportTables.parseHTML(clean.outerHTML);if(!rows)throw Error('剪贴板表格无法转换');

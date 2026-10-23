@@ -69,7 +69,7 @@ HRS 可以显示受限 HTML，但它仍保留在原 markdown 源块中，不变�
 | GFM `table` | `sourceKind:gfm-pipe`、原始源码、行、对齐、可选题注/ID | 同一逻辑表格映射、单元格行内结构 |
 | `figure` | 图片/流程图、ID、题注、预览、可选原件与元数据 | 图形格式选择、尺寸、图题、书签 |
 | `image-group` | 行列、图片顺序、说明、原件、子图字母开关 | 网格排布、宽度及子图样式 |
-| `equation` | 原始 TeX、完整源文、定界符、编号状态、可选 ID | TeX→OMML、原生公式及引用域 |
+| `equation` | 原始 TeX、完整源文、定界符、派生序号、可选 ID | TeX→OMML、原生公式及引用域 |
 | `code` / 普通 `mermaid` | 语言和原始源码 | 代码样式或安全图形呈现，不执行任意代码 |
 | `invalid-object` / diagnostics | 原文、位置、结构错误/不支持字段 | 明确拒绝或报告，不静默丢弃 |
 
@@ -91,7 +91,7 @@ HRS已提供block_cli的显式plan/apply；Bridge委托它，不再另写候选�
 
 ## 编号、题注与表格映射
 
-图（含组图）、增强表、显式编号公式分别按有效对象的正文顺序派生编号。GFM 表即使含题注和 `tbl-` ID 也 `numbered:false`，不能仅依据 `type=table` 递增。下游装配应保留这一区别，并在对象顺序确定后建立书签及 REF/SEQ 等机制。
+图（含组图、普通Mermaid及对象Mermaid）、表（含GFM及增强表）、全部块公式分别按有效正文顺序派生序号。ID与可选题名不决定是否计数。匿名对象保留原语法，不在源文捏造身份；只读编译可使用本次快照的局部标识装配图形。章节/图表在Word中始终编号，块公式按render_options.show_equation_numbers显示。
 
 空题注的编号对象仍显示“图 N／表 N”；caption 只存用户文字。增强表的 `align[]`、`verticalAlign` 与可选 `columnWidths` 是布局来源；未提供的值不应擅自强制补成居中。GFM 水平对齐来自分隔行，没有垂直对齐或合并语义。两种表格都应生成可编辑表格，源码视图和复制按钮不改变其类型。
 
@@ -105,7 +105,7 @@ PDF 作为插图导入时保留完整原件，PNG 预览是第一页；DPI 为�
 
 ## 公式、源范围与结构门槛
 
-下游从原始 `source` / `latex` 读取 TeX；行内 `$...$`、`\(...\)` 与块级 `$$...$$`、`\[...\]` 保留原定界符。只有显式标记的 `$$` 块参与公式编号。MathJax SVG 是离线显示结果，不是 OMML。
+下游从原始source/latex读取TeX；行内$...$、\(...\)与块级$$...$$、\[...\]保留原定界符。所有块公式共用序列，行内数学不编号。公式编号开启时输出原生SEQ 公式及数字书签、REF；关闭时无公式SEQ，已有公式引用输出指向该公式的“该公式”内部链接。MathJax SVG是显示结果，不是OMML。
 
 所有 UTF-16 范围只对同一源摘要有效；BOM、CRLF/LF 与非 BMP 字符都参与偏移计算。源文修改后重新解析，不用旧坐标定位。CLI 原始文件摘要与 HTTP 提交文本摘要的区别见源规范。
 
@@ -130,3 +130,7 @@ prepare／convert 的 options 包含 notes_mode（footnotes／references）和 p
 ## 本机成品与素材操作
 
 机器交接中的 `export_result_ui` 和 `project_asset_ui` 描述编辑器专用同源操作，不是Agent批量写接口。HTML/分册/PDF的成功回执增加 `result_token`，`/api/export/open-folder`仅凭该本次成品凭证打开目录；Word继续复用原`/api/word/open`。素材清空需当前正式revision、扫描得到的`trash_revision`、明确确认及原用户操作头；只清理已校验的项目回收文件，保护当前源/备注/恢复草稿引用。A0、plan/apply、完整预检与下游编译契约不变。
+
+## 2.0 编号与模型绑定
+
+HRS 2.0配套Bridge 0.3.0；页面模型请求声明numbering_policy=document-v2，并绑定source render_options（含公式开关）及源快照。build/validate消费相同值，模型摘要拒绝旧组件或配置变化，不能将旧页面模型用于新编号。公式批量粘贴与Word编译共用MathAdapter，不增加第二套TeX→OMML链；clipboard-math子进程只返回转换结果，原粘贴事务持有身份、资源及提交。

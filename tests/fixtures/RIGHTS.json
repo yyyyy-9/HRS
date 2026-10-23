@@ -103,8 +103,8 @@
     },
     {
       "path": "lingmo_manual/灵墨用户手册.md",
-      "bytes": 678,
-      "sha256": "2807d3731377b441a6422ff8b13d61baf16bc556e5622e80f5f074e5bea2e919",
+      "bytes": 856,
+      "sha256": "3d232330dd0ec0c765640003bf5c095f598b36638fb39bccdb251ad1fe058b8e",
       "source": "Project-authored conformance data or newly generated synthetic example",
       "public_distribution": "AUTHORIZED",
       "license": "GPL-3.0-or-later",

@@ -53,3 +53,5 @@ HRS契约/Node/生成门禁需要Node；浏览器测试另外需要`requirements
 ## 许可
 
 见根[LICENSE](LICENSE)、[版权声明](COPYRIGHT)、[许可范围](app/LICENSING.md)与[第三方清单](app/RIGHTS.json)。依赖保留各自许可；使用HRS处理的用户文稿和图片仍由其权利人决定授权。问题可通过[Issues](https://github.com/yyyyy-9/HRS/issues)提交，请使用可公开的最小示例。
+
+2.0采用文档级章节/图表/公式编号，原生Markdown与结构对象共用序列；Word/WPS混合粘贴的受支持数学转为可编辑LaTeX。迁移差异和格式边界见[更新记录](app/docs/CHANGELOG_READABLE.md)及手册。

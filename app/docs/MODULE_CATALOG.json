@@ -1,6 +1,6 @@
 {
   "catalog_format": "hrs-module-catalog-v1",
-  "app_baseline": "1.1.4 R1",
+  "app_baseline": "2.0.0 R1",
   "scope": "source tree only; no external report files are opened",
   "caveat": "This is an interface index, not a Python import dependency graph or a DOCX compiler.",
   "items": [
@@ -250,8 +250,8 @@
       "output": "identical browser catalog",
       "side_effects": "generated only",
       "word_pipeline_role": "not-semantic",
-      "bytes": 2705,
-      "sha256": "7aaef69f5c47c6122ab6df69bbc51816a9b8d399e0762f236163510851b2592e",
+      "bytes": 2822,
+      "sha256": "058c2873ee3d6977c9ec19b5158599cd88718afe7523e0165077ad79dc8e5084",
       "review_flags": []
     },
     {
@@ -353,8 +353,42 @@
       "output": "existing object clipboard bundle",
       "side_effects": "no external fetch or direct source write",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 7107,
-      "sha256": "6119bdd0333ed5148b123424d0c0490b97ae144f09356f7ff8716efdc2ab4cde",
+      "bytes": 8739,
+      "sha256": "878fa6b7fcbfe22f6aac2e0a8f080a02a374504b9ffcec11e1b09a062332f5f4",
+      "review_flags": []
+    },
+    {
+      "id": "clipboard_math",
+      "path": "clipboard_math.py",
+      "layer": "math-import",
+      "responsibility": "binds native WPS snapshot mathematics to HTML positions without activating OLE",
+      "entrypoints": [
+        "native_formulas"
+      ],
+      "input": "same-snapshot ZIP, text and image positions",
+      "output": "validated math-image mapping",
+      "side_effects": "bounded in-memory parsing; no source writes",
+      "word_pipeline_role": "delegates",
+      "bytes": 5032,
+      "sha256": "2e9ed71398ddb420daee423369dba3b050d80b297ff53746fb8e596b730b5860",
+      "review_flags": []
+    },
+    {
+      "id": "legacy_math",
+      "path": "legacy_math.py",
+      "layer": "math-import",
+      "responsibility": "bounded first-party MS-CFB and Equation Native MTEF3 subset reader",
+      "entrypoints": [
+        "equation_stream",
+        "ole_to_tex",
+        "MTEF3"
+      ],
+      "input": "embedded formula bytes",
+      "output": "LaTeX or explicit rejection",
+      "side_effects": "data-only; never activates OLE",
+      "word_pipeline_role": "delegates",
+      "bytes": 10244,
+      "sha256": "e98f135d6600ca2f1767ea4c27d28cb50d324c99b248d4d47c94e982f5de27fb",
       "review_flags": []
     },
     {
@@ -371,8 +405,8 @@
       "output": "prepared HTML/image transport",
       "side_effects": "bounded clipboard and declared image reads; no writes",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 9522,
-      "sha256": "83c2c3fa94288df506f427ea3ea8e86cb37e86475add5b87692ea106031dd491",
+      "bytes": 9817,
+      "sha256": "21ef6a783dfee95978d5d967e195667c11376524ff3416f6253d90f6889f765c",
       "review_flags": []
     },
     {
@@ -601,8 +635,8 @@
       "output": "JSON IR, errors, dependencies",
       "side_effects": "read-only",
       "word_pipeline_role": "primary",
-      "bytes": 35546,
-      "sha256": "e8ed0ee832f9b905ce296b0f2ec012fac37e7adb5d3b720a3d9744ce5bc40573",
+      "bytes": 35620,
+      "sha256": "8c779022e7eb34900cf1e589e74b775d69118cfc389bebdaa099869cf662819f",
       "review_flags": []
     },
     {
@@ -673,8 +707,8 @@
       "output": "JSON API / binary resources",
       "side_effects": "reads/writes projects and drafts",
       "word_pipeline_role": "do-not-import",
-      "bytes": 114986,
-      "sha256": "20ef91d1c6b1e859c69ae77ccb4904ea0151b315fa761203ab8b2668cdc4a40e",
+      "bytes": 115289,
+      "sha256": "034ea1129c8d0a4950f9e4a6b0b8f18c317b972b173aff6b124650968e3e5f52",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -711,8 +745,8 @@
       "output": "DOCX and existing Bridge provenance",
       "side_effects": "explicit output and local preference writes",
       "word_pipeline_role": "delegates",
-      "bytes": 18456,
-      "sha256": "9f6abcf882251db9bc663aef4bf659a4cb64b47596fff867c6cf1f875a1e089e",
+      "bytes": 20246,
+      "sha256": "0690c150d976e81d099c8120ccbeee718dd5d99efaeacd468ff56ebb965580bd",
       "review_flags": []
     },
     {
@@ -744,8 +778,8 @@
       "output": "existing engineering tokens and PNG renditions",
       "side_effects": "no source writes; bounded canvas",
       "word_pipeline_role": "delegates",
-      "bytes": 5323,
-      "sha256": "fc6c0d14f19cbb6879a85b1aecac1530c95d350712de409507c929d20f85f96e",
+      "bytes": 5388,
+      "sha256": "cd933af6e4c8afc343163ade6224577a152b4fa783e06f942132124129392695",
       "review_flags": []
     },
     {
@@ -922,8 +956,8 @@
       "output": "visual preview and UI events",
       "side_effects": "modifies editor state via explicit action",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 231731,
-      "sha256": "52aea9589cfec6ea4fa3077e6ef7af7bdab4f007e7071d9fab529f01ea1fd4cf",
+      "bytes": 232492,
+      "sha256": "b4f4615df95acc551ad52b509a8daa1982da13fa17a6557c7e5abcd2c47db494",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -944,8 +978,8 @@
       "output": "source ranges, raw objects and the configured original Marked lexer",
       "side_effects": "read-only",
       "word_pipeline_role": "reference",
-      "bytes": 11187,
-      "sha256": "e885cacfdf750dfec3afe740a13df66a27c4d71fc1a8d305814b03fbcb81b0e1",
+      "bytes": 11402,
+      "sha256": "b9caa49e7c17443bcb4f670e72a4a9ecfbc955b4224b8fbad487aaa2f1f05fa1",
       "review_flags": []
     },
     {
@@ -1083,8 +1117,8 @@
       "output": "editable logical grid or canonical GFM text",
       "side_effects": "read-only helper; caller handles user confirmation",
       "word_pipeline_role": "primary",
-      "bytes": 5863,
-      "sha256": "8858bdd3a21a0e48ee0938ee8efc41c4e892100ee04bc36ee3a37cc426fc7338",
+      "bytes": 6001,
+      "sha256": "171abd99ded5a74e4cfe3ccf444ba344cd23e2663af53dd32a1a5dde808747cb",
       "review_flags": []
     },
     {
@@ -1310,8 +1344,8 @@
       "output": "semantic object counts, numbers, lookup and dependency text",
       "side_effects": "read-only",
       "word_pipeline_role": "primary",
-      "bytes": 14548,
-      "sha256": "d1360536a578a80c1bd206bc7b726d474b9dadb0a73cf2dfa43c9f29dee14977",
+      "bytes": 14829,
+      "sha256": "9542606a4434a10d3b4cce7ef7c6edcc414e17380e701a5161a0a9c2b2239490",
       "review_flags": []
     },
     {
@@ -1328,8 +1362,8 @@
       "output": "offline reader navigation and copy/fold",
       "side_effects": "DOM-only",
       "word_pipeline_role": "exclude",
-      "bytes": 32207,
-      "sha256": "d374780418591df48616c1182b87975449cb6e39998281ef8ec940b5e3c3db59",
+      "bytes": 32324,
+      "sha256": "cba96af8bb053376d36f60328092805cc45e8177c9c356cb517476d13fae7b21",
       "review_flags": []
     },
     {
@@ -1361,8 +1395,8 @@
       "output": "navigation, copy and zoom controls",
       "side_effects": "DOM only: never mutates source JSON or Markdown",
       "word_pipeline_role": "exclude",
-      "bytes": 46818,
-      "sha256": "e995e95d01162d97e254b75f17d34f9e460c332ef81cf40619091a91db3bc2d5",
+      "bytes": 47216,
+      "sha256": "81e304255c212aae1ef28dd2e8cb51fc97580aac0c43a601054fcbd23e8958cd",
       "review_flags": []
     },
     {
@@ -1392,8 +1426,8 @@
       "output": "read-only preview",
       "side_effects": "UI memory state",
       "word_pipeline_role": "exclude",
-      "bytes": 11149,
-      "sha256": "a39ee0bb4dc89fdc7f28cacc83759b13061601ae62c98cc43aba3741243c251a",
+      "bytes": 12935,
+      "sha256": "d64f646e8517695fa6282dfb1764fa57c8e101a9fc6ad29c190449d7e32eeec1",
       "review_flags": []
     },
     {
@@ -1437,8 +1471,8 @@
       "output": "IR table with precise source ranges",
       "side_effects": "read-only",
       "word_pipeline_role": "primary",
-      "bytes": 4250,
-      "sha256": "9e3eeb4cfc5ea35533441ff482a9752073cb36a90aefe7b1e811687f8947f589",
+      "bytes": 4417,
+      "sha256": "f71c7ffc6b7d91467c90253b0fadcfcd83fec3554fe88c7bbaf7aaef2c672c22",
       "review_flags": []
     },
     {
@@ -1453,8 +1487,8 @@
       "output": "equation source record",
       "side_effects": "read-only",
       "word_pipeline_role": "primary",
-      "bytes": 1596,
-      "sha256": "d9a0cd5715f9b204c909ba7393f5723f7d1c6e014cad32487e105341505dcb16",
+      "bytes": 1558,
+      "sha256": "f66f610fcf6bcc234bc114a6accdc9c94a586a81a64fd0993cac625688d168a9",
       "review_flags": []
     },
     {
@@ -1471,8 +1505,8 @@
       "output": "equation token",
       "side_effects": "read-only helpers",
       "word_pipeline_role": "reference",
-      "bytes": 2183,
-      "sha256": "6a9868149ec42a36ab411775d16491e88ef62ba3dfebaa9f41acc39770a9a5f7",
+      "bytes": 2237,
+      "sha256": "6280d7027c00fb88ac81e179aa255e7c944452fb026d96c160d4c69e30ad4fed",
       "review_flags": []
     },
     {

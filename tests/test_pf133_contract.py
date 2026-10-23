@@ -22,7 +22,7 @@ class BracketDisplayAndAgent(unittest.TestCase):
                 parsed=parse_equation(raw)
                 self.assertEqual(parsed['source'],raw)
                 self.assertEqual(parsed['delimiter'],'bracket')
-                self.assertFalse(parsed['numbered'])
+                self.assertNotIn('numbered',parsed)
                 self.assertIsNone(parsed['id'])
                 self.assertIn('\\frac',parsed['latex'])
                 doc='## 源文件 {#sec-demo}'+nl+nl+raw
@@ -37,12 +37,13 @@ class BracketDisplayAndAgent(unittest.TestCase):
     def test_old_delimiters_numbering_and_bad_input(self):
         dollar='$$\nE=mc^2\n$$\n'
         numbered='<!-- hrs:eq id=eq-old -->\n'+dollar
-        for src,numbered_flag in [(dollar,False),(numbered,True)]:
+        for src,expected_id in [(dollar,None),(numbered,'eq-old')]:
             p=parse_equation(src)
             self.assertEqual(p['source'],src)
             self.assertEqual(p['delimiter'],'dollar')
-            self.assertEqual(p['numbered'],numbered_flag)
-        self.assertIsNone(parse_equation('<!-- hrs:eq id=eq-demo -->\n\\[\nE=mc^2\n\\]\n'))
+            self.assertNotIn('numbered',p)
+            self.assertEqual(p['id'],expected_id)
+        self.assertEqual(parse_equation('<!-- hrs:eq id=eq-demo -->\n\\[\nE=mc^2\n\\]\n')['id'],'eq-demo')
         self.assertIsNone(parse_equation('\\[\nE=mc^2\n'))
         ir=analyze('\\[\nE=mc^2\n')
         self.assertFalse(ir['ok'])

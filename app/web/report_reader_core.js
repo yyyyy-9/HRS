@@ -25,7 +25,7 @@ function objectOutline(article){
   let title='';
   if(pipe&&!element.id)element.id='hrs-md-table-'+(index+1);
   if(type==='equation'){
-   title='公式（'+number+'）';
+   title=article.dataset.hrsShowEquationNumbers==='1'?'公式（'+number+'）':'公式';
    const description=element.getAttribute('data-equation-description')||element.querySelector('.equation-description')?.textContent?.trim();
    if(description)title+=' '+description.slice(0,150);
   }else{
@@ -91,7 +91,7 @@ function installTableCards(doc,article){
   table.classList.add('hrs-table-rendered');
   let tools=wrap.querySelector('.hrs-table-tools');if(tools){catalog.tableHeading(wrap);continue;}
   tools=docElement(doc,'div','hrs-table-tools');
-  const kind=docElement(doc,'span','hrs-table-kind');kind.textContent=wrap.hasAttribute('data-pipe-table')?'Markdown 表格 · 不编号':'增强表格';
+  const kind=docElement(doc,'span','hrs-table-kind');kind.textContent='表格';
   const controls=docElement(doc,'div','hrs-table-actions');
   const source=wrap.querySelector('.hrs-table-source');
   if(source){const toggle=makeButton(doc,'查看 MD','hrs-table-toggle','切换原始 Markdown 与可视表格');toggle.dataset.tableToggle='1';toggle.setAttribute('aria-pressed','false');controls.append(toggle);}
@@ -230,15 +230,15 @@ function mount(doc=root.document){
  }
  installPDFOriginals(doc,article);
  const originalDocs=!!article.closest('.docs-shell');
- let profile='engineering',show=article.dataset.hrsShowObjectNumbers!=='0';
+ let profile='engineering',show=article.dataset.hrsShowObjectNumbers!=='0',showEquations=article.dataset.hrsShowEquationNumbers==='1';
  if(!originalDocs){
   const declared=doc.documentElement.dataset.hrsRenderProfile;
   profile=declared==='engineering'?'engineering':declared==='free'?'free':null;
   const archiveNode=doc.getElementById('report-source');
-  if(archiveNode){try{const saved=JSON.parse(archiveNode.textContent);profile=profile||(saved.renderProfile==='engineering'?'engineering':'free');show=saved.renderOptions?.show_object_numbers!==false;}catch{/* Archive validity belongs to the existing inert reader. */}}
+  if(archiveNode){try{const saved=JSON.parse(archiveNode.textContent);profile=profile||(saved.renderProfile==='engineering'?'engineering':'free');show=saved.renderOptions?.show_object_numbers!==false;showEquations=saved.renderOptions?.show_equation_numbers===true;}catch{/* Archive validity belongs to the existing inert reader. */}}
   profile=profile||'engineering';
   doc.body.dataset.renderProfile=profile;article.dataset.hrsRenderProfile=profile;
-  installTableCards(doc,article);catalog.applyDisplay(article,profile==='engineering'||show);catalog.tableChrome(article,profile);
+  installTableCards(doc,article);catalog.applyDisplay(article,profile==='engineering'||show,showEquations);catalog.tableChrome(article,profile);
   taskInteraction(article,profile);
  }
  const shell=article.closest('.docs-shell');

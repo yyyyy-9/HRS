@@ -348,7 +348,7 @@ def analyze(markdown: str, assets: Path | None = None) -> dict:
         if equation:
             if buffer:outside_piece(''.join(buffer),buffer_start);buffer=[]
             start=idx;idx+=len(equation['source'].splitlines(keepends=True))
-            oid=equation['id'];block={'type':'equation','line':start+1,**equation}
+            oid=equation['id'];block={'type':'equation','line':start+1,**equation,'numbered':True}
             if oid:
                 location={'start':line_starts[start],'end':line_starts[idx],'objectId':oid}
                 if oid in ids:diag('error','DUPLICATE_ID',f'对象 ID 重复：{oid}',start+1,location)
@@ -413,7 +413,7 @@ def analyze(markdown: str, assets: Path | None = None) -> dict:
                         loc=line_range(lineno,image.start(),image.end())
                         if ASSET.fullmatch(url):assets_used.append((url,lineno,loc))
                         else:diag('error','EXTERNAL_IMAGE','图片路径不是本地 assets/ 文件：'+url[:80],lineno,loc)
-            blocks.append({'type':'table','sourceKind':'gfm-pipe','numbered':False,**({'id':oid} if oid else {}),
+            blocks.append({'type':'table','sourceKind':'gfm-pipe','numbered':True,**({'id':oid} if oid else {}),
                           'data':pipe['data'],'source':pipe['source'],'line':start+1})
             continue
         m=FENCE_OPEN.match(line)
@@ -491,12 +491,12 @@ def analyze(markdown: str, assets: Path | None = None) -> dict:
     sequence_counts={'figure':0,'table':0,'equation':0}
     sequence_ids=set()
     for block in blocks:
-        if not block.get('numbered') or not block.get('id'):continue
-        oid=block['id'];kind='figure' if block['type']=='image-group' else block['type']
-        if oid in sequence_ids:
+        if block['type'] not in ('figure','image-group','table','equation','mermaid'):continue
+        oid=block.get('id');kind='figure' if block['type'] in ('image-group','mermaid') else block['type']
+        if oid and oid in sequence_ids:
             block['number']=None  # duplicate identity is never a numbered target
             continue
-        sequence_ids.add(oid)
+        if oid:sequence_ids.add(oid)
         if kind in sequence_counts:
             sequence_counts[kind]+=1;block['number']=sequence_counts[kind]
     # A0 read-only object catalog: IDs are stable; rendered numbers are not.

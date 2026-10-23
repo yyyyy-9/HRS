@@ -47,10 +47,10 @@ class TablePresentation(unittest.TestCase):
         page.wait_for_timeout(250)
         assert page.locator('.report-table-wrap').count()==4,'2 enhanced + 2 native'
         assert page.locator('.report-figure-wrap').count()==2
-        assert page.locator('.report-table-wrap').nth(0).locator('caption').inner_text()=='管道表标题'
-        assert page.locator('.report-table-wrap').nth(1).locator('caption').inner_text().startswith('表 1') and '增强表题' in page.locator('.report-table-wrap').nth(1).locator('caption').inner_text()
-        assert page.locator('.report-table-wrap').nth(2).locator('caption').inner_text().strip()=='表 2'
-        assert page.locator('.report-table-wrap').nth(3).locator('caption').count()==0
+        assert page.locator('.report-table-wrap').nth(0).locator('caption').inner_text()=='表 1  管道表标题'
+        assert page.locator('.report-table-wrap').nth(1).locator('caption').inner_text().startswith('表 2') and '增强表题' in page.locator('.report-table-wrap').nth(1).locator('caption').inner_text()
+        assert page.locator('.report-table-wrap').nth(2).locator('caption').inner_text().strip()=='表 3'
+        assert page.locator('.report-table-wrap').nth(3).locator('caption').inner_text().strip()=='表 4'
         assert page.locator('.report-figure-wrap').nth(0).locator('figcaption').inner_text().strip()=='图 1'
         assert '有图题' in page.locator('.report-figure-wrap').nth(1).locator('figcaption').inner_text()
         assert '未填写题注' not in page.locator('#preview-content').inner_text()
@@ -91,10 +91,10 @@ class TablePresentation(unittest.TestCase):
         offerrors=[];offline.on('pageerror',lambda err:offerrors.append(str(err)))
         offline.set_content(html_out,wait_until='load')
         assert offline.locator('.report-table-wrap').count()==4
-        assert offline.locator('.report-table-wrap').nth(0).locator('caption').inner_text()=='管道表标题'
+        assert offline.locator('.report-table-wrap').nth(0).locator('caption').inner_text()=='表 1  管道表标题'
         assert offline.locator('.report-table-wrap').nth(0).locator('caption').evaluate('(n)=>getComputedStyle(n).backgroundColor')==css_color(page,'table-heading')
         assert offline.locator('.report-figure-wrap').nth(0).locator('figcaption').inner_text().strip()=='图 1'
-        assert offline.locator('.report-table-wrap').nth(2).locator('caption').inner_text().strip()=='表 2'
+        assert offline.locator('.report-table-wrap').nth(2).locator('caption').inner_text().strip()=='表 3'
         assert '未填写题注' not in offline.locator('body').inner_text()
         assert offline.locator('.report-table-wrap .hrs-table-tools').count()==4
         offline.emulate_media(media='print')
