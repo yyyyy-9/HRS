@@ -707,8 +707,8 @@
       "output": "JSON API / binary resources",
       "side_effects": "reads/writes projects and drafts",
       "word_pipeline_role": "do-not-import",
-      "bytes": 115289,
-      "sha256": "034ea1129c8d0a4950f9e4a6b0b8f18c317b972b173aff6b124650968e3e5f52",
+      "bytes": 115356,
+      "sha256": "3ddb4e840c7bd01e489bdcd97062697f1d8607eb1468b556333a2da92c23552c",
       "review_flags": [
         "large-monolithic-module"
       ]

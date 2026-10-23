@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "package_revision": "R1",
   "stage": "v2.0.0 R1 app",
-  "generated_utc": "2026-10-23T09:28:46.322981+00:00",
+  "generated_utc": "2026-10-23T10:11:10.492747+00:00",
   "file_count_without_manifest": 161,
   "files": [
     {
@@ -143,7 +143,7 @@
     {
       "path": "docs/MODULE_CATALOG.json",
       "bytes": 55702,
-      "sha256": "0009cdd35687b7ca0d0999dfa478f0036bbccb0c38b2c0adf58afa0a43b5062a"
+      "sha256": "38eb19a7d95c18546988dee8b3f324e8953f6d095d16c80ff1ba5d9add43b5b8"
     },
     {
       "path": "docs/MODULE_OVERVIEW.html",
@@ -382,8 +382,8 @@
     },
     {
       "path": "studio.py",
-      "bytes": 115289,
-      "sha256": "034ea1129c8d0a4950f9e4a6b0b8f18c317b972b173aff6b124650968e3e5f52"
+      "bytes": 115356,
+      "sha256": "3ddb4e840c7bd01e489bdcd97062697f1d8607eb1468b556333a2da92c23552c"
     },
     {
       "path": "svg_prolog.py",
