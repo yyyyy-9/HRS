@@ -133,6 +133,8 @@ prepare／convert 的 options 包含 notes_mode（footnotes／references）和 p
 
 ## 2.0 编号与模型绑定
 
+自由笔记的专题目录和局部显示编号属于浏览器投影，A0/IR和plan/apply仍针对全文源快照与稳定ID。整篇编译不能读取聚焦后的DOM；专题编译继续先由原提取器生成独立源稿，再按该稿编号。2.0.2未改页面模型与Word组件。普通Mermaid由用户添加图题时，源事务提升为既有report-figure-v1，下游直接消费原图形契约。文件/文件夹跳转属于用户点击UI，不是Agent文件访问或执行接口。
+
 HRS 2.0系列便携包内的Word组件固定携带Bridge 0.3.0；独立DocFlow组合采用Bridge 0.4.2。两者是不同发行组合，不能仅比较版本号来决定替换。Word组件以页面模型SHA-256、协议及组件清单核兼容；HTML恢复还依赖目标HRS核心和Reader，不由Bridge版本号单独决定。本次2.0.1未修改页面模型或随包Word组件。
 
 页面模型请求声明numbering_policy=document-v2，并绑定source render_options（含公式开关）及源快照。build/validate消费相同值，模型摘要拒绝旧组件或配置变化，不能将旧页面模型用于新编号。公式批量粘贴与Word编译共用MathAdapter，不增加第二套TeX→OMML链；clipboard-math子进程只返回转换结果，原粘贴事务持有身份、资源及提交。

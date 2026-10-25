@@ -13,13 +13,10 @@ const LIST_STYLES=new Set('bullet decimal lower-alpha paren-decimal paren-lower-
 for(const side of ['top','right','bottom','left'])for(const part of ['width','style','color'])STYLES.add('border-'+side+'-'+part);
 for(const corner of ['top-left','top-right','bottom-left','bottom-right'])STYLES.add('border-'+corner+'-radius');
 const paths=root.ReportAssetPaths||(typeof module!=='undefined'&&module.exports?require('./asset_paths.js'):null);
+const links=root.ReportLinks||(typeof module!=='undefined'&&module.exports?require('./external_links.js'):null);
 function assetPath(value){return paths.normalize(value);}
 function safeLink(value){
- if(typeof value!=='string'||/[\x00-\x20\x7f-\x9f]/.test(value))return null;
- if(value.startsWith('#'))return value;
- if(/^https?:\/\//i.test(value)||/^mailto:/i.test(value))return value;
- if(value.startsWith('/')&&!value.startsWith('//')&&!value.includes('\\'))return value;
- return null;
+ return links.safeLink(value);
 }
 function copyStyle(source,target){
  const parsed=document.createElement('span').style;parsed.cssText=source;

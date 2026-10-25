@@ -10,6 +10,7 @@ from pathlib import Path
 EXPLICIT_FEATURES = {'report_word','desktop_runtime'}
 
 FEATURES = {
+    'topic_links': ('Protected heading labels, Mermaid captions, scoped numbering and explicit native path links', 'topic_links_browser local_links_contract notebook_node'),
     'frontend_feedback': ('Native input shortcuts, bounded table sessions and project image path consistency', 'frontend_feedback_browser asset_paths_contract v1_feedback_contract report_workspace_contract block_commit_contract'),
     'numbering': ('Unified document numbering and editable mathematical clipboard content', '''numbering_v2_contract numbering_v2_node
         numbering_v2_browser:UnifiedNumbering.test_01_modes_and_formula_switch_share_objects

@@ -54,7 +54,9 @@ class CoreConsistency(unittest.TestCase):
     def test_editing_one_catalog_changes_python_and_javascript_consumers(self):
         with tempfile.TemporaryDirectory() as d:
             app=Path(d)/'app';(app/'tools').mkdir(parents=True);(app/'web').mkdir()
-            for name in ['product_settings.py','render_profile.py','color_theme.py','tools/build_settings.js','web/render_profile.js','web/color_theme.js']:
+            # The shared generator also emits asset rules; carry that canonical
+            # input while mutating only the product settings under test.
+            for name in ['product_settings.py','asset_paths.json','render_profile.py','color_theme.py','tools/build_settings.js','web/render_profile.js','web/color_theme.js']:
                 (app/name).write_bytes((ROOT/'app'/name).read_bytes())
             data=load_settings();data['color_themes']['default']='warm'
             data['color_themes']['choices'][0]['label']='测试标签'

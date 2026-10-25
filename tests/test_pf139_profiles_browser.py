@@ -52,7 +52,9 @@ def main():
                 assert restored['renderProfile']=='engineering'
                 # Derived chapter text is excluded from the existing visual serializer.
                 heading=page.locator('#preview-content h2').first
-                heading.click();heading.evaluate("e=>{e.lastChild.textContent='背景修改';e.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertText'}));e.blur()}")
+                title=heading.locator('[data-block-editor]');title.dblclick()
+                title.press('Control+a');title.press_sequentially('背景修改')
+                page.locator('#preview-content h1').click()
                 page.wait_for_function("document.querySelector('#markdown').value.includes('## 背景修改')")
                 assert '## 1 背景修改' not in page.locator('#markdown').input_value()
                 memory=io.BytesIO()

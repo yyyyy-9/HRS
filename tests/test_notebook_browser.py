@@ -38,7 +38,7 @@ class NotebookViews(unittest.TestCase):
             page.locator('#preserve-blank-lines').check();page.wait_for_selector('.hrs-blank-space')
             self.assertTrue(json.loads((doc.project/'meta.json').read_text('utf8'))['render_options']['preserve_blank_lines'])
 
-    def test_spaces_scope_global_numbers_and_navigation(self):
+    def test_spaces_scope_local_numbers_and_global_identity_navigation(self):
         figure=lambda i: '```report-figure\n'+json.dumps({'schema':'report-figure-v1','id':'fig-'+i,'kind':'mermaid','source':'flowchart LR\n A-->B','caption':i})+'\n```\n'
         text='# A {#sec-a}\n\n\n第一段\n\n\n第二段[^a] 与[链接][ref]\n\n| 参数 |\n| --- |\n| x |\n: 参数表 {#tbl-a}\n\n'+figure('a')+'\n# B {#sec-b}\n\n见 @fig:fig-a 和 @sec:sec-a 及 @tbl:tbl-a。\n\n'+figure('b')+'\n[^a]: 注释\n\n[ref]: https://example.com/\n'
         with tempfile.TemporaryDirectory() as folder, browser_session() as browser, LiveDocument(browser, Path(folder), text, registered=True) as doc:
@@ -50,10 +50,10 @@ class NotebookViews(unittest.TestCase):
             page.locator('#show-object-numbers').check()
             page.locator('#topic-select').select_option(label='2 · B')
             page.wait_for_function("document.querySelectorAll('#preview-content h1').length===1 && document.querySelector('#preview-content h1').textContent==='B'")
-            self.assertEqual(page.locator('#preview-content .report-figure-caption').inner_text(),'图 2 b')
+            self.assertEqual(page.locator('#preview-content .report-figure-caption').inner_text(),'图 1 b')
             self.assertEqual(page.locator('#preview-content .object-xref-invalid').count(),0)
-            self.assertEqual(page.locator('#preview-content .object-xref').first.inner_text(),'图 1')
-            self.assertEqual(page.locator('#preview-content .object-xref').last.inner_text(),'表 1')
+            self.assertEqual(page.locator('#preview-content .object-xref').first.inner_text(),'“A” · 图 1')
+            self.assertEqual(page.locator('#preview-content .object-xref').last.inner_text(),'“A” · 表 1')
             page.locator('#preview-content .object-xref').first.click()
             page.wait_for_function("document.querySelector('#preview-content h1').textContent==='A'")
             self.assertEqual(page.locator('#preview-content a[href="https://example.com/"]').inner_text(),'链接')

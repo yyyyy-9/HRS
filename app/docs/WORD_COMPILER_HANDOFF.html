@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Word 数据交接 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="fd24a05f82a4365358ec814385e27af37432eba6d40e252a65d0ad6d888eed5a"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Word 数据交接 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="e05daaf98ef4b90f4aea79ab0035a75b9c8cf5ad19a6ca044ad22d5dc6b765a9"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -583,7 +583,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.1<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">输出模式与模板角色</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.2<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">输出模式与模板角色</a>
 <a class="level2" href="#section-3">编辑入口与源稿提交</a>
 <a class="level2" href="#section-4">笔记降级边界</a>
 <a class="level2" href="#section-5">项目分工与内容来源</a>
@@ -717,6 +717,7 @@ python tools/audit_modules.py --check
 <h2 id="section-18">本机成品与素材操作</h2>
 <p>机器交接中的 <code>export_result_ui</code> 和 <code>project_asset_ui</code> 描述编辑器专用同源操作，不是Agent批量写接口。HTML/分册/PDF的成功回执增加 <code>result_token</code>，<code>/api/export/open-folder</code>仅凭该本次成品凭证打开目录；Word继续复用原<code>/api/word/open</code>。素材清空需当前正式revision、扫描得到的<code>trash_revision</code>、明确确认及原用户操作头；只清理已校验的项目回收文件，保护当前源/备注/恢复草稿引用。A0、plan/apply、完整预检与下游编译契约不变。</p>
 <h2 id="section-19">2.0 编号与模型绑定</h2>
+<p>自由笔记的专题目录和局部显示编号属于浏览器投影，A0/IR和plan/apply仍针对全文源快照与稳定ID。整篇编译不能读取聚焦后的DOM；专题编译继续先由原提取器生成独立源稿，再按该稿编号。2.0.2未改页面模型与Word组件。普通Mermaid由用户添加图题时，源事务提升为既有report-figure-v1，下游直接消费原图形契约。文件/文件夹跳转属于用户点击UI，不是Agent文件访问或执行接口。</p>
 <p>HRS 2.0系列便携包内的Word组件固定携带Bridge 0.3.0；独立DocFlow组合采用Bridge 0.4.2。两者是不同发行组合，不能仅比较版本号来决定替换。Word组件以页面模型SHA-256、协议及组件清单核兼容；HTML恢复还依赖目标HRS核心和Reader，不由Bridge版本号单独决定。本次2.0.1未修改页面模型或随包Word组件。</p>
 <p>页面模型请求声明numbering_policy=document-v2，并绑定source render_options（含公式开关）及源快照。build/validate消费相同值，模型摘要拒绝旧组件或配置变化，不能将旧页面模型用于新编号。公式批量粘贴与Word编译共用MathAdapter，不增加第二套TeX→OMML链；clipboard-math子进程只返回转换结果，原粘贴事务持有身份、资源及提交。</p>
 <p>项目图片路径由asset_paths.json统一规定。./assets/...在IR依赖中归一化为assets/...，安全子目录可保留；源范围和原Markdown不变。调用方应消费IR的规范依赖清单，不再以basename重建附件路径；受控块提交、临时工程稿和HTML恢复复用asset_file检查全部路径组件，不能只检查文件末级是否为链接。</p>

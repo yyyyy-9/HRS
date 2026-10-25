@@ -38,7 +38,8 @@ ReportListStyles.installMarked(marked);
 ReportEquations.installMarked(marked);
 ReportNotes.installMarked(marked);
 ReportNotes.bindNavigation(preview);
-ReportLinks.attach(document.body,{open:url=>api('/api/external/open','POST',{url},{'X-HRS-External-Link':'user-action'}),onError:toast});
+ReportLinks.attach(document.body,{open:url=>api('/api/external/open','POST',{url},{'X-HRS-External-Link':'user-action'}),
+ openPath:href=>api('/api/local-link/open','POST',{href,document_id:state.documentId},{'X-HRS-Project-Action':'user-action'}),onError:toast});
 const objectClipboard=ReportObjectClipboard.attach(editor,{
  request:(path,data)=>api(path,'POST',data,{'X-Report-Studio-Clipboard':'user-action'}),
  context:()=>({session:state.session,markdown:state.md,document_id:state.documentId,draft_id:state.draftId,start:editor.selectionStart,end:editor.selectionEnd}),
@@ -520,8 +521,8 @@ const renderer=new marked.Renderer();
 // markup reaches the live DOM before that shared allowlist boundary.
 renderer.html=(source)=>ReportProfile.html(source,state.renderProfile);
 renderer.link=(href,title,text)=>{
- const allowed=/^(https?:\/\/|mailto:|#|\/)/i.test(href||'');
- return `<a href="${escapeHTML(allowed?href:'#')}"${title?' title="'+escapeHTML(title)+'"':''} rel="noopener noreferrer">${text}</a>`;
+ const safe=ReportLinks.safeLink(href);
+ return `<a href="${escapeHTML(safe||'#')}"${title?' title="'+escapeHTML(title)+'"':''} rel="noopener noreferrer">${text}</a>`;
 };
 renderer.image=(href,title,text)=>{
  const safe=ReportAssetPaths.normalize(href);
@@ -1004,11 +1005,12 @@ function numberObjects(root,map=positionMap,context={}){
  const objects=new Map(),catalog=ReportObjectCatalog.indexDOM(root);
  const showObjects=profile==='engineering'||options.show_object_numbers,showEquations=options.show_equation_numbers;
  const sections=new Map();for(const record of map?.blocks||[])if(record.section?.id&&record.section.valid)sections.set(record.section.id,(sections.get(record.section.id)||0)+1);
- for(const entry of root._sourceObjectCatalog?.items||[]){
+ for(const entry of context.referenceCatalog?.items||root._sourceObjectCatalog?.items||[]){
   if(!entry.id||!entry.valid||entry.duplicate)continue;
   const name=entry.caption||entry.rows?.[0]?.filter(Boolean).map(c=>c.text).join(' · ')||(entry.kind==='equation'?'该公式':entry.kind==='table'?'表':'图');
   const show=entry.kind==='equation'?showEquations:showObjects;
-  objects.set(entry.id,{label:show?entry.label:name,kind:{table:'tbl',figure:'fig',equation:'eq'}[entry.kind]});
+  const label=show?entry.label:name;
+  objects.set(entry.id,{label,sourceEntry:entry,kind:{table:'tbl',figure:'fig',equation:'eq'}[entry.kind]});
  }
  for(const record of map?.blocks||[])if(record.section?.id)objects.set(record.section.id,{label:'“'+ReportNotebook.title(record.token)+'”节',kind:'sec'});
  for(const entry of catalog.items){
@@ -1050,7 +1052,7 @@ function numberObjects(root,map=positionMap,context={}){
    if(!reference){frag.append(document.createTextNode(m[0]));off=m.index+m[0].length;continue;}
    const entry=map?.object(id)?objects.get(id):null;
    const link=document.createElement(entry&&entry.kind===m[1]&&!textNode.parentElement.closest('a')?'a':'span');
-   if(entry&&entry.kind===m[1]){link.className='object-xref';link.textContent=entry.label;link.href='#object-'+id;}
+   if(entry&&entry.kind===m[1]){link.className='object-xref';link.textContent=entry.sourceEntry?context.referenceLabel?.(entry.sourceEntry,entry.label)??entry.label:entry.label;link.href='#object-'+id;}
    else{error('无效图表引用：@'+m[1]+':'+id);link.className='object-xref-invalid';link.textContent='[无效引用 '+m[0]+']';}
    link.dataset.xrefRaw=m[0];link.dataset.xrefTarget=id;link.dataset.xrefKind=m[1];link.contentEditable='false';link.title='单击定位对象；双击修改引用 ID';
    if(reference)remember(link,{...reference,source:map.source});frag.append(link);
@@ -1304,8 +1306,9 @@ async function buildDocumentView(source,{focus=null,isCurrent=()=>true,reuse=new
  const selected=focus?notebook.topics.find(t=>t.key===focus):null;
  if(focus&&!selected)throw Error('专题选择已过期，请重新选择');
  const gaps=new Map(notebook.gaps.map(g=>[g.after,g]));
- const shown=nextMap.blocks.filter(r=>!selected||selected.start<=r.start&&r.start<selected.end);
- const profilePlan=ReportProfile.plan(source,state.renderProfile,nextMap.blocks,state.renderOptions);
+ const presentation=selected?notebook.presentation(selected.key):null;
+ const shown=presentation?.records||nextMap.blocks,displayCatalog=presentation?.catalog||catalog;
+ const profilePlan=ReportProfile.plan(source,state.renderProfile,shown,state.renderOptions);
  const headingNumbers=new Map(profilePlan.headings.map(h=>[h.start,h.number])),abstractStarts=new Set(profilePlan.abstracts.map(a=>a.start));
   const nextPipeIndex=[];let pipeCaptionConsumed=-1;
  for (const record of shown){
@@ -1355,7 +1358,11 @@ async function buildDocumentView(source,{focus=null,isCurrent=()=>true,reuse=new
    if(token.type==='heading'){
     const number=headingNumbers.get(pos),heading=block.firstElementChild;
     if(number&&heading){
-     const prefix=document.createElement('span');prefix.className='hrs-heading-number';prefix.contentEditable='false';prefix.textContent=number+' ';heading.prepend(prefix);
+     const prefix=document.createElement('span');prefix.className='hrs-heading-number';prefix.contentEditable='false';prefix.textContent=number+' ';
+     if(visual){
+      const text=document.createElement('span');text.className='hrs-heading-text';text.dataset.blockEditor='1';text.dataset.headingLevel=String(token.depth);
+      text.append(...heading.childNodes);heading.removeAttribute('data-block-editor');heading.append(prefix,text);
+     }else heading.prepend(prefix);
     }
    }
    if(abstractStarts.has(pos))block.dataset.outputRole='abstract';
@@ -1371,7 +1378,15 @@ async function buildDocumentView(source,{focus=null,isCurrent=()=>true,reuse=new
   staged.dataset.hrsRenderProfile=state.renderProfile;staged.dataset.hrsShowObjectNumbers=preview.dataset.hrsShowObjectNumbers;
   staged.append(frag);
   const previousReferences=referenceRecords;referenceRecords=new WeakMap();
-  staged._sourceObjectCatalog=catalog;numberObjects(staged,nextMap);const nextReferences=referenceRecords;referenceRecords=previousReferences;
+  staged._sourceObjectCatalog=displayCatalog;
+  numberObjects(staged,nextMap,{referenceCatalog:catalog,referenceLabel:selected?(entry,label)=>{
+   const owner=notebook.at(entry.record.start);
+   if(owner.key===selected.key)return label;
+   const local=notebook.presentation(owner.key).catalog.byRecord.get(entry.record.index);
+   const show=entry.kind==='equation'?state.renderOptions.show_equation_numbers:state.renderOptions.show_object_numbers;
+   return '“'+owner.title+'” · '+(show?local?.label||label:label);
+  }:null});
+  const nextReferences=referenceRecords;referenceRecords=previousReferences;
   state.renderErrors.push(...ReportNotes.finalize(staged,notes,{render:body=>markedBlock({type:'paragraph',raw:body},0,body)}));
   const nextMath=mathRecords;mathRecords=previousMath;
   staged.querySelectorAll('.report-table-wrap').forEach(ReportObjectCatalog.tableHeading);
@@ -1396,11 +1411,11 @@ async function render(){
  const view=await buildDocumentView(sourceSnapshot,{focus:topic?.key,isCurrent:()=>run===state.rendering,reuse});
  if(!view||run!==state.rendering||sourceSnapshot!==state.md||state.visualFocused||captionEditor)return;
  const anchor=previewViewportAnchor(),staged=view.article;
- ReportPreviewCommit.commit(preview,staged);renderContext=context;preview._sourceObjectCatalog=view.model.catalog;
+ ReportPreviewCommit.commit(preview,staged);renderContext=context;preview._sourceObjectCatalog=staged._sourceObjectCatalog;
  preview.dataset.hrsRenderProfile=staged.dataset.hrsRenderProfile;preview.dataset.hrsShowObjectNumbers=staged.dataset.hrsShowObjectNumbers;preview.dataset.hrsShowEquationNumbers=staged.dataset.hrsShowEquationNumbers;
  positionMap=view.map;sourceMapCache=null;pipeTableIndex=view.pipe;referenceRecords=view.references;mathRecords=view.math;state.renderErrors=view.errors;
  const headingNumbers=new Map(view.profile.headings.map(h=>[h.start,h.number]));
- lastTOC=view.model.map.blocks.filter(r=>r.type==='heading').map(r=>({level:r.token.depth,text:(headingNumbers.get(r.start)?headingNumbers.get(r.start)+' ':'')+ReportNotebook.title(r.token),start:r.start,end:r.end,id:'docblock-'+r.index}));
+ lastTOC=view.profile.headings.map(h=>view.model.map.blocks[h.index]).map(r=>({level:r.token.depth,text:(headingNumbers.get(r.start)?headingNumbers.get(r.start)+' ':'')+ReportNotebook.title(r.token),start:r.start,end:r.end,id:'docblock-'+r.index}));
  renderedKey=key;buildTOC(lastTOC);syncTopics(view.model);updateStats();prepareVisualBlocks();restorePreviewViewport(anchor);previewImages?.committed();
  $('bottom-right').title=view.profile.diagnostics.map(d=>d.message).join('；');
  $('bottom-right').textContent=state.renderErrors.length?'⚠ '+state.renderErrors.length+' 处需要处理':view.profile.diagnostics.length?'⚠ '+view.profile.diagnostics.length+' 项工程输出提醒（文档检查可查看）':'离线渲染 · 无 CDN · '+preview.querySelectorAll('svg').length+' 个 SVG';
@@ -1576,7 +1591,7 @@ function prepareVisualBlocks(){
  }
  for(const block of preview.querySelectorAll('.doc-block')){
   for(const target of block.querySelectorAll('[data-block-editor]')){
-  const level=target.tagName.match(/^H([1-6])$/),frame=target._listFrame?{prefix:'',body:target._listFrame.body,suffix:'',newline:state.md.includes('\r\n')?'\r\n':'\n'}:SourceMap.textFrame(block._sourceRaw,level?+level[1]:null);
+  const level=target.dataset.headingLevel||target.tagName.match(/^H([1-6])$/)?.[1],frame=target._listFrame?{prefix:'',body:target._listFrame.body,suffix:'',newline:state.md.includes('\r\n')?'\r\n':'\n'}:SourceMap.textFrame(block._sourceRaw,level?+level:null);
   const serialized=Array.from(target.childNodes).map(toMDInline).join('');
   if(!frame||serialized!==frame.body){target.removeAttribute('data-block-editor');block.dataset.editable='0';block.title='双击编辑原始 Markdown 块';continue;}
   target._visualFrame=frame;target._visualHTML=target.innerHTML;target.classList.add('preview-text-editor');target.tabIndex=0;
@@ -1632,6 +1647,9 @@ function commitVisual(block,{typing=false}={}){
  if(state.saving){state.visualPending=false;return;}
  let range;try{range=currentBlockRange(block);}catch(e){state.visualPending=false;toast(e.message);scheduleRender();return;}
  if(target.innerHTML===target._visualHTML){state.visualPending=false;updateDirty();return;}
+ // The live DOM has changed before a background render can commit. Undo may
+ // immediately restore the old source key; that no longer proves DOM equality.
+ renderedKey='';
  let inline=Array.from(target.childNodes).map(toMDInline).join('');
  if(!inline)inline=' ';
  if(target.tagName==='P'||target._listFrame)inline=inline.replace(/^( {0,3})([#>]|[-+](?=\s)|\d+[.)](?=\s))/gm,(_,space,marker)=>space+(marker.length>1?marker.slice(0,-1)+'\\'+marker.slice(-1):'\\'+marker));
@@ -1824,7 +1842,7 @@ async function diagramDialog(originalSource,options={}){
  return modal({title:options.caption===undefined?'编辑 Mermaid 图形':'编辑图形及图题',kicker:'Mermaid · 官方完整渲染',wide:true,
    note:'右侧使用官方引擎自动布局；简单流程图可改节点与连线，其他图形直接修改源码',
    body:outer=>{
-    if(options.caption!==undefined){titleField=document.createElement('input');titleField.className='table-caption-input';titleField.placeholder='图题（不手填编号）';titleField.value=options.caption;outer.append(titleField);}
+    if(options.caption!==undefined){titleField=document.createElement('input');titleField.className='table-caption-input';titleField.placeholder='图题（不手填编号）';titleField.setAttribute('aria-label','图题');titleField.maxLength=300;titleField.value=options.caption;outer.append(titleField);}
     const grid=document.createElement('div');grid.className='diagram-modal-grid';outer.append(grid);
     const left=document.createElement('div'),right=document.createElement('div');grid.append(left,right);
     const label=document.createElement('label');label.textContent='选中节点';left.append(label);
@@ -1862,7 +1880,7 @@ async function diagramDialog(originalSource,options={}){
     canvas.addEventListener('click',ev=>{const node=ev.target.closest('[data-node]');if(node&&graph)select(node.dataset.node);});
     paint();
    },
-   onOk:()=>{if(!source.value.trim()||source.value.length>50000)throw Error('Mermaid 源码必须非空，且不超过 50000 字符');return {source:source.value,caption:titleField?.value};}
+   onOk:()=>{if(!source.value.trim()||source.value.length>50000)throw Error('Mermaid 源码必须非空，且不超过 50000 字符');return {source:source.value===originalSource.replace(/\r\n?/g,'\n')?originalSource:source.value,caption:titleField?.value};}
  });
 }
 async function editDiagram(block){
@@ -1873,10 +1891,12 @@ async function editDiagram(block){
  if(!fence)return toast('无法定位 Mermaid 源码');
  const original=raw.slice(fence.bodyFrom,fence.bodyTo).replace(/\r?\n$/,'');
  const snapshot=state.md,session=state.session;
- const accepted=await diagramDialog(original);
- if(!accepted||accepted.source===original)return;
+ const accepted=await diagramDialog(original,{caption:''});
+ if(!accepted||accepted.source===original&&!accepted.caption)return;
  try{if(state.md!==snapshot||state.session!==session)throw Error('文稿已变化，请重新打开图形');SourceMap.assertRange(state.md,{start,end},raw,snapshot);}catch(e){toast(e.message);scheduleRender();return;}
- const next=raw.slice(0,fence.bodyFrom)+accepted.source+'\n'+raw.slice(fence.bodyTo);
+ let next;
+ if(accepted.caption){const obj=figureDefault('mermaid');obj.source=accepted.source;obj.caption=accepted.caption;next=SourceBlocks.replacement(raw,figureSnippet(figureValidate(obj)));}
+ else next=raw.slice(0,fence.bodyFrom)+accepted.source+'\n'+raw.slice(fence.bodyTo);
  changed(state.md.slice(0,start)+next+state.md.slice(end),'diagram');await render();
  toast('流程图已经更新，保存后自动进入 HTML 交付。');
 }
@@ -2038,6 +2058,7 @@ function bindPreview(){
   });
   preview.addEventListener('dblclick',ev=>{
   if(ev.target._taskRange)return;
+  if(ev.target.closest('.hrs-heading-number')){ev.preventDefault();return;}
   clearTimeout(referenceTimer);
   const pdfImage=ev.target.closest('img[data-pdf-asset]');if(pdfImage){ev.preventDefault();clearZoom();const link=(pdfImage.closest('.image-group-cell')||pdfImage.closest('figure'))?.querySelector('a[data-figure-source]');if(link)window.open(link.href,'_blank','noopener,noreferrer');return;}
   clearTimeout(zoomTimer);

@@ -29,6 +29,19 @@ function index(source,map,tokens,catalog=null){
   definitions.get(record.token.key).push(record);
  }
  function at(position){return topics.find(t=>t.start<=position&&position<t.end)||topics.at(-1);}
+ // A display projection over the already validated full catalog. Source IDs,
+ // ranges and duplicate diagnostics remain owned by the complete document.
+ const presentations=new Map();
+ function presentation(key){
+  if(presentations.has(key))return presentations.get(key);
+  const topic=topics.find(t=>t.key===key);if(!topic)throw Error('专题选择已过期，请重新选择');
+  const shown=records.filter(r=>topic.start<=r.start&&r.start<topic.end);
+  const entries=(catalog?.items||[]).filter(e=>topic.start<=e.record.start&&e.record.start<topic.end);
+  const scoped=root.ReportObjectCatalog.numbering(entries.map(e=>({...e,valid:e.valid&&!e.duplicate})));
+  scoped.items.forEach((e,i)=>{e.valid=entries[i].valid;e.duplicate=entries[i].duplicate;});
+  scoped.byRecord=new Map(scoped.items.map(e=>[e.record.index,e]));
+  const result={topic,records:shown,catalog:scoped};presentations.set(key,result);return result;
+ }
  function extract(key,{forEditing=false}={}){
   const topic=topics.find(t=>t.key===key);if(!topic)throw Error('专题选择已过期，请重新选择');
   const selected=records.filter(r=>topic.start<=r.start&&r.start<topic.end),needed=new Set(),hrefs=new Set();
@@ -57,7 +70,7 @@ function index(source,map,tokens,catalog=null){
   if(append.length)markdown+=separator+append.join(newline+newline);
   return {topic,markdown,...(forEditing?{sync:{start:topic.start,end:topic.end,dependencies,appended_separator:separator}}:{})};
  }
- return {source,topics,gaps,at,extract};
+ return {source,topics,gaps,at,extract,presentation};
 }
 function syncEdits(markdown,map,mapping){
  if(map.source!==markdown)throw Error('同步定位与临时稿快照不一致');

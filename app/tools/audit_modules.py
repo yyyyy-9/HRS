@@ -25,6 +25,8 @@ from release_info import load_release
 CATALOG=ROOT/'docs/MODULE_CATALOG.json'
 # Names verified from source, not guessed reflection values.
 DEFS=[
+ ('local_links','local_links.py','explicit-system-navigation','parse user-clicked file/folder references and resolve an existing non-program target without importing content',
+   ['path_text','resolve_target','open_target'],'explicit path/URI and selected project base','checked native-open target','explicit native navigation only; no target content reads or source edits','exclude'),
  ('asset_paths','asset_paths.py','resource-boundary','canonical project image spelling and guarded file access from the shared JSON rules',
    ['normalize_asset','asset_file'],'asset_paths.json and declared project resource paths','canonical dependency path / bounded local file','read-only validation; caller owns explicit writes','indirect'),
  ('browser_asset_paths','web/asset_paths.js','resource-boundary','browser view of the same asset_paths.json rules through generated asset_paths_data.js',
@@ -149,8 +151,8 @@ DEFS=[
    ['attach'],'current editor source/ranges','source selection / commands','explicit clipboard and source edit','exclude'),
  ('note_syntax','web/note_syntax.js','presentation','shared Marked highlight and footnote extensions without source rewriting',
    ['installMarked','prepare','finalize','bindNavigation','hasRich'],'Marked tokens and DOM','note markup / derived footnote navigation','Marked registration and presentation DOM','policy-gated'),
- ('external_links','web/external_links.js','browser-ui','route explicit web-link clicks to the local system-browser API',
-   ['attach','decorate','externalURL'],'user click / safe URL','system browser request','explicit external application launch','exclude'),
+ ('external_links','web/external_links.js','browser-ui','single safe link spelling and explicit web/file/folder dispatch; asset and note navigation keep their own paths',
+   ['attach','decorate','externalURL','localPath','safeLink'],'user click / safe URL or path','system browser or native document request','explicit external application launch','exclude'),
  ('mathjax_boldsymbol','web/vendor/input/tex/extensions/boldsymbol.js','vendor','exact MathJax 3.2.1 offline boldsymbol component; main bundle unchanged',
    [],'TeX boldsymbol','native MathJax math variant','MathJax extension registration','not-omml-validation'),
  ('source_map','web/source_map.js' ,'source-map','maps existing Marked block/link-definition tokens to UTF-16 source ranges',

@@ -1,9 +1,27 @@
 {
   "catalog_format": "hrs-module-catalog-v1",
-  "app_baseline": "2.0.1 R1",
+  "app_baseline": "2.0.2 R1",
   "scope": "source tree only; no external report files are opened",
   "caveat": "This is an interface index, not a Python import dependency graph or a DOCX compiler.",
   "items": [
+    {
+      "id": "local_links",
+      "path": "local_links.py",
+      "layer": "explicit-system-navigation",
+      "responsibility": "parse user-clicked file/folder references and resolve an existing non-program target without importing content",
+      "entrypoints": [
+        "path_text",
+        "resolve_target",
+        "open_target"
+      ],
+      "input": "explicit path/URI and selected project base",
+      "output": "checked native-open target",
+      "side_effects": "explicit native navigation only; no target content reads or source edits",
+      "word_pipeline_role": "exclude",
+      "bytes": 2781,
+      "sha256": "4d589254caa127f8997b99514e6a7e57c4623be26e3b3d520dfdd8291cee7577",
+      "review_flags": []
+    },
     {
       "id": "asset_paths",
       "path": "asset_paths.py",
@@ -172,8 +190,8 @@
       "output": "read-only topic ranges and independently compilable excerpts",
       "side_effects": "source unchanged",
       "word_pipeline_role": "secondary",
-      "bytes": 5973,
-      "sha256": "ccc906ea7ce7e5ef3bb1edcf43c4b2120c272e647f37781087455f4b4a639dcc",
+      "bytes": 6911,
+      "sha256": "4891cfd91d9ca694f83c5102a1b82b68df84c7c4590a874fe6f4b59ee68d43fe",
       "review_flags": []
     },
     {
@@ -571,8 +589,8 @@
       "output": "fresh safe display nodes",
       "side_effects": "DOM only; source unchanged",
       "word_pipeline_role": "display-only",
-      "bytes": 7930,
-      "sha256": "e81adcb5c219b85c6d09c3e24424981a416468304baeeb122badd6c4d66b0eb0",
+      "bytes": 7784,
+      "sha256": "0f3386f8ce3e1766b142acbe9ef9a0d0d91263fcfeaa8a4bb62d3da271890896",
       "review_flags": []
     },
     {
@@ -740,8 +758,8 @@
       "output": "JSON API / binary resources",
       "side_effects": "reads/writes projects and drafts",
       "word_pipeline_role": "do-not-import",
-      "bytes": 115622,
-      "sha256": "46a51420eb1fc67695e9efadb8ee027ae3dc2f4c8704bb12027ff6c098f21668",
+      "bytes": 116388,
+      "sha256": "c14d2a45bc5b558c0a268ef620a26303c7f5c574ac5c4bc0ec39da7088305c80",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -989,8 +1007,8 @@
       "output": "visual preview and UI events",
       "side_effects": "modifies editor state via explicit action",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 232800,
-      "sha256": "89447e8754b241ac7f51ff8960bfcd4af23228436b48d7c14dbb3f44b7278a25",
+      "bytes": 234548,
+      "sha256": "01eba4125a202ea8d20b56b9a92dba2b5a15f0dc8901517524973b930627816a",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -1085,18 +1103,20 @@
       "id": "external_links",
       "path": "web/external_links.js",
       "layer": "browser-ui",
-      "responsibility": "route explicit web-link clicks to the local system-browser API",
+      "responsibility": "single safe link spelling and explicit web/file/folder dispatch; asset and note navigation keep their own paths",
       "entrypoints": [
         "attach",
         "decorate",
-        "externalURL"
+        "externalURL",
+        "localPath",
+        "safeLink"
       ],
-      "input": "user click / safe URL",
-      "output": "system browser request",
+      "input": "user click / safe URL or path",
+      "output": "system browser or native document request",
       "side_effects": "explicit external application launch",
       "word_pipeline_role": "exclude",
-      "bytes": 1328,
-      "sha256": "d70d622ecda01cec06a8af57d00b82bbe5a4caf571640200bb8a90bbb175dfa5",
+      "bytes": 2452,
+      "sha256": "3fd324d77f21185522309be045c004716158ff130c101564b27789c4b44e9c82",
       "review_flags": []
     },
     {

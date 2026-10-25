@@ -391,7 +391,11 @@ class HtmlAudit(HTMLParser):
             if k.startswith('on'):self.errors.append('事件处理属性不允许')
             if k in {'src','href','xlink:href'}:
                 if tag=='a' and k=='href':
-                    if re.match(r'\s*(javascript:|data:|file:)',v,re.I):self.errors.append('链接协议不安全')
+                    if re.match(r'\s*(javascript:|data:)',v,re.I):self.errors.append('链接协议不安全')
+                    elif re.match(r'\s*file:',v,re.I):
+                        from local_links import path_text
+                        try:path_text(v)
+                        except ValueError:self.errors.append('文件链接路径无效')
                 elif tag in {'use','a'} and v.startswith('#'):pass
                 elif tag=='img' and k=='src' and re.match(r'^data:image/(png|jpeg|gif|webp|svg\+xml);base64,',v):pass
                 else:self.errors.append(f'有外部文件依赖：{tag}.{k}')
@@ -970,6 +974,7 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(req,dict):raise ValueError('请求必须是 JSON 对象')
             p=urlsplit(self.path).path
             if p=='/api/external/open':return self.open_external_link(req)
+            if p=='/api/local-link/open':return self.open_local_link(req)
             if p=='/api/readpack/open-zip':return self.readpack_open_zip(req)
             if p=='/api/readpack/open-folder':return self.readpack_open_folder(req)
             if p=='/api/readpack/close':return self.readpack_close(req)
@@ -1106,6 +1111,13 @@ class Handler(BaseHTTPRequestHandler):
         finally:
             if job is not None:job['temporary'].cleanup()
             exporter.running.release()
+
+    def open_local_link(self,req):
+        if not self._picker_origin_ok():return self.fail('仅接受当前编辑器的显式文件链接点击',403)
+        from local_links import resolve_target,open_target
+        target=resolve_target(req.get('href'),self.server.project_path(self._docid(req)))
+        open_target(target)
+        return self.resp({'ok':True,'opened_by':'system-default-application','kind':'folder' if target.is_dir() else 'file'})
 
     def open_external_link(self,req):
         origin=urlsplit(self.headers.get('Origin') or self.headers.get('Referer') or '')

@@ -361,6 +361,14 @@
     "paths": "Only server-issued result tokens; no arbitrary path input; existing 24-hour result lifetime and file-existence checks",
     "source_mutation": false
   },
+  "local_link_ui": {
+    "route": "/api/local-link/open",
+    "required_header": "X-HRS-Project-Action:user-action and same origin",
+    "request": ["document_id", "href"],
+    "scope": "Explicit Windows user click; relative targets require a saved project base; absolute paths and file:// may open existing documents/folders",
+    "effects": "Native application/folder navigation only; no target content returned or imported, no source edits; program/script/shortcut targets refused",
+    "not_agent_write_or_command_api": true
+  },
   "desktop_host": {
     "core": "same App and existing CLI/IR/preflight/save/Word chain",
     "protocol_source": "host_capabilities.json",
