@@ -2,7 +2,7 @@
   "version": "2.0.3",
   "package_revision": "R1",
   "stage": "v2.0.3 R1 app",
-  "generated_utc": "2026-10-25T08:22:44.706522+00:00",
+  "generated_utc": "2026-10-25T08:38:30.470149+00:00",
   "file_count_without_manifest": 166,
   "files": [
     {
@@ -153,7 +153,7 @@
     {
       "path": "docs/MODULE_CATALOG.json",
       "bytes": 57888,
-      "sha256": "ebcc9bec02f67983d89d213daf1908c0e2023deee6356303bff429994cadb1f6"
+      "sha256": "abe5d44c547a18c56015dbb1198fcb96b708789910dfd161260d00a0738f80b2"
     },
     {
       "path": "docs/MODULE_OVERVIEW.html",
@@ -572,8 +572,8 @@
     },
     {
       "path": "web/mermaid_renderer.js",
-      "bytes": 7844,
-      "sha256": "bf84ea3d24cf95db33150b6d29ea95074915fd7d999b2f462af125bfdda021fb"
+      "bytes": 7707,
+      "sha256": "dd709d597b34d405008c099e74fe38ecc8213c211ed92a5fc795abde5a1d11fd"
     },
     {
       "path": "web/note_syntax.js",

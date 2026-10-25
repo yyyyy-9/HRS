@@ -200,4 +200,19 @@ class MermaidFull(ManualService):
         self.assertEqual(result['state'],'error');self.assertTrue(result['error']);self.assertTrue(all(result['limit']))
         self.assertEqual(self.external,[])
 
+    def test_09_series_colors_do_not_use_pale_node_backgrounds(self):
+        # PELE-01: pie percentages are white; mapping category series to HRS's
+        # pale node surfaces makes the third slice's label nearly invisible.
+        self.load_diagrams([{'name':'分类比例','source':'pie\n "A":30\n "B":25\n "C":45'}])
+        colors=self.page.locator('#preview-content .pele-slice').evaluate_all('xs=>xs.map(x=>getComputedStyle(x).fill)')
+        ink=self.page.locator('#preview-content .pele-slice-labels').evaluate('x=>getComputedStyle(x).fill')
+        def luminance(color):
+            values=[float(v)/255 for v in re.findall(r'[\d.]+',color)[:3]]
+            linear=[v/12.92 if v<=0.04045 else ((v+0.055)/1.055)**2.4 for v in values]
+            return sum(v*w for v,w in zip(linear,[0.2126,0.7152,0.0722]))
+        a,b=sorted([luminance(colors[2]),luminance(ink)])
+        self.assertEqual(len(set(colors)),3)
+        self.assertGreaterEqual((b+0.05)/(a+0.05),3,'Categorical color was replaced by a low-contrast node surface')
+        self.assertEqual(self.external,[])
+
 if __name__=='__main__':unittest.main(verbosity=2)

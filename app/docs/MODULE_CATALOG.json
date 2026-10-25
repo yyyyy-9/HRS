@@ -1327,8 +1327,8 @@
       "output": "safe standalone SVG with frozen export colors",
       "side_effects": "temporary DOM and bounded render cache",
       "word_pipeline_role": "needs-vector-rendition",
-      "bytes": 7844,
-      "sha256": "bf84ea3d24cf95db33150b6d29ea95074915fd7d999b2f462af125bfdda021fb",
+      "bytes": 7707,
+      "sha256": "dd709d597b34d405008c099e74fe38ecc8213c211ed92a5fc795abde5a1d11fd",
       "review_flags": []
     },
     {

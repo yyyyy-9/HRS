@@ -9,12 +9,10 @@ const palette={
  bg:['paper','#ffffff'],fg:['diagram-ink','#334664'],muted:['diagram-muted','#91a0b9'],
  line:['diagram-muted','#91a0b9'],surface:['diagram-bg','#eef3ff'],
  'surface-alt':['diagram-soft','#f4efff'],border:['diagram-line','#91a8dd'],
- accent:['brand','#3759c6'],critical:['danger','#b34242'],error:['danger','#b34242'],
- 'series-1':['brand','#3759c6'],'series-2':['diagram-line','#91a8dd'],
- 'series-3':['diagram-alt','#e6f5ed'],'series-4':['danger','#b34242'],
- 'series-5':['diagram-muted','#91a0b9'],'series-6':['diagram-soft','#f4efff'],
- 'series-7':['diagram-ink','#334664'],'series-8':['muted','#7d8a9e']
+ accent:['brand','#3759c6'],critical:['danger','#b34242'],error:['danger','#b34242']
 };
+// Keep the complete renderer's categorical series colors. Pale node surfaces
+// cannot replace series fills whose labels use the contrasting background.
 function theme(svg,live){
  const css=getComputedStyle(document.documentElement);
  for(const [name,[token,fallback]] of Object.entries(palette)){
