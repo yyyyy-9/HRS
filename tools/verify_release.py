@@ -43,6 +43,21 @@ def entries(path):
     return result
 
 
+def approved_renderer_vendors(baseline, portable, approvals):
+    """PELE-01: narrowly authorize a pinned renderer replacement, not vendors in general."""
+    allowed={f'app/web/vendor/{folder}/{name}' for folder,names in (
+        ('mermaid',('LICENSE.txt','RUNTIME.json','mermaid.min.js')),
+        ('pele',('LICENSE.txt','RUNTIME.json','pele.global.js'))) for name in names}
+    if set(approvals)-allowed:
+        raise ValueError('Protected renderer vendor policy names unrelated payloads')
+    for name,approval in approvals.items():
+        before,after=baseline.get(name),portable.get(name)
+        if before==after or approval!={'baseline_sha256':sha(before) if before is not None else None,
+                                      'sha256':sha(after) if after is not None else None}:
+            raise ValueError('Protected renderer vendor fingerprint mismatch: '+name)
+    return sorted(approvals)
+
+
 def check_manifest(files,prefix=''):
     key=prefix+'MANIFEST.json'
     value=json.loads(files[key])
@@ -77,6 +92,9 @@ def verify(source,portable,baseline,policy,baseline_source=None):
     protected=[name for name in baseline if name.startswith(('runtime/','word_support/','app/web/vendor/'))
                or name.lower().endswith(('.vbs','.cmd')) or name.startswith('app/web/') and name.endswith('.css')]
     approved_css=[];approved_adapter=[];approved_word=[]
+    renderer_vendors=approved_renderer_vendors(baseline,portable,policy.get('approved_renderer_vendor_changes',{}))
+    added_vendors={name for name in portable.keys()-baseline.keys() if name.startswith('app/web/vendor/')}
+    if added_vendors-set(renderer_vendors):raise ValueError('Protected vendor additions lack exact renderer approval')
     materials=approved_word_materials(baseline,portable,policy.get('approved_word_material_changes',{}))
     added_word={n for n in portable.keys()-baseline.keys() if n.startswith('word_support/')}
     if added_word-set(materials):raise ValueError('Undeclared Word component additions')
@@ -84,6 +102,7 @@ def verify(source,portable,baseline,policy,baseline_source=None):
                    ('__init__.py','__main__.py','runtime.py','docx_export.py','docx_import.py','workflow.py','browser_model.js','math_adapter.py'))}
     for name in protected:
         if portable.get(name)!=baseline[name]:
+            if name in renderer_vendors:continue
             approval=policy.get('approved_css_changes',{}).get(name)
             if (name.startswith('app/web/') and not name.startswith('app/web/vendor/') and name.endswith('.css')
                 and approval=={'baseline_sha256':sha(baseline[name]),'sha256':sha(portable.get(name,b''))}):
@@ -153,11 +172,12 @@ def verify(source,portable,baseline,policy,baseline_source=None):
                 if name.startswith('history/') and name!='history/ARCHIVE_MANIFEST.json' and source.get(name)!=raw:
                     raise ValueError('Previously retained history changed: '+name)
     return {'overall':'PASS','identity':identity,'application_changes':changed,
-            'protected_payload_files':len(protected)-len(approved_css)-len(approved_adapter)-len(approved_word),'archived_entries':len(archived),
-            'source_app_equals_portable':True,'runtime_css_vendors_word_support_unchanged':not (approved_css or approved_adapter or approved_word or materials),
-            'runtime_vendors_word_support_unchanged':not (approved_adapter or approved_word or materials),
+            'protected_payload_files':len(protected)-len(approved_css)-len(approved_adapter)-len(approved_word)-len(set(renderer_vendors)&set(protected)),'archived_entries':len(archived),
+            'source_app_equals_portable':True,'runtime_css_vendors_word_support_unchanged':not (approved_css or approved_adapter or approved_word or materials or renderer_vendors),
+            'runtime_vendors_word_support_unchanged':not (approved_adapter or approved_word or materials or renderer_vendors),
             'word_implementation_unchanged':not approved_word, 'approved_word_material_changes':materials,
             'approved_word_contract_adapter_changes':approved_word,'approved_css_changes':approved_css,
+            'approved_renderer_vendor_changes':renderer_vendors,
             'upstream_editor_payload_unchanged':True,'approved_editor_adapter_exports':approved_adapter,
             'source_only_history_preserved':not bool(public),'public_source_policy':bool(public),'legacy_reader_trust_retained':True}
 

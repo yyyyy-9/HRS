@@ -2,7 +2,7 @@
 
 项目自有代码、文档和合成测试示例使用GPL-3.0-or-later，版权署名yyyyy-9。完整许可见LICENSE，声明见COPYRIGHT，依赖清单见RIGHTS.json。
 
-Marked、CodeMirror/Lezer、MathJax、Mermaid及Python/lxml/Pillow/Tcl/Tk/PyInstaller等依赖保留各自许可与版权。分发文件及来源摘要分别记录，不将第三方组件改授为项目许可。
+Marked、CodeMirror/Lezer、MathJax、Pele及Python/lxml/Pillow/Tcl/Tk/PyInstaller等依赖保留各自许可与版权。分发文件及来源摘要分别记录，不将第三方组件改授为项目许可。
 
 测试素材来源和许可见tests/fixtures/RIGHTS.json；帮助图使用项目界面和合成文稿。用户创建或处理的Markdown、Word、图片及数据仍由其权利人决定授权。
 

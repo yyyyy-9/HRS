@@ -86,20 +86,20 @@
       ]
     },
     {
-      "name": "Mermaid",
-      "version": "12.2.0",
+      "name": "Pele",
+      "version": "1.10.0",
       "license": "MIT",
-      "upstream": "https://github.com/mermaid-js/mermaid",
+      "upstream": "https://github.com/obsidianmd/pele",
       "notice": {
-        "path": "web/vendor/mermaid/LICENSE.txt",
-        "bytes": 1089,
-        "sha256": "ec9fb67dcb25eccc416ed56e1aab819222c805a2a4bfe4cb19e7556bf2ffde80"
+        "path": "web/vendor/pele/LICENSE.txt",
+        "bytes": 1934,
+        "sha256": "311bccc30de6f7b9cbfb64232bb0c911ccb2191abe316550813ae25b2c7925b9"
       },
       "runtime": [
         {
-          "path": "web/vendor/mermaid/mermaid.min.js",
-          "bytes": 5494801,
-          "sha256": "a8a6a6f805b074a8261a2825c86f99c8054acb3b35f50bb7e24a4f9f2c3c3b9f"
+          "path": "web/vendor/pele/pele.global.js",
+          "bytes": 709352,
+          "sha256": "dd70e44152f7d70d62fedc622f588db3f5855859b444f4d8cf274925c12f2651"
         }
       ]
     }

@@ -87,3 +87,5 @@ A0只读，plan只出候选，只有显式apply可以写源；命令/前置摘�
 需要原生Word的选择在启动测试前检查匹配组件/Python及HRS_WORD_TEST_ENV，不在缺依赖时反复等待对话框超时。Word对话框/装配专项明确选择工程模式；自由笔记的工作页准备另有具名集成，不在每个模板用例中重复。
 
 2.0统一编号专项：--groups numbering（文档开关、匿名Markdown表/公式/流程图及引用），Word数学粘贴/编译需显式report_word和匹配组件/Pandoc。原旧版本反例继续保留，涉及已批准编号变化的预期按2.0契约更新；默认组不暗中要求原生Word环境。
+
+Mermaid语法/Pele渲染专项：--groups mermaid，沿原真实服务夹具核对源码、节点编辑、阅读/归档、主题布局缓存、图内MathJax、独立SVG/Word PNG及资源/边数拒绝。原生DOCX出口另选word或report_word；测试不把生成SVG视为办公软件页面验收。

@@ -110,7 +110,7 @@
       ],
       "docx_target": "diagram rendering",
       "status": "source-only",
-      "downstream_mapping": "safe raster/vector rendition for supported Mermaid subset"
+      "downstream_mapping": "offline Pele SVG/PNG rendition of Mermaid source; HRS theme and MathJax labels frozen for export; source and IR schema unchanged"
     },
     {
       "type": "code",

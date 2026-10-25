@@ -13,8 +13,8 @@ class DocumentCacheLifetime(unittest.TestCase):
               window._mathCount=0; window._diagramCount=0;
               const math=MathJax.tex2svgPromise.bind(MathJax);
               MathJax.tex2svgPromise=(...args)=>{window._mathCount++;return math(...args)};
-              const diagram=mermaid.render.bind(mermaid);
-              mermaid.render=(...args)=>{window._diagramCount++;return diagram(...args)};
+              const runtime=window.pele;
+              window.pele={...runtime,render:(...args)=>{window._diagramCount++;return runtime.render(...args)}};
             }''')
             body = '\n\n$\\boldsymbol{v}=\\alpha+1$\n\n```mermaid\nflowchart LR\n A[开始]-->B[结束]\n```\n'
             for number in [1, 2]:

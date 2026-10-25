@@ -31,6 +31,24 @@ def seal(files):
 
 
 class ReleaseContracts(unittest.TestCase):
+    def test_renderer_vendor_migration_is_exact_and_cannot_change_other_vendors(self):
+        """PELE-01: additions/removals must both be bound to actual bytes."""
+        source,baseline=self.fixture();old='app/web/vendor/mermaid/mermaid.min.js';new='app/web/vendor/pele/pele.global.js'
+        baseline[old]=b'old renderer';seal(baseline)
+        portable=copy.deepcopy(baseline);portable.pop(old);portable[new]=b'new renderer'
+        source[new]=portable[new];seal(source);seal(portable)
+        policy={'schema':'hrs-release-policy-v1','allowed_application_changes':['app/*'],
+                'approved_renderer_vendor_changes':{
+                    old:{'baseline_sha256':BUILD.digest(baseline[old]),'sha256':None},
+                    new:{'baseline_sha256':None,'sha256':BUILD.digest(portable[new])}}}
+        self.assertEqual(set(VERIFY.verify(source,portable,baseline,policy)['approved_renderer_vendor_changes']),{old,new})
+        for key in ('baseline_sha256','sha256'):
+            bad=copy.deepcopy(policy);bad['approved_renderer_vendor_changes'][new][key]='0'*64
+            with self.subTest(key=key),self.assertRaisesRegex(ValueError,'renderer vendor'):
+                VERIFY.verify(source,portable,baseline,bad)
+        bad=copy.deepcopy(policy);bad['approved_renderer_vendor_changes']['app/web/vendor/marked.js']={'baseline_sha256':None,'sha256':None}
+        with self.assertRaisesRegex(ValueError,'renderer vendor'):VERIFY.verify(source,portable,baseline,bad)
+
     def test_editor_adapter_approval_cannot_authorize_upstream_payload_edits(self):
         source,baseline=self.fixture();name='app/web/vendor/source-editor.js'
         old=b'window.SourceEditor={attach:Yu};})();\n'

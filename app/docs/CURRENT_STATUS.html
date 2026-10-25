@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>当前版本状态 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="0f086cc32423df4c5771132b2cb05a80dd97d7834fdf65cbfa48cda5bfefd206"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>当前版本状态 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="d686c095c2217247724f0291b5c10422342afbfce3717683bd24dd4b76cf8e8b"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -583,7 +583,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.2<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">编辑与文稿</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.3<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">编辑与文稿</a>
 <a class="level2" href="#section-3">HTML与Word</a>
 <a class="level2" href="#section-4">程序接口</a>
 <a class="level2" href="#section-5">支持范围</a></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">当前状态</h1>
@@ -591,6 +591,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <h2 id="section-2">编辑与文稿</h2>
 <p>支持自由笔记、工程报告、Markdown源编辑、分屏预览及阅读。自由笔记按H1聚焦时，目录只列本专题，章节/图表/公式按专题派生编号，返回全部恢复全文；显示开关、全文ID和引用定位分开管理。工程章节号在标题文字编辑范围之外；普通Mermaid可在原编辑窗口填写图题。图表对象、脚注、引用、公式、查找、恢复草稿和附件管理使用同一源模型。Windows文件/文件夹链接显式点击后交系统打开，未保存稿不猜相对路径基准。</p>
 <p>report.md和assets是内容真源。保存导入的独立本地图片时创建正常图片对象。临时工程稿可独立检查和编译，回写须先查看差异并显式提交；来源或附件变化时拒绝覆盖。</p>
+<p>Mermaid源文现由完整本地Pele1.10.0渲染，预览、编辑和阅读包共用；布局缓存与主题颜色分离，图内公式沿原MathJax排版，HTML/PDF/Word图形固化主题和字形。对象、编号、回编原文、A0及Bridge页面模型保持。兼容目标为Mermaid12.1；主题指令、HTML标签、脚本回调和布局差异见手册。当前2.0.3候选的实际验证见交付说明；旧Chrome112/Edge92、其他系统及办公软件页面不沿用本机自动化结论。</p>
 <p>源码区支持Word/WPS混合粘贴：字面正文、图片对象、普通／合并表格和受支持公式按原顺序一次插入，草稿附件及撤销复用原机制。Windows显式剪贴板读取补足浏览器未暴露的图片；不下载外图，嵌套表／表内图片等明确拒绝整段。具体限制见使用手册。原生应用、浏览器与纯契约的本次执行结果分别记录，不互相代替。</p>
 <h2 id="section-3">HTML与Word</h2>
 <p>HTML支持阅读和可回编归档，资源随文件携带。可回编归档保留Markdown和所需附件；普通任意HTML不属于可回编输入。</p>

@@ -1,6 +1,6 @@
 {
   "catalog_format": "hrs-module-catalog-v1",
-  "app_baseline": "2.0.2 R1",
+  "app_baseline": "2.0.3 R1",
   "scope": "source tree only; no external report files are opened",
   "caveat": "This is an interface index, not a Python import dependency graph or a DOCX compiler.",
   "items": [
@@ -1007,8 +1007,8 @@
       "output": "visual preview and UI events",
       "side_effects": "modifies editor state via explicit action",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 234548,
-      "sha256": "01eba4125a202ea8d20b56b9a92dba2b5a15f0dc8901517524973b930627816a",
+      "bytes": 234502,
+      "sha256": "aa3ecced057e60d97bc434fe7a21d2c10f50eba42928a9223e09551d89b905ab",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -1316,18 +1316,19 @@
       "id": "mermaid_renderer",
       "path": "web/mermaid_renderer.js",
       "layer": "presentation",
-      "responsibility": "official local Mermaid rendering shared by editor, dialogs and reading packs; asynchronous cache and unique SVG identities",
+      "responsibility": "offline Pele renderer for Mermaid source; shared geometry cache, semantic theme, MathJax labels and unique SVG identities",
       "entrypoints": [
         "render",
         "into",
-        "renderAll"
+        "renderAll",
+        "freezeTheme"
       ],
-      "input": "complete Mermaid source / trusted palette",
-      "output": "safe standalone SVG",
+      "input": "Mermaid source / trusted palette",
+      "output": "safe standalone SVG with frozen export colors",
       "side_effects": "temporary DOM and bounded render cache",
       "word_pipeline_role": "needs-vector-rendition",
-      "bytes": 5852,
-      "sha256": "a3e96c9561200b62d851612d4d35731414701d28ed7058bf95df70224067dfcf",
+      "bytes": 7844,
+      "sha256": "bf84ea3d24cf95db33150b6d29ea95074915fd7d999b2f462af125bfdda021fb",
       "review_flags": []
     },
     {

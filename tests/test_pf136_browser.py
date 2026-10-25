@@ -45,7 +45,7 @@ class MixedObjects(unittest.TestCase):
       with browser_session() as browser, tempfile.TemporaryDirectory(prefix='hrs-retained-') as directory:
        with LiveDocument(browser,Path(directory),MD,profile='engineering', assets=ASSET, init_script='Object.hasOwn=undefined') as document:
         page=document.page; errors=document.errors
-        assert page.evaluate("typeof mermaid.render==='function' && Object.hasOwn({x:1},'x') && !Object.hasOwn(Object.create({x:1}),'x')"), 'full vendor initialization must complete with the missing-API fallback'
+        assert page.evaluate("typeof pele.render==='function' && typeof ReportMermaid.render==='function' && Object.hasOwn({x:1},'x') && !Object.hasOwn(Object.create({x:1}),'x')"), 'complete offline renderer must initialize with the shared missing-API fallback'
         assert page.evaluate("(()=>{try{Object.hasOwn(null,'x');return false}catch(error){return error instanceof TypeError}})()"), 'fallback must preserve the native null rejection'
         page.locator('.report-table-wrap').first.wait_for(timeout=18000)
         page.locator('#show-equation-numbers').check()

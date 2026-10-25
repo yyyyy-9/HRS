@@ -1839,8 +1839,8 @@ async function editMath(span){
 async function diagramDialog(originalSource,options={}){
  let graph;try{graph=Flow.parse(originalSource);}catch{graph=null;}
  const info={selected:graph?.nodes[0]?.id||null};let source,canvas,nameField,shapeField,statusP,titleField,edgePicker,buttons=[];
- return modal({title:options.caption===undefined?'编辑 Mermaid 图形':'编辑图形及图题',kicker:'Mermaid · 官方完整渲染',wide:true,
-   note:'右侧使用官方引擎自动布局；简单流程图可改节点与连线，其他图形直接修改源码',
+ return modal({title:options.caption===undefined?'编辑 Mermaid 图形':'编辑图形及图题',kicker:'Mermaid · Pele 离线渲染',wide:true,
+   note:'简单流程图可改节点与连线；其他图形直接修改 Mermaid 源码',
    body:outer=>{
     if(options.caption!==undefined){titleField=document.createElement('input');titleField.className='table-caption-input';titleField.placeholder='图题（不手填编号）';titleField.setAttribute('aria-label','图题');titleField.maxLength=300;titleField.value=options.caption;outer.append(titleField);}
     const grid=document.createElement('div');grid.className='diagram-modal-grid';outer.append(grid);
@@ -1857,10 +1857,10 @@ async function diagramDialog(originalSource,options={}){
     addBtn('→ 添加连线',()=>{const a=from.value.trim(),b=to.value.trim();if(!graph.nodes.some(n=>n.id===a)||!graph.nodes.some(n=>n.id===b))return toast('请填写已有节点 ID');if(graph.edges.length>=100)throw Error('当前最多支持 100 条连线');graph.edges.push({from:a,to:b,label:'',dashed:false});sync();});
     edgePicker=document.createElement('select');edgePicker.className='diagram-edge-picker';edgePicker.setAttribute('aria-label','选择连线');left.append(edgePicker);
     addBtn('删除选中连线',()=>{const index=Number(edgePicker.value);if(!Number.isInteger(index)||!graph.edges[index])return;graph.edges.splice(index,1);sync();});
-    const hint=document.createElement('p');hint.className='diagram-help';hint.textContent='简单流程图可单击右侧节点后改字；Enter 为节点文字换行。布局由 Mermaid 自动计算。子图、时序图等完整语法请直接改下方源码，预览和导出沿用原文。';left.append(hint);
+    const hint=document.createElement('p');hint.className='diagram-help';hint.textContent='简单流程图可单击右侧节点后改字；Enter 为节点文字换行。保留 Mermaid 语法，由 Pele 自动布局。子图、时序图等请直接改下方源码，预览和导出沿用原文。';left.append(hint);
     source=modalTextarea(left,'Mermaid 源码（可交给 AI 修改）',originalSource,165);source.className='diagram-source-input';
     statusP=document.createElement('p');statusP.className='diagram-help';left.append(statusP);
-    const rt=document.createElement('label');rt.textContent='官方引擎预览 · 自动布局';right.append(rt);
+    const rt=document.createElement('label');rt.textContent='Pele 预览 · 自动布局';right.append(rt);
     canvas=document.createElement('div');canvas.className='modal-diagram-svg';right.append(canvas);
     function select(id){info.selected=id;const n=graph?.nodes.find(x=>x.id===id);nameField.value=n?.label||'';shapeField.value=n?.shape||'box';
       canvas.querySelectorAll('[data-node]').forEach(x=>x.classList.toggle('selected',x.dataset.node===id));}
@@ -1870,7 +1870,7 @@ async function diagramDialog(originalSource,options={}){
      select(info.selected);
      ReportMermaid.into(canvas,source.value).then(()=>{
       if(!graph)return;
-      canvas.querySelectorAll('g.node').forEach(node=>{const id=node.dataset.id||node.id.replace(/^.*?flowchart-/, '').replace(/-\d+$/,'');if(graph.nodes.some(n=>n.id===id))node.dataset.node=id;});select(info.selected);
+      canvas.querySelectorAll('.pele-node[data-id]').forEach(node=>{const id=node.dataset.id;if(graph.nodes.some(n=>n.id===id))node.dataset.node=id;});select(info.selected);
      }).catch(error=>{statusP.textContent=error.message;});
     }
     function sync(){source.value=Flow.serialize(graph,{positions:false});paint();statusP.textContent='';}
@@ -2266,6 +2266,7 @@ async function buildExportCurrent(preferences,exportSource=state.md){
  }
  requireSame();
  const clone=exportView.article.cloneNode(true);
+ ReportMermaid.freezeTheme(clone);
  // Archive state always comes from Markdown. Optional free-reader state is
  // separate and bound to this source snapshot and original task position.
  clone.querySelectorAll('input[type="checkbox"]').forEach(input=>{input.disabled=true;});

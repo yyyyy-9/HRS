@@ -15,8 +15,7 @@
   <link rel="stylesheet" href="/web/surface_components.css">
   <link rel="stylesheet" href="/web/document_search.css">
   <script>
-    // Full Mermaid requires this ES2022 API. Install once, before any vendor
-    // executes; preserve native implementations and normal property semantics.
+    // Shared Word tokens use this API; preserve older browser compatibility.
     if(typeof Object.hasOwn!=='function')Object.defineProperty(Object,'hasOwn',{
       configurable:true,writable:true,
       value:function(object,key){return Object.prototype.hasOwnProperty.call(object,key);}
@@ -35,7 +34,7 @@
   <script src="/web/external_links.js" defer></script>
   <script src="/web/safe_html.js" defer></script>
   <script src="/web/vendor/mathjax-tex-svg.js" defer></script>
-  <script src="/web/vendor/mermaid/mermaid.min.js" defer></script>
+  <script src="/web/vendor/pele/pele.global.js" defer></script>
   <script src="/web/mermaid_renderer.js" defer></script>
   <script src="/web/diagram.js" defer></script>
   <script src="/web/report_clone.js" defer></script>

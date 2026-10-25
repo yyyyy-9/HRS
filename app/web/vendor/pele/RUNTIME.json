@@ -1,0 +1,11 @@
+{
+  "name": "pele",
+  "version": "1.10.0",
+  "source": "https://registry.npmjs.org/pele/-/pele-1.10.0.tgz",
+  "source_sha256": "85e142f216a35a5e5105551b446b8e262ee5c26e667318a658622693e445ebff",
+  "runtime_file": "pele.global.js",
+  "bytes": 709352,
+  "sha256": "dd70e44152f7d70d62fedc622f588db3f5855859b444f4d8cf274925c12f2651",
+  "gzip_bytes": 263637,
+  "distribution": "Official complete browser global bundle, unchanged; all built-in diagram types, no CDN or runtime dependencies."
+}

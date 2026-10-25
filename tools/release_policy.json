@@ -1,40 +1,71 @@
 {
   "schema": "hrs-release-policy-v1",
-  "purpose": "TOPIC-LINKS-01: reviewed v2.0.1 to v2.0.2 heading edit boundary, ordinary Mermaid captions, scoped display numbering and explicit file/folder navigation.",
+  "purpose": "PELE-01: v2.0.2 to v2.0.3 replaces only the pinned Mermaid renderer with complete Pele, keeping source, numbering, CSS and Word model unchanged.",
   "allowed_application_changes": [
     "app/CHANGELOG.md",
     "app/MANIFEST.json",
     "app/README.md",
-    "app/docs/CHANGELOG_READABLE.html",
-    "app/docs/CHANGELOG_READABLE.md",
-    "app/docs/CURRENT_STATUS.html",
+    "app/RIGHTS.json",
+    "app/LICENSING.md",
+    "app/release.json",
+    "app/source_format_v1.md",
+    "app/tools/audit_modules.py",
+    "app/web/app.js",
+    "app/web/index.html",
+    "app/web/mermaid_renderer.js",
     "app/docs/CURRENT_STATUS.md",
-    "app/docs/LONG_TERM_ROADMAP.html",
+    "app/docs/USER_GUIDE.md",
+    "app/docs/MODULE_OVERVIEW.md",
+    "app/docs/WORD_COMPILER_HANDOFF.md",
+    "app/docs/WORD_IR_HANDOFF.json",
+    "app/docs/CHANGELOG_READABLE.md",
     "app/docs/MODULE_CATALOG.json",
+    "app/docs/CHANGELOG_READABLE.html",
+    "app/docs/CURRENT_STATUS.html",
+    "app/docs/LONG_TERM_ROADMAP.html",
     "app/docs/MODULE_OVERVIEW.html",
     "app/docs/SHORT_TERM_PLAN.html",
     "app/docs/USER_GUIDE.html",
-    "app/docs/USER_GUIDE.md",
     "app/docs/WORD_COMPILER_HANDOFF.html",
-    "app/docs/WORD_COMPILER_HANDOFF.md",
-    "app/docs/WORD_IR_HANDOFF.json",
-    "app/local_links.py",
-    "app/release.json",
-    "app/source_format_v1.md",
-    "app/studio.py",
-    "app/tools/audit_modules.py",
     "app/web/CHANGELOG_READABLE.html",
     "app/web/MODULE_OVERVIEW.html",
     "app/web/WORD_COMPILER_HANDOFF.html",
-    "app/web/app.js",
-    "app/web/external_links.js",
     "app/web/help.html",
-    "app/web/index.html",
-    "app/web/notebook_view.js",
-    "app/web/safe_html.js"
+    "app/web/vendor/mermaid/LICENSE.txt",
+    "app/web/vendor/mermaid/RUNTIME.json",
+    "app/web/vendor/mermaid/mermaid.min.js",
+    "app/web/vendor/pele/LICENSE.txt",
+    "app/web/vendor/pele/RUNTIME.json",
+    "app/web/vendor/pele/pele.global.js"
   ],
   "approved_css_changes": {},
-  "protected": "Original runtime, launchers, CSS, vendors, templates, page model and complete Word component stay byte-identical to the verified v2.0.1 baseline.",
+  "protected": "Original runtime, launchers, CSS, templates, page model, Word component and all other vendors stay byte-identical to v2.0.2; renderer files require exact before/after SHA256.",
   "approved_word_material_changes": {},
-  "approved_word_contract_adapter_changes": {}
+  "approved_word_contract_adapter_changes": {},
+  "approved_renderer_vendor_changes": {
+    "app/web/vendor/mermaid/LICENSE.txt": {
+      "baseline_sha256": "ec9fb67dcb25eccc416ed56e1aab819222c805a2a4bfe4cb19e7556bf2ffde80",
+      "sha256": null
+    },
+    "app/web/vendor/mermaid/RUNTIME.json": {
+      "baseline_sha256": "1f4a76d5cbc6786dab5a82f62416832c8d061b15f0602a567545ffce27760c9c",
+      "sha256": null
+    },
+    "app/web/vendor/mermaid/mermaid.min.js": {
+      "baseline_sha256": "a8a6a6f805b074a8261a2825c86f99c8054acb3b35f50bb7e24a4f9f2c3c3b9f",
+      "sha256": null
+    },
+    "app/web/vendor/pele/LICENSE.txt": {
+      "baseline_sha256": null,
+      "sha256": "311bccc30de6f7b9cbfb64232bb0c911ccb2191abe316550813ae25b2c7925b9"
+    },
+    "app/web/vendor/pele/RUNTIME.json": {
+      "baseline_sha256": null,
+      "sha256": "e43921bb3051550ab20cc76393cba9a46cb36ca8969c5bb6429a91a5b27405a5"
+    },
+    "app/web/vendor/pele/pele.global.js": {
+      "baseline_sha256": null,
+      "sha256": "dd70e44152f7d70d62fedc622f588db3f5855859b444f4d8cf274925c12f2651"
+    }
+  }
 }
