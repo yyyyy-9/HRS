@@ -18,8 +18,8 @@
       "output": "checked native-open target",
       "side_effects": "explicit native navigation only; no target content reads or source edits",
       "word_pipeline_role": "exclude",
-      "bytes": 2781,
-      "sha256": "4d589254caa127f8997b99514e6a7e57c4623be26e3b3d520dfdd8291cee7577",
+      "bytes": 2946,
+      "sha256": "62532c3b6f852a41c300f84c70dd91317afbded7c5cf3a6f352777d58eea5eb3",
       "review_flags": []
     },
     {

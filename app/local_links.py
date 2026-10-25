@@ -6,7 +6,7 @@ import os,re
 DRIVE=re.compile(r'^[A-Za-z]:[\\/]')
 CONTROL=re.compile(r'[\x00-\x1f\x7f-\x9f]')
 # Opening a document is different from running programs, scripts or shortcuts.
-PROGRAM_EXTENSIONS=set('.exe .com .bat .cmd .ps1 .psm1 .vbs .vbe .js .jse .wsf .wsh .hta .msi .msp .scr .pif .lnk .url .cpl .msc .reg .scf .application .appref-ms'.split())
+PROGRAM_EXTENSIONS=set('.exe .com .bat .cmd .ps1 .psm1 .vbs .vbe .js .jse .wsf .wsh .hta .msi .msp .scr .pif .lnk .url .cpl .msc .reg .scf .application .appref-ms .py .pyw .pyc .pyo .jar .jnlp .sh .bash .zsh .rb .pl .perl .php .ahk .au3 .a3x .dll .ocx .sys .drv .xll .xla .xlam .vsto .msix .msixbundle .appx .appxbundle .gadget'.split())
 
 
 def path_text(href):

@@ -30,7 +30,10 @@ class LocalLinks(WorkspaceService):
         with patch('local_links.open_target') as launch:
             status,_=self.post('/api/local-link/open',{'document_id':'legacy','href':str(file)},authorized=False)
             self.assertEqual(status,403)
-            for href in ('javascript:alert(1)','https://example.org','file:///C:/bad%00.txt',str(file),'missing.txt'):
+            programs=[]
+            for suffix in ('.cmd','.exe','.py','.PYW','.ps1','.jar','.lnk','.msix'):
+                program=self.project/('program'+suffix);program.write_text('not executed',encoding='utf8');programs.append(str(program))
+            for href in ('javascript:alert(1)','https://example.org','file:///C:/bad%00.txt',*programs,'missing.txt'):
                 status,_=self.post('/api/local-link/open',{'document_id':'legacy','href':href})
                 self.assertGreaterEqual(status,400,href)
             launch.assert_not_called()
