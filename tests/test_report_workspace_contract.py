@@ -41,9 +41,15 @@ class WorkspaceService(unittest.TestCase):
 
 class WorkspaceTransaction(WorkspaceService):
     def test_create_is_source_bound_and_does_not_write_origin(self):
+        from test_notebook_browser import png
+        picture=png(1);path=self.project/'assets/sub/a.png';path.parent.mkdir(parents=True);path.write_bytes(picture)
+        addition='\r\n![Nested](./assets/sub/a.png)\r\n'
+        self.full+=addition;(self.project/'report.md').write_bytes(self.full.encode('utf8'))
+        self.request.update(full_markdown=self.full,source_sha256=self.sha(self.full),revision=self.sha(self.full),markdown=self.request['markdown']+addition)
         status,result=self.post('/api/report-workspace',self.request)
         self.assertEqual(status,200,result);p=self.server.project_path(result['document_id'])
         self.assertEqual((p/'report.md').read_bytes(),self.request['markdown'].encode('utf8'))
+        self.assertEqual((p/'assets/sub/a.png').read_bytes(),picture)
         self.assertEqual((self.project/'report.md').read_bytes(),self.full.encode('utf8'))
         metadata=info(p,self.server.workspace);self.assertEqual(metadata['source_sha256'],self.sha(self.full))
         self.assertEqual(json.loads((p/'meta.json').read_text('utf8'))['render_profile'],'engineering')

@@ -7,6 +7,7 @@
 (function(root){
 'use strict';
 const ReportTables=(typeof module!=='undefined'&&module.exports ? require('./report_tables.js') : root.ReportTables);
+const paths=root.ReportAssetPaths||(typeof module!=='undefined'&&module.exports?require('./asset_paths.js'):null);
 function tableValidate(obj){
  if(!obj||obj.schema!=='report-table-v1'||typeof obj.id!=='string'||!/^tbl-[A-Za-z0-9_-]{1,60}$/.test(obj.id)||typeof obj.caption!=='string'||obj.caption.length>300)throw Error('表格数据格式或题名无效');
  if(!Array.isArray(obj.rows)||obj.rows.length<1||obj.rows.length>100)throw Error('行数超限');
@@ -28,7 +29,7 @@ function tableValidate(obj){
 function figureValidate(obj){
  if(!obj||obj.schema!=='report-figure-v1'||typeof obj.id!=='string'||!/^fig-[A-Za-z0-9_-]{1,60}$/.test(obj.id)||typeof obj.caption!=='string'||obj.caption.length>300)throw Error('图形对象 ID 或图题格式无效');
  if(obj.kind==='image'){
-  if(!/^assets\/[A-Za-z0-9][A-Za-z0-9_.-]{0,120}\.(?:png|jpe?g|gif|webp|svg)$/i.test(obj.src)||typeof obj.alt!=='string'||obj.alt.length>300)throw Error('图片路径/说明无效');
+  if(!paths.normalize(obj.src)||paths.normalize(obj.src)!==obj.src||typeof obj.alt!=='string'||obj.alt.length>300)throw Error('图片路径/说明无效');
   if(obj.vectorSource!==undefined){
    const match=obj.vectorSource.match(/^assets\/([a-f0-9]{16})\.emf$/i);
    if(!match||!new RegExp(`^assets/${match[1]}\\.(?:png|svg)$`,'i').test(obj.src))throw Error('矢量原图和预览必须同名，预览可以是 SVG 或 PNG');

@@ -11,7 +11,8 @@ const MODE={recompilable:'可回编归档',reading:'纯阅读发布'};
 const IMAGE_MIME={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',svg:'image/svg+xml',emf:'application/octet-stream',pdf:'application/pdf'};
 const MAX_ARCHIVE_SOURCE=30*1024*1024;
 const MAX_HTML=36*1024*1024;
-const validName=/^assets\/[A-Za-z0-9][A-Za-z0-9_.-]{0,120}\.(?:png|jpe?g|gif|webp|svg|emf|pdf)$/i;
+const paths=root.ReportAssetPaths||(typeof module!=='undefined'&&module.exports?require('./asset_paths.js'):null);
+const validName={test:value=>!!paths.normalize(value,{originals:true})&&paths.normalize(value,{originals:true})===value};
 function options(opts={}){
  const quality=opts.quality||'standard',sourceMode=opts.sourceMode||'recompilable';
  if(!Object.prototype.hasOwnProperty.call(QUALITY,quality)||!Object.prototype.hasOwnProperty.call(MODE,sourceMode))throw Error('HTML 导出设置不合法');

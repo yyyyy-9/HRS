@@ -69,13 +69,13 @@ class OriginSync(WorkspaceService):
         self.assertEqual((self.project/'report.md').read_bytes(),self.full.encode('utf8'))
 
     def test_new_image_asset_is_copied_without_overwriting_origin(self):
-        obj={'schema':'report-figure-v1','id':'fig-added','kind':'image','src':'assets/new.png','caption':'New figure','alt':'New figure'}
+        obj={'schema':'report-figure-v1','id':'fig-added','kind':'image','src':'assets/nested/new.png','caption':'New figure','alt':'New figure'}
         fence=chr(96)*3;added='\r\n'+fence+'report-figure\r\n'+json.dumps(obj)+'\r\n'+fence+'\r\n'
-        data=png(1);(self.temp/'assets/new.png').write_bytes(data)
+        data=png(1);(self.temp/'assets/nested').mkdir();(self.temp/'assets/nested/new.png').write_bytes(data)
         request={**self.req,'markdown':self.edited+added,'edits':[{**self.edits[0],'text':self.edits[0]['text']+added},*self.edits[1:]]}
         plan=self.plan(request);self.assertEqual(self.apply(plan,request)[0],200)
-        self.assertEqual((self.project/'assets/new.png').read_bytes(),data)
-        self.assertTrue((self.temp/'assets/new.png').is_file())
+        self.assertEqual((self.project/'assets/nested/new.png').read_bytes(),data)
+        self.assertTrue((self.temp/'assets/nested/new.png').is_file())
         self.assertIn('fig-added',(self.project/'report.md').read_text('utf8'))
 
     def test_pending_origin_draft_refuses_without_source_writes(self):

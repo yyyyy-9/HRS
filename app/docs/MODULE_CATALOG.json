@@ -1,9 +1,42 @@
 {
   "catalog_format": "hrs-module-catalog-v1",
-  "app_baseline": "2.0.0 R1",
+  "app_baseline": "2.0.1 R1",
   "scope": "source tree only; no external report files are opened",
   "caveat": "This is an interface index, not a Python import dependency graph or a DOCX compiler.",
   "items": [
+    {
+      "id": "asset_paths",
+      "path": "asset_paths.py",
+      "layer": "resource-boundary",
+      "responsibility": "canonical project image spelling and guarded file access from the shared JSON rules",
+      "entrypoints": [
+        "normalize_asset",
+        "asset_file"
+      ],
+      "input": "asset_paths.json and declared project resource paths",
+      "output": "canonical dependency path / bounded local file",
+      "side_effects": "read-only validation; caller owns explicit writes",
+      "word_pipeline_role": "indirect",
+      "bytes": 2142,
+      "sha256": "ce55bf46356d8ecf6f31b0e093777b2c3f1d4f5b891c8e18c3f3e7807d47c3c9",
+      "review_flags": []
+    },
+    {
+      "id": "browser_asset_paths",
+      "path": "web/asset_paths.js",
+      "layer": "resource-boundary",
+      "responsibility": "browser view of the same asset_paths.json rules through generated asset_paths_data.js",
+      "entrypoints": [
+        "normalize"
+      ],
+      "input": "declared image paths and generated rules",
+      "output": "canonical project image path",
+      "side_effects": "no filesystem or source writes",
+      "word_pipeline_role": "indirect",
+      "bytes": 1126,
+      "sha256": "466952e0d944d382efe9464cb2318e20d3b82e15a44dd9daf32db4f210e36db9",
+      "review_flags": []
+    },
     {
       "id": "host_services",
       "path": "host_services.py",
@@ -89,8 +122,8 @@
       "output": "validated temporary report state/jobs",
       "side_effects": "owned lifecycle only; creation reuses Handler atomic transaction",
       "word_pipeline_role": "not-semantic",
-      "bytes": 20958,
-      "sha256": "db6ddb9684655da3bbd2246581653c33e20592da33c84f948db44da90c2b22a9",
+      "bytes": 21124,
+      "sha256": "417154cb851f078b022a046cfecfa9de90c6bcbc8deb95ea7178124d1336940e",
       "review_flags": []
     },
     {
@@ -319,8 +352,8 @@
       "output": "validated new source and draft assets",
       "side_effects": "writes draft assets after candidate validation",
       "word_pipeline_role": "indirect",
-      "bytes": 10563,
-      "sha256": "dc51802fb500cc345194dfd59eca7afff13b0fb28195018aeb9c19ca5d3e730b",
+      "bytes": 10788,
+      "sha256": "4cb582d23bafa156a959f33d2f2ffa7c59b6419b62a72f0fd5d2ec9d76afbf1c",
       "review_flags": []
     },
     {
@@ -443,8 +476,8 @@
       "output": "candidate, diff or explicit commit receipt",
       "side_effects": "plan new files; apply original with shared backup/atomic save",
       "word_pipeline_role": "primary",
-      "bytes": 9296,
-      "sha256": "239184dfa1a15f15d592cf217ebc656832578cebeb996282e876aee6a27e9b31",
+      "bytes": 9343,
+      "sha256": "f33d8d7ad05487b1fd84ef53393f353714631d7ee906e40cf2eea96835015e6b",
       "review_flags": []
     },
     {
@@ -502,8 +535,8 @@
       "output": "UTF-8 JSON receipt and new HTML/project",
       "side_effects": "temporary local service/browser; writes explicit new output only",
       "word_pipeline_role": "primary",
-      "bytes": 15605,
-      "sha256": "b1f5cd91a4cb74f6090315874e5b01d25363f1d476c7e3b5f0a0158d2bf402cd",
+      "bytes": 15720,
+      "sha256": "86a5673339591cd857a6a9505c4c23fe89a9bd023d5518a77dfc41f1cfa634b4",
       "review_flags": []
     },
     {
@@ -538,8 +571,8 @@
       "output": "fresh safe display nodes",
       "side_effects": "DOM only; source unchanged",
       "word_pipeline_role": "display-only",
-      "bytes": 7914,
-      "sha256": "3f060205558c0df4c776810694962ef096af3cd6ff77994596095971ffe2e812",
+      "bytes": 7930,
+      "sha256": "e81adcb5c219b85c6d09c3e24424981a416468304baeeb122badd6c4d66b0eb0",
       "review_flags": []
     },
     {
@@ -635,8 +668,8 @@
       "output": "JSON IR, errors, dependencies",
       "side_effects": "read-only",
       "word_pipeline_role": "primary",
-      "bytes": 35620,
-      "sha256": "8c779022e7eb34900cf1e589e74b775d69118cfc389bebdaa099869cf662819f",
+      "bytes": 35863,
+      "sha256": "ff8f31dc801c28163e571fd8b021b802910e089eb947fef4f26af22c987fe286",
       "review_flags": []
     },
     {
@@ -707,8 +740,8 @@
       "output": "JSON API / binary resources",
       "side_effects": "reads/writes projects and drafts",
       "word_pipeline_role": "do-not-import",
-      "bytes": 115356,
-      "sha256": "3ddb4e840c7bd01e489bdcd97062697f1d8607eb1468b556333a2da92c23552c",
+      "bytes": 115622,
+      "sha256": "46a51420eb1fc67695e9efadb8ee027ae3dc2f4c8704bb12027ff6c098f21668",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -956,8 +989,8 @@
       "output": "visual preview and UI events",
       "side_effects": "modifies editor state via explicit action",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 232492,
-      "sha256": "b4f4615df95acc551ad52b509a8daa1982da13fa17a6557c7e5abcd2c47db494",
+      "bytes": 232800,
+      "sha256": "89447e8754b241ac7f51ff8960bfcd4af23228436b48d7c14dbb3f44b7278a25",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -978,8 +1011,8 @@
       "output": "source ranges, raw objects and the configured original Marked lexer",
       "side_effects": "read-only",
       "word_pipeline_role": "reference",
-      "bytes": 11402,
-      "sha256": "b9caa49e7c17443bcb4f670e72a4a9ecfbc955b4224b8fbad487aaa2f1f05fa1",
+      "bytes": 11501,
+      "sha256": "26a4169a0431a985aa0247a89f7782560a8a78c682452b368f6a3b5941381975",
       "review_flags": []
     },
     {
@@ -1152,8 +1185,8 @@
       "output": "updated table model",
       "side_effects": "temporary UI state",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 14858,
-      "sha256": "6e24a83650a25ed681bd534078aa785cef5b455b78fb593e05e577c49c385b02",
+      "bytes": 14968,
+      "sha256": "99133bcf7fcbb2e9dabff8e9d691f419828d2d4de8797bb0e9e0be40f9c3005e",
       "review_flags": []
     },
     {
@@ -1188,8 +1221,8 @@
       "output": "group model / Markdown snippet",
       "side_effects": "read-only helpers",
       "word_pipeline_role": "secondary",
-      "bytes": 7451,
-      "sha256": "689530b692076c5295c94f5b7cea7a8d2aee47c694d01282f19e8580c91d97d3",
+      "bytes": 7563,
+      "sha256": "a14338637e434b2c4257f078d9f90abf2dec9bae066eb9251680040aa1e491cb",
       "review_flags": []
     },
     {
@@ -1306,8 +1339,8 @@
       "output": "v2 HTML embedded archive",
       "side_effects": "constructs export only",
       "word_pipeline_role": "reference",
-      "bytes": 11615,
-      "sha256": "ea606922f08591aef1cb16a61d00eb857827b121f12f64ece5178d7c6f2d3fa2",
+      "bytes": 11753,
+      "sha256": "149dc717b4647bc8cbae61892f1cbd2e6636a67a8d8e665cb987e14849b011a6",
       "review_flags": []
     },
     {
@@ -1344,8 +1377,8 @@
       "output": "semantic object counts, numbers, lookup and dependency text",
       "side_effects": "read-only",
       "word_pipeline_role": "primary",
-      "bytes": 14829,
-      "sha256": "9542606a4434a10d3b4cce7ef7c6edcc414e17380e701a5161a0a9c2b2239490",
+      "bytes": 14917,
+      "sha256": "db74eb01d60d3ea94eb5dcc458cd4a510a6bc3d673af17dbd7ec1bbfee47093c",
       "review_flags": []
     },
     {
@@ -1376,8 +1409,8 @@
       "output": "standalone browser reader JS",
       "side_effects": "writes bundled app reader only with --write",
       "word_pipeline_role": "exclude",
-      "bytes": 1045,
-      "sha256": "bb8ef39dc420378b0f84bfc33730a5b8d3a477c274fb56c78d3ad2ecbcc24d57",
+      "bytes": 1069,
+      "sha256": "779c26a252a36e166d3fd201bbddfe743a35ad8d106a78303d1b3b382a5692e4",
       "review_flags": []
     },
     {
@@ -1395,8 +1428,8 @@
       "output": "navigation, copy and zoom controls",
       "side_effects": "DOM only: never mutates source JSON or Markdown",
       "word_pipeline_role": "exclude",
-      "bytes": 47216,
-      "sha256": "81e304255c212aae1ef28dd2e8cb51fc97580aac0c43a601054fcbd23e8958cd",
+      "bytes": 49265,
+      "sha256": "144e3ee2de81669c83ce3497796f2f7e62d35a9f2ebe044ecfb820e9b79b04d8",
       "review_flags": []
     },
     {

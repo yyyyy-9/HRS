@@ -133,4 +133,8 @@ prepare／convert 的 options 包含 notes_mode（footnotes／references）和 p
 
 ## 2.0 编号与模型绑定
 
-HRS 2.0配套Bridge 0.3.0；页面模型请求声明numbering_policy=document-v2，并绑定source render_options（含公式开关）及源快照。build/validate消费相同值，模型摘要拒绝旧组件或配置变化，不能将旧页面模型用于新编号。公式批量粘贴与Word编译共用MathAdapter，不增加第二套TeX→OMML链；clipboard-math子进程只返回转换结果，原粘贴事务持有身份、资源及提交。
+HRS 2.0系列便携包内的Word组件固定携带Bridge 0.3.0；独立DocFlow组合采用Bridge 0.4.2。两者是不同发行组合，不能仅比较版本号来决定替换。Word组件以页面模型SHA-256、协议及组件清单核兼容；HTML恢复还依赖目标HRS核心和Reader，不由Bridge版本号单独决定。本次2.0.1未修改页面模型或随包Word组件。
+
+页面模型请求声明numbering_policy=document-v2，并绑定source render_options（含公式开关）及源快照。build/validate消费相同值，模型摘要拒绝旧组件或配置变化，不能将旧页面模型用于新编号。公式批量粘贴与Word编译共用MathAdapter，不增加第二套TeX→OMML链；clipboard-math子进程只返回转换结果，原粘贴事务持有身份、资源及提交。
+
+项目图片路径由asset_paths.json统一规定。./assets/...在IR依赖中归一化为assets/...，安全子目录可保留；源范围和原Markdown不变。调用方应消费IR的规范依赖清单，不再以basename重建附件路径；受控块提交、临时工程稿和HTML恢复复用asset_file检查全部路径组件，不能只检查文件末级是否为链接。

@@ -34,6 +34,7 @@ from svg_prolog import safe_svg_prolog
 from pdf_graphics import validate_pdf, png_dimensions, render_pdf_preview
 from reading_pack import ReadBundle, ReadPackManager, MIME as READER_MIME, MAX_ZIP_BYTES, MAX_IMAGE as READER_MAX_IMAGE, MAX_PDF as READER_MAX_PDF
 from asset_housekeeping import AssetHousekeeper
+from asset_paths import normalize_asset, asset_file
 from word_export import WordExport
 
 HERE = Path(__file__).resolve().parent
@@ -51,10 +52,9 @@ DOC_ID = re.compile(r'^[a-f0-9]{32}$')
 DRAFT_ID = DOC_ID
 ALLOWED_IMAGE = {'.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.gif':'image/gif', '.webp':'image/webp', '.svg':'image/svg+xml'}
 ALLOWED_ASSET = {**ALLOWED_IMAGE,'.emf':'application/octet-stream','.pdf':'application/pdf'}
-WINDOWS_RESERVED = {'CON','PRN','AUX','NUL'} | {f'{p}{n}' for p in ('COM','LPT') for n in range(1,10)}
 # Byte-exact first-party reader scripts shipped by earlier releases, so HTML
 # already exported to output/ by them can still pass the delivery audit.
-LEGACY_READER_SHA256 = {'1275a6830b70fb59cf07ac16be15e2dc5ce9c87b2af2345db2c3d2bf27dbeee8','4386a8a446949233a9e5170f96e453eb58e962b876451e4de88501084e0252db','43c2ccdad84ddf525d2b5f4a6bba651c37b94c53d9c65ac28dcd5c8317a3330a','4f06e316f1bdd62d20e5173f56af0ade63b8d9e326918d2b55e3e76ad96e4036','6feb1c196b0f5f231ce9fb11d68642fecd0f810ddf035284902f8778bb4b93b4','764f4333c55c29de9affc2cf53e5322f48443d400ab6cc212e6124812eb74219','782a99c76ee2b047239bc460cca74fc2895e9c275f415f3e967e40eb20a25bde','7f217047cc92ebc99211c63201762a3f89050564c20d5b5b38fb927d77ec74c3','8769a7ce7557c2c68b62c9ac1ec6e03c60c34b65e6757f3cd6121ca080bfe833','906c8d3447b0ccda8b7e71055e3bf7ef66e064506a27d33d05ad5e701a322473','949267a8c0f7b6615f723176597cc68baddfd689f3f964e8715d74d3c6dcc0c5','bb6ecd6c41f23bd618bbf109377f2895ec3fe35fa22c4d96b65da4ea818cb577','bd7ed68acf2f5d849a16142cece55b3bd5efa8dd033cb70ea7fb5d6d6a7344a3','c8ac801ae44f87fd341b1243654f33b8e867f0592e72e95435c35653fae26a97','dc69801f4091638ea113c99e29156ebac1c24ee6711f78d16b28af766f6a32c0','e311b36e32036747723d519fd7d15d341e8d69a494d5642dfa1bccefc035ff1f','e995e95d01162d97e254b75f17d34f9e460c332ef81cf40619091a91db3bc2d5','f478329753af6f59b00426e060dc2c12f95cb0000652433a861d09b0b5cce7ec','f85efdc2182e7b211fec5b39e7a840d3cefdf7ac9bbf03f1b219161ce139d144'}
+LEGACY_READER_SHA256 = {'81e304255c212aae1ef28dd2e8cb51fc97580aac0c43a601054fcbd23e8958cd','1275a6830b70fb59cf07ac16be15e2dc5ce9c87b2af2345db2c3d2bf27dbeee8','4386a8a446949233a9e5170f96e453eb58e962b876451e4de88501084e0252db','43c2ccdad84ddf525d2b5f4a6bba651c37b94c53d9c65ac28dcd5c8317a3330a','4f06e316f1bdd62d20e5173f56af0ade63b8d9e326918d2b55e3e76ad96e4036','6feb1c196b0f5f231ce9fb11d68642fecd0f810ddf035284902f8778bb4b93b4','764f4333c55c29de9affc2cf53e5322f48443d400ab6cc212e6124812eb74219','782a99c76ee2b047239bc460cca74fc2895e9c275f415f3e967e40eb20a25bde','7f217047cc92ebc99211c63201762a3f89050564c20d5b5b38fb927d77ec74c3','8769a7ce7557c2c68b62c9ac1ec6e03c60c34b65e6757f3cd6121ca080bfe833','906c8d3447b0ccda8b7e71055e3bf7ef66e064506a27d33d05ad5e701a322473','949267a8c0f7b6615f723176597cc68baddfd689f3f964e8715d74d3c6dcc0c5','bb6ecd6c41f23bd618bbf109377f2895ec3fe35fa22c4d96b65da4ea818cb577','bd7ed68acf2f5d849a16142cece55b3bd5efa8dd033cb70ea7fb5d6d6a7344a3','c8ac801ae44f87fd341b1243654f33b8e867f0592e72e95435c35653fae26a97','dc69801f4091638ea113c99e29156ebac1c24ee6711f78d16b28af766f6a32c0','e311b36e32036747723d519fd7d15d341e8d69a494d5642dfa1bccefc035ff1f','e995e95d01162d97e254b75f17d34f9e460c332ef81cf40619091a91db3bc2d5','f478329753af6f59b00426e060dc2c12f95cb0000652433a861d09b0b5cce7ec','f85efdc2182e7b211fec5b39e7a840d3cefdf7ac9bbf03f1b219161ce139d144'}
 SVG_DOCUMENT_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox"
 
 from project_commit import commit_report, backup_report, report_lock
@@ -359,10 +359,9 @@ def check_image(ext: str, blob: bytes, limit: int = LIMIT_IMAGE) -> None:
 
 
 def clean_asset_name(name: str) -> str:
-    if not isinstance(name,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,120}',name):
+    if not isinstance(name,str) or normalize_asset('assets/'+name,originals=True)!='assets/'+name:
         raise ValueError('附件名不合法')
     if Path(name).suffix.lower() not in ALLOWED_ASSET:raise ValueError('附件格式不受支持')
-    if name.split('.')[0].upper() in WINDOWS_RESERVED:raise ValueError('附件名是 Windows 保留名称')
     return name
 
 
@@ -905,11 +904,11 @@ class Handler(BaseHTTPRequestHandler):
                 if requested_draft:
                     draft_dir=self.server.draft_path(requested_draft)
                     self._verify_draft_owner(requested_draft,doc_id)
-                    image=draft_dir/'assets'/name
+                    image=asset_file(draft_dir/'assets',name)
                     if image.is_file() and not is_link(image):
                         return self.bytes(image.read_bytes(),ALLOWED_ASSET[image.suffix.lower()])
                 if folder is None:return self.fail('图片尚未暂存',404)
-                image=folder/'assets'/name
+                image=asset_file(folder/'assets',name)
                 if not image.is_file() or is_link(image):return self.fail('图片不存在',404)
                 return self.bytes(image.read_bytes(),ALLOWED_ASSET[image.suffix.lower()])
             if p=='/api/health':return self.resp({'ok':True,'version':VERSION,'package_revision':PACKAGE_REVISION,'release':RELEASE,'offline':True,'pdf_browser_found':bool(os.environ.get('HRS_DESKTOP_BRIDGE') or pick_browser()),
@@ -1070,11 +1069,11 @@ class Handler(BaseHTTPRequestHandler):
                     template,template_sha=exporter.template(key,req.get('template_token','default'))
                     draft_assets=self.server.draft_path(self._draft_id(req))/'assets'
                     for name,info in freeze['files'].items():
-                        staged=draft_assets/name
-                        source=staged if staged.is_file() and not is_link(staged) else folder/'assets'/name
+                        staged=asset_file(draft_assets,name)
+                        source=staged if staged.is_file() else asset_file(folder/'assets',name)
                         raw=source.read_bytes()
                         if digest(raw)!=info['sha256']:raise RuntimeError('冻结 Word 附件时源图发生变化，请重新导出')
-                        (snapshot/'assets'/name).write_bytes(raw)
+                        atomic_write(asset_file(snapshot/'assets',name),raw)
                     (snapshot/'report.md').write_bytes(req['markdown'].encode('utf8'))
                     write_json(snapshot/'meta.json',{'render_profile':normalize_profile(req.get('render_profile')),
                                'render_options':normalize_options(req.get('render_options'))})
@@ -1281,8 +1280,8 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(resource,str) or not resource.startswith('assets/'):
                 raise ValueError('导出资源路径不合法')
             name=clean_asset_name(resource[len('assets/'):])
-            staged=draft_assets/name
-            current=(folder/'assets'/name) if folder is not None else None
+            staged=asset_file(draft_assets,name)
+            current=asset_file(folder/'assets',name) if folder is not None else None
             if staged.is_file() and not is_link(staged):asset=staged
             elif current is not None and current.is_file() and not is_link(current):asset=current
             else:raise ValueError('导出资源不存在：assets/'+name)
@@ -1366,8 +1365,8 @@ class Handler(BaseHTTPRequestHandler):
         for path in asset_paths:
             name=path.removeprefix('assets/')
             clean_asset_name(name)
-            current=(p/'assets'/name) if p else None
-            stage=folder/name
+            current=asset_file(p/'assets',name) if p else None
+            stage=asset_file(folder,name)
             if stage.is_file() and not is_link(stage):
                 data=stage.read_bytes();check_image(Path(name).suffix.lower(),data)
                 if current and current.is_file() and current.read_bytes()!=data:
@@ -1387,8 +1386,10 @@ class Handler(BaseHTTPRequestHandler):
             (staging/'output').mkdir()
             for name,data in assets.items():
                 if progress:progress.check()
-                if isinstance(data,CopyAsset):data.copy_to(staging/'assets'/name)
-                else:atomic_write(staging/'assets'/name,data)
+                target=asset_file(staging/'assets',name)
+                target.parent.mkdir(parents=True,exist_ok=True)
+                if isinstance(data,CopyAsset):data.copy_to(target)
+                else:atomic_write(target,data)
             atomic_write(staging/'report.md',text.encode('utf-8'))
             self._store_meta(staging,doc_id,text,template,theme)
             if meta_extra:
@@ -1612,7 +1613,7 @@ class Handler(BaseHTTPRequestHandler):
             req.get('local_files'),folder)
         target=self._graphic_dir(req)
         for name,data in result.pop('assets').items():
-            path=target/name
+            path=asset_file(target,name)
             if not path.exists():atomic_write(path,data)
             elif path.read_bytes()!=data:raise ValueError('粘贴期间暂存附件发生冲突')
         return self.resp({'ok':True,**result})
@@ -1625,11 +1626,13 @@ class Handler(BaseHTTPRequestHandler):
         doc_id=self._docid(req);did=self._draft_id(req);self._verify_draft_owner(did,doc_id)
         folder=self.server.draft_path(did)/'assets'
         if folder.is_dir():
-            for path in folder.iterdir():
-                name=clean_asset_name(path.name)
-                if is_link(path) or not path.is_file():raise ValueError('暂存附件必须是普通文件')
+            for path in folder.rglob('*'):
+                if is_link(path):raise ValueError('暂存附件不能包含链接')
+                if path.is_dir():continue
+                name=clean_asset_name(path.relative_to(folder).as_posix())
+                if not path.is_file():raise ValueError('暂存附件必须是普通文件')
                 data=path.read_bytes();check_image(path.suffix.lower(),data)
-                existing=current/'assets'/name if current else None
+                existing=asset_file(current/'assets',name) if current else None
                 if existing and existing.exists() and existing.read_bytes()!=data:raise ValueError('暂存附件与正式附件冲突：'+name)
                 assets[name]=data
         return assets
@@ -1860,7 +1863,7 @@ class Handler(BaseHTTPRequestHandler):
             total+=len(data)
             if total>30*1024*1024:raise ValueError('导入附件总量超过 30 MB')
             if p is not None:
-                existing=p/'assets'/name
+                existing=asset_file(p/'assets',name)
                 if existing.is_file() and existing.read_bytes()!=data:raise ValueError('同名附件内容不同，拒绝覆盖：'+name)
             prepared[name]=data
         if p is None:
@@ -1868,7 +1871,7 @@ class Handler(BaseHTTPRequestHandler):
             p,doc_id=self._create_with_assets(text,template,theme,prepared)
         else:
             for name,data in prepared.items():
-                dest=p/'assets'/name
+                dest=asset_file(p/'assets',name)
                 if not dest.exists():atomic_write(dest,data)
             new=text.encode('utf-8')
             if new!=old:self._backup(p);atomic_write(p/'report.md',new)

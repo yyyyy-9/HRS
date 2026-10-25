@@ -17,6 +17,7 @@ import shutil
 import sys
 import tempfile
 import threading
+from asset_paths import asset_file
 
 
 class HTMLCommandError(ValueError):
@@ -185,7 +186,8 @@ def recover_html(source, output, *, browser=None):
             clean_asset_name(name)
             data = base64.b64decode(encoded, validate=True)
             check_image(Path(name).suffix.lower(), data)
-            (staged / 'assets' / name).write_bytes(data)
+            target=asset_file(staged/'assets',name)
+            target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(data)
             hashes['assets/' + name] = _sha(data)
         ir = analyze(restored['markdown'], assets=staged / 'assets')
         if not ir['ok']:

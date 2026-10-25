@@ -9,13 +9,13 @@ from browser_support import source,select,value,wait_rich_clipboard,artifact_dir
 def main():
  out=artifact_directory(__file__,'HRS_RC2_EVIDENCE',prefix='hrs-rc2-extra-')
  with tempfile.TemporaryDirectory(prefix='hrs-rc2-clipboard-') as d:
-  project=Path(d)/'project';(project/'assets').mkdir(parents=True)
-  (project/'assets/1234567890abcdef.png').write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAABgAAAAQCAIAAACDRijCAAAAI0lEQVR4nGPUjephoAZgooopDKMGEQNGA5swGA0jwmDwhREAMgYBM6jouUsAAAAASUVORK5CYII='))
-  figure={'schema':'report-figure-v1','id':'fig-one','caption':'单图','kind':'image','src':'assets/1234567890abcdef.png','alt':''}
+  project=Path(d)/'project';(project/'assets/sub').mkdir(parents=True)
+  (project/'assets/sub/1234567890abcdef.png').write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAABgAAAAQCAIAAACDRijCAAAAI0lEQVR4nGPUjephoAZgooopDKMGEQNGA5swGA0jwmDwhREAMgYBM6jouUsAAAAASUVORK5CYII='))
+  figure={'schema':'report-figure-v1','id':'fig-one','caption':'单图','kind':'image','src':'assets/sub/1234567890abcdef.png','alt':''}
   caption='长表题用于检查中间区域自动换行而左右操作保持位置。'*6
   table={'schema':'report-table-v1','id':'tbl-one','caption':caption,'rows':[[{'text':'甲','rowspan':1,'colspan':1},{'text':'乙','rowspan':1,'colspan':1}]]}
   raw='```report-figure\n'+json.dumps(figure,ensure_ascii=False)+'\n```\n\n```report-table\n'+json.dumps(table,ensure_ascii=False)+'\n```\n\n'
-  raw+='::: {#fig-group layout-ncol=2 subfig-labels=off}\n![一](assets/1234567890abcdef.png)\n![二](assets/1234567890abcdef.png)\n组图说明\n:::\n\n'
+  raw+='::: {#fig-group layout-ncol=2 subfig-labels=off}\n![一](assets/sub/1234567890abcdef.png)\n![二](assets/sub/1234567890abcdef.png)\n组图说明\n:::\n\n'
   raw+='参见 @fig:fig-one、@tbl:tbl-one、@fig:fig-group。`@fig:fig-one` 是代码示例。\n'
   text='# 原稿\n\n'+raw;(project/'report.md').write_bytes(text.encode('utf8'));cases=[]
   with browser_session(project) as page:

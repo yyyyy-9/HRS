@@ -4,6 +4,7 @@
 // GFM tables are foldable source ranges, not extra fenced objects. A fold
 // never changes report.md or participates in formal table numbering.
 const catalog=root.ReportObjectCatalog||(typeof module!=='undefined'&&module.exports?require('./object_catalog.js'):null);
+const paths=root.ReportAssetPaths||(typeof module!=='undefined'&&module.exports?require('./asset_paths.js'):null);
 function pipeTableAt(lines,index){
  const parser=root.ReportPipeTables;
  if(!parser||index+1>=lines.length)return null;
@@ -179,10 +180,10 @@ function promoteImages(source,map,{create,serialize}){
   if(record.type!=='paragraph')continue;
   const tokens=(record.token.tokens||[]).filter(t=>t.raw?.trim());
   if(tokens.length!==1||tokens[0].type!=='image')continue;
-  const image=tokens[0];if(!/^assets\/[A-Za-z0-9_.-]+$/.test(image.href))continue;
+  const image=tokens[0],src=paths.normalize(image.href);if(!src)continue;
   const alt=image.text||'',caption=image.title||image.text||'';
   if(alt.length>300||caption.length>300){skipped.push(record.start);continue;}
-  const object=create(image.href);object.alt=alt;object.caption=caption;
+  const object=create(src);object.alt=alt;object.caption=caption;
   edits.push({start:record.start,end:record.end,text:replacement(record.raw,serialize(object))});
  }
  let markdown=source;for(const edit of edits.slice().reverse())markdown=markdown.slice(0,edit.start)+edit.text+markdown.slice(edit.end);

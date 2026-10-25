@@ -8,6 +8,7 @@ import secrets
 import threading
 import time
 from project_workspace import is_link
+from asset_paths import asset_file
 
 SCHEMA = 'hrs-report-workspace-v1'
 ID = re.compile(r'^[a-f0-9]{32}$')
@@ -284,11 +285,10 @@ def _sync_candidate(project,origin,descriptor,request,asset_roots):
     # Candidate may also contain untouched origin assets outside the topic.
     for url in ir['assets']:
         name=url.removeprefix('assets/')
-        if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,180}',name):raise ValueError('附件名称不安全')
-        choices=[Path(r)/name for r in asset_roots]+[origin/'assets'/name]
+        choices=[asset_file(r,name) for r in asset_roots]+[asset_file(origin/'assets',name)]
         source=next((p for p in choices if p.is_file() and not is_link(p)),None)
         if source is None:raise ValueError('同步附件缺失：'+name)
-        digest=_file_sha(source);target=origin/'assets'/name
+        digest=_file_sha(source);target=asset_file(origin/'assets',name)
         if target.exists() and (is_link(target) or _file_sha(target)!=digest):
             raise ValueError('源稿存在同名不同内容附件：'+name)
         assets[name]={'sha256':digest,'source':str(source)}
@@ -333,18 +333,21 @@ def apply_sync(project,origin,descriptor,request,asset_roots,*,after_commit=None
         (origin/'assets').mkdir(exist_ok=True)
         with tempfile.TemporaryDirectory(prefix='.hrs-sync-',dir=origin) as temp:
             for name,item in fresh['asset_hashes'].items():
-                target=origin/'assets'/name
+                target=asset_file(origin/'assets',name)
                 if target.exists():
                     if is_link(target) or _file_sha(target)!=item['sha256']:raise ValueError('同步期间来源附件变化：'+name)
                     continue
-                stage=Path(temp)/name;CopyAsset(item['source'],item['sha256'],Progress()).copy_to(stage)
+                stage=asset_file(temp,name);stage.parent.mkdir(parents=True,exist_ok=True)
+                CopyAsset(item['source'],item['sha256'],Progress()).copy_to(stage)
+                target.parent.mkdir(parents=True,exist_ok=True)
+                target=asset_file(origin/'assets',name)
                 try:
                     if os.name=='nt':os.rename(stage,target)  # Windows rename never replaces an existing target.
                     else:os.link(stage,target)  # Same-volume stage; atomic create without replacement.
                 except FileExistsError:
                     if is_link(target) or _file_sha(target)!=item['sha256']:raise ValueError('同步期间出现同名不同内容附件：'+name)
         for name,item in fresh['asset_hashes'].items():
-            if _file_sha(origin/'assets'/name)!=item['sha256']:raise ValueError('提交前来源附件变化：'+name)
+            if _file_sha(asset_file(origin/'assets',name))!=item['sha256']:raise ValueError('提交前来源附件变化：'+name)
         backup=commit_report_locked(origin,candidate,fresh['source_sha256'])
         # Rebase only the explicitly edited ranges, enabling another reviewed sync.
         edits=fresh['edits']

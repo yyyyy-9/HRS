@@ -7,6 +7,8 @@ async function open(model,{modal,toast}){
  let working=cloneReport(model),grid,scroll,caption,widthTrack,undoButton,redoButton,horizontalSelect,verticalSelect;
  let selected=null,anchor=null,range=null,index=0,lastKind=null,lastAt=0;
  const entries=[capture()];
+ let owner;
+ const keys=event=>{if((event.ctrlKey||event.metaKey)&&!event.isComposing&&['z','y'].includes(event.key.toLowerCase())){event.preventDefault();event.stopPropagation();if(event.key.toLowerCase()==='y'||event.shiftKey)redo();else undo();}};
  function capture(){return {model:cloneReport(working),selected:cloneReport(selected),anchor:cloneReport(anchor),range:cloneReport(range)};}
  function record(kind){
   const now=Date.now(),entry=capture();entries.splice(index+1);
@@ -118,7 +120,7 @@ async function open(model,{modal,toast}){
    grid.append(field);
   }));buildWidths();highlight();historyButtons();scroll.scrollTop=top;scroll.scrollLeft=left;
  }
- return modal({title:'编辑表格',kicker:'表格 · 内容与合并关系保留',wide:true,
+ try{return await modal({title:'编辑表格',kicker:'表格 · 内容与合并关系保留',wide:true,
   note:'窗口内可逐步撤销；应用后整张表作为一笔文稿修改，取消不修改源稿',
   body:outer=>{
    caption=document.createElement('input');caption.type='text';caption.className='table-caption-input';caption.placeholder='表题（可选，不手工填写编号）';caption.maxLength=300;caption.value=working.caption;
@@ -170,9 +172,10 @@ async function open(model,{modal,toast}){
    const widthHelp=document.createElement('p');widthHelp.className='modal-help';widthHelp.textContent='列宽：拖动下方分隔线，或选中分隔线后用 ← / → 微调。行高随内容自动增长。';outer.append(widthHelp);
    widthTrack=document.createElement('div');widthTrack.className='table-width-track';outer.append(widthTrack);
    scroll=document.createElement('div');scroll.className='table-grid-scroll';outer.append(scroll);grid=document.createElement('div');grid.className='table-edit-grid';scroll.append(grid);
-   outer.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&!event.isComposing&&['z','y'].includes(event.key.toLowerCase())){event.preventDefault();event.stopPropagation();if(event.key.toLowerCase()==='y'||event.shiftKey)redo();else undo();}});
+   owner=outer;owner.addEventListener('keydown',keys);
    rebuild();
   },onOk:()=>{T.logicalGrid(working);T.validateWidths(working.columnWidths,working.rows[0].length);return cloneReport(working);},okText:'应用表格修改'});
+ }finally{owner?.removeEventListener('keydown',keys);}
 }
 root.ReportTableEditor={open};
 })(window);

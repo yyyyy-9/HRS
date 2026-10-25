@@ -18,11 +18,11 @@ from reference_context import masked_context
 from html_assets import references as html_image_references
 from pipe_table_contract import parse_at as parse_pipe_table_at
 from equation_contract import parse_equation
+from asset_paths import ASSET, normalize_asset, asset_file
 
 FORMAT='engineering-report-v1'
 IR_VERSION='engineering-report-ir-v1'
 ID=re.compile(r'^[A-Za-z][A-Za-z0-9_-]{0,63}$')
-ASSET=re.compile(r'^assets/([A-Za-z0-9][A-Za-z0-9_.-]{0,120}\.(?:png|jpe?g|gif|webp|svg))$',re.I)
 EMF_ASSET=re.compile(r'^assets/([a-f0-9]{16})\.emf$',re.I)
 SOURCE_ASSET=re.compile(r'^assets/([a-f0-9]{16})\.(pdf|emf|svg|png|jpe?g|webp)$',re.I)
 FENCE_OPEN=re.compile(r'^ {0,3}(`{3,}|~{3,})([^\r\n]*)$')
@@ -109,7 +109,7 @@ def validate_figure(obj):
         raise ContractError('图题长度不能超过 300 字')
     kind=obj.get('kind')
     if kind=='image':
-        if not isinstance(obj.get('src'),str) or not ASSET.fullmatch(obj['src']):
+        if not isinstance(obj.get('src'),str) or normalize_asset(obj['src'])!=obj['src']:
             raise ContractError('图片路径必须位于本项目 assets/ 下')
         if not isinstance(obj.get('alt',''),str) or len(obj.get('alt',''))>300:
             raise ContractError('图片替代文字无效')
@@ -197,7 +197,7 @@ def parse_image_group(source):
         if not line.strip():continue
         image=GROUP_IMAGE.fullmatch(line)
         if image and not seen_caption:
-            if not ASSET.fullmatch(image[2]):raise ContractError('组图图片必须位于本项目 assets/ 下')
+            if normalize_asset(image[2])!=image[2]:raise ContractError('组图图片必须位于本项目 assets/ 下')
             text=re.sub(r'\\([\\\[\]])',r'\1',image[1])
             if len(text)>300:raise ContractError('子图说明最多 300 字')
             item={'src':image[2],'caption':text}
@@ -293,7 +293,7 @@ def analyze(markdown: str, assets: Path | None = None) -> dict:
         for url, relative_line, column, length in html_image_references(text):
             number=startline+relative_line-1
             location=line_range(number,column,column+length)
-            if ASSET.fullmatch(url):assets_used.append((url,number,location))
+            if (canonical:=normalize_asset(url)):assets_used.append((canonical,number,location))
             else:diag('error','EXTERNAL_IMAGE','图片路径不是本地 assets/ 文件：'+url[:80],number,location)
         for index,raw in enumerate(piece_lines):
             line=startline+index
@@ -335,7 +335,7 @@ def analyze(markdown: str, assets: Path | None = None) -> dict:
             for img in ANY_IMAGE.finditer(asset_lines[index]):
                 url=img[1].split(' "',1)[0]
                 location=line_range(line,img.start(),img.end())
-                if ASSET.fullmatch(url):assets_used.append((url,line,location))
+                if (canonical:=normalize_asset(url)):assets_used.append((canonical,line,location))
                 else:diag('error','EXTERNAL_IMAGE','图片路径不是本地 assets/ 文件：'+url[:80],line,location)
         flush()
     idx=0;buffer=[];buffer_start=1
@@ -411,7 +411,7 @@ def analyze(markdown: str, assets: Path | None = None) -> dict:
                     for image in ANY_IMAGE.finditer(asset_lines[offset]):
                         url=image[1].split(' "',1)[0]
                         loc=line_range(lineno,image.start(),image.end())
-                        if ASSET.fullmatch(url):assets_used.append((url,lineno,loc))
+                        if (canonical:=normalize_asset(url)):assets_used.append((canonical,lineno,loc))
                         else:diag('error','EXTERNAL_IMAGE','图片路径不是本地 assets/ 文件：'+url[:80],lineno,loc)
             blocks.append({'type':'table','sourceKind':'gfm-pipe','numbered':True,**({'id':oid} if oid else {}),
                           'data':pipe['data'],'source':pipe['source'],'line':start+1})
@@ -472,7 +472,7 @@ def analyze(markdown: str, assets: Path | None = None) -> dict:
         elif not ref['target'].startswith(ref['kind']+'-'):
             diag('error','WRONG_REFERENCE_KIND',f'交叉引用类型不匹配：{ref["kind"]}:{ref["target"]}',ref['line'],{'start':ref['start'],'end':ref['end'],'objectId':ref['target']})
     if assets is not None:
-        root=Path(assets).resolve()
+        root=Path(assets)
         for path,line,location in assets_used:
             name=ASSET.fullmatch(path)
             if name is None:
@@ -481,8 +481,12 @@ def analyze(markdown: str, assets: Path | None = None) -> dict:
                     diag('error','INVALID_ASSET','附件路径无效：'+path,line,location)
                 elif not (root/path.removeprefix('assets/')).is_file():
                     diag('error','MISSING_ASSET','找不到原始图形附件：'+path,line,location)
-            elif not (root/name[1]).is_file():
-                diag('error','MISSING_ASSET','找不到附件：'+path,line,location)
+            else:
+                try:present=asset_file(root,name[1]).is_file()
+                except ValueError:
+                    diag('error','INVALID_ASSET','附件路径不允许包含链接：'+path,line,location)
+                    continue
+                if not present:diag('error','MISSING_ASSET','找不到附件：'+path,line,location)
     for block in blocks:
         block['start']=line_starts[block['line']-1]
         block['end']=block['start']+len(block['source'].encode('utf-16-le'))//2

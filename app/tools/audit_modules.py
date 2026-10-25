@@ -25,6 +25,10 @@ from release_info import load_release
 CATALOG=ROOT/'docs/MODULE_CATALOG.json'
 # Names verified from source, not guessed reflection values.
 DEFS=[
+ ('asset_paths','asset_paths.py','resource-boundary','canonical project image spelling and guarded file access from the shared JSON rules',
+   ['normalize_asset','asset_file'],'asset_paths.json and declared project resource paths','canonical dependency path / bounded local file','read-only validation; caller owns explicit writes','indirect'),
+ ('browser_asset_paths','web/asset_paths.js','resource-boundary','browser view of the same asset_paths.json rules through generated asset_paths_data.js',
+   ['normalize'],'declared image paths and generated rules','canonical project image path','no filesystem or source writes','indirect'),
  ('host_services','host_services.py','host-adapter','private optional desktop PDF capability; existing source/resource/output checks stay in studio',
    ['desktop_bridge','render_desktop_pdf','watch_desktop_parent','release_desktop_windows'],'owning host environment and checked temporary HTML','native PDF / owner-bound lifecycle','explicit print and owned leases only; never source or arbitrary output','not-semantic'),
  ('output_preflight','web/preflight.js','output-policy','complete text diagnostics over Python IR plus shared Marked/SourceMap/notes; partial APIs remain explicit',

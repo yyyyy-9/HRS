@@ -10,6 +10,7 @@ from urllib.parse import unquote,urlsplit
 from report_contract import analyze,ANY_IMAGE,ASSET
 from reference_context import masked_context
 from project_workspace import is_link
+from asset_paths import normalize_asset, asset_file
 
 FORMAT='hrs-object-clipboard-v1'
 MAX_TOTAL=30*1024*1024
@@ -27,7 +28,7 @@ def _fragment(text):
 
 def _file(folder,name):
     if folder is None:return None
-    path=Path(folder)/name
+    path=asset_file(folder,name)
     if is_link(folder) or is_link(path):raise ValueError('剪贴板资源不能是链接文件')
     return path if path.is_file() else None
 
@@ -45,7 +46,7 @@ def local_urls(ir):
         raw=block['source'];visible=masked_context(raw,mask_images=False)
         urls.update(m[1].split(' "',1)[0] for m in ANY_IMAGE.finditer(visible))
         urls.update(row[0] for row in references(raw))
-    return urls-set(ir['assets'])
+    return {url for url in urls if normalize_asset(url) not in ir['assets']}
 
 def local_path(folder,url):
     if folder is None or urlsplit(url).scheme or Path(url).is_absolute():return None
@@ -107,7 +108,7 @@ def rewrite(text,ir,ids,paths):
                 visible=masked_context(raw,mask_images=False)
                 # The existing scanner masks code, mathematics and link targets.
                 for match in ANY_IMAGE.finditer(visible):
-                    url=raw[match.start(1):match.end(1)].split(' "',1)[0];target=paths.get(url)
+                    url=raw[match.start(1):match.end(1)].split(' "',1)[0];target=paths.get(url) or paths.get(normalize_asset(url))
                     if target:local.append((match.start(1),match.start(1)+len(url),target))
                 if typ=='image-group':
                     for old,new in paths.items():
@@ -117,11 +118,12 @@ def rewrite(text,ir,ids,paths):
                 lines=raw.splitlines(keepends=True);prefix=[0]
                 for line in lines:prefix.append(prefix[-1]+len(line))
                 for url,line,column,length in references(raw):
-                    if url in paths:
+                    target=paths.get(url) or paths.get(normalize_asset(url))
+                    if target:
                         x=prefix[line-1]+column
                         tag=raw[x:x+length]
                         attr=re.search(r'\bsrc\s*=\s*([\"\'])(.*?)\1',tag,re.I|re.S)
-                        if attr:local.append((x+attr.start(2),x+attr.end(2),paths[url]))
+                        if attr:local.append((x+attr.start(2),x+attr.end(2),target))
         for ref in ir['references']:
             x=char_index(text,ref['start']);y=char_index(text,ref['end'])
             if ref['target'] in ids and a<=x<y<=b:
@@ -164,7 +166,7 @@ def paste_bundle(bundle,target_text,roots,target_key,check_image,local_files=Non
     for name,data in prepared.items():check_image(Path(name).suffix.lower(),data)
     # Keep original/preview basename relationships together when resolving a collision.
     groups={}
-    for name in prepared:groups.setdefault(Path(name).stem,[]).append(name)
+    for name in prepared:groups.setdefault(Path(name).with_suffix('').as_posix(),[]).append(name)
     final={}
     for stem,names in groups.items():
         collision=any((path:=_file(root,name)) and path.read_bytes()!=prepared[name] for name in names for root in roots)

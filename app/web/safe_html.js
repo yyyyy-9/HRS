@@ -12,7 +12,8 @@ const LIST_STYLES=new Set('bullet decimal lower-alpha paren-decimal paren-lower-
 // Browser CSS parsing expands border shorthands into these longhand names.
 for(const side of ['top','right','bottom','left'])for(const part of ['width','style','color'])STYLES.add('border-'+side+'-'+part);
 for(const corner of ['top-left','top-right','bottom-left','bottom-right'])STYLES.add('border-'+corner+'-radius');
-function assetPath(value){return typeof value==='string'&&/^assets\/[A-Za-z0-9][A-Za-z0-9_.-]{0,120}\.(?:png|jpe?g|gif|webp|svg)$/i.test(value)?value:null;}
+const paths=root.ReportAssetPaths||(typeof module!=='undefined'&&module.exports?require('./asset_paths.js'):null);
+function assetPath(value){return paths.normalize(value);}
 function safeLink(value){
  if(typeof value!=='string'||/[\x00-\x20\x7f-\x9f]/.test(value))return null;
  if(value.startsWith('#'))return value;

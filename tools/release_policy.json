@@ -1,12 +1,12 @@
 {
   "schema": "hrs-release-policy-v1",
-  "purpose": "NUMBERING-02 / PASTE-MATH-01: HRS 2.0.0 from verified v1.1.4; document-level numbers and editable native math paste.",
+  "purpose": "FRONTEND-02/03/05/08: reviewed v2.0.0 to v2.0.1 input undo, table session lifetime, shared project image paths and component-version descriptions.",
   "allowed_application_changes": [
     "app/CHANGELOG.md",
     "app/MANIFEST.json",
-    "app/README.md",
-    "app/clipboard_document.py",
-    "app/clipboard_math.py",
+    "app/asset_paths.json",
+    "app/asset_paths.py",
+    "app/block_cli.py",
     "app/docs/CHANGELOG_READABLE.html",
     "app/docs/CHANGELOG_READABLE.md",
     "app/docs/CURRENT_STATUS.html",
@@ -14,68 +14,39 @@
     "app/docs/LONG_TERM_ROADMAP.html",
     "app/docs/MODULE_CATALOG.json",
     "app/docs/MODULE_OVERVIEW.html",
-    "app/docs/MODULE_OVERVIEW.md",
-    "app/docs/PROJECT_GOALS.md",
     "app/docs/SHORT_TERM_PLAN.html",
     "app/docs/USER_GUIDE.html",
     "app/docs/USER_GUIDE.md",
     "app/docs/WORD_COMPILER_HANDOFF.html",
     "app/docs/WORD_COMPILER_HANDOFF.md",
-    "app/equation_contract.py",
-    "app/legacy_math.py",
-    "app/pipe_table_contract.py",
-    "app/product_settings.json",
+    "app/html_cli.py",
+    "app/object_clipboard.py",
     "app/release.json",
     "app/report_contract.py",
+    "app/report_workspace.py",
     "app/source_format_v1.md",
     "app/studio.py",
     "app/tools/audit_modules.py",
+    "app/tools/build_reader_bundle.js",
+    "app/tools/build_settings.js",
     "app/web/CHANGELOG_READABLE.html",
     "app/web/MODULE_OVERVIEW.html",
     "app/web/WORD_COMPILER_HANDOFF.html",
     "app/web/app.js",
-    "app/web/bridge_model.js",
+    "app/web/asset_paths.js",
+    "app/web/asset_paths_data.js",
+    "app/web/export_archive.js",
     "app/web/help.html",
     "app/web/index.html",
     "app/web/object_catalog.js",
-    "app/web/pipe_tables.js",
-    "app/web/product_settings.js",
-    "app/web/reading_pack.js",
-    "app/web/report_equations.js",
+    "app/web/report_layout.js",
     "app/web/report_reader.js",
-    "app/web/report_reader_core.js",
-    "app/web/rich_clipboard.js",
+    "app/web/safe_html.js",
     "app/web/source_blocks.js",
-    "app/word_export.py"
+    "app/web/table_editor.js"
   ],
   "approved_css_changes": {},
-  "protected": "Pinned Python/runtime/launchers, CSS, vendors, upstream editor, templates and third-party Word libraries remain unchanged. Exact fingerprints below authorize only the reviewed Bridge numbering/model/math adapter changes.",
-  "approved_word_material_changes": {
-    "word_support/SOURCE.txt": {
-      "baseline_sha256": "cc868d426dd0532b147c6eeace337cbbc788bb5367b2bf5decfec322c64baa81",
-      "sha256": "048364c95eb560a199fd5ef8ac80babab40668a674be6f16e75ef9f65e06f4a4"
-    }
-  },
-  "approved_word_contract_adapter_changes": {
-    "word_support/MANIFEST.json": {
-      "baseline_sha256": "4190cb2729585d997f3c79617a820ce637acfebfae516e483078b2fa05fed323",
-      "sha256": "6b5ca48f4886688f03a0c76919a30459fdbe4f7de37329246e6fa1b9fb945984"
-    },
-    "word_support/bridge/hrs_bridge/__init__.py": {
-      "baseline_sha256": "e327cc35e220da7c910f7f5ded1d2ac3cf3a0b3550728fe41ddd3731289e648b",
-      "sha256": "4cbc1068939a3a546bd8357082222629987369525ccf43279e8682dc71bba3d6"
-    },
-    "word_support/bridge/hrs_bridge/browser_model.js": {
-      "baseline_sha256": "fc6c0d14f19cbb6879a85b1aecac1530c95d350712de409507c929d20f85f96e",
-      "sha256": "cd933af6e4c8afc343163ade6224577a152b4fa783e06f942132124129392695"
-    },
-    "word_support/bridge/hrs_bridge/docx_export.py": {
-      "baseline_sha256": "b4c0ec0aa60297846a0e7750c4dab4bfce769b2096a9acc6da8c557fa05ba8c1",
-      "sha256": "c8fd45a024f9f845b5863ce34dc646bd1dbec2169757afd88ca7b043d95aa2b5"
-    },
-    "word_support/bridge/hrs_bridge/math_adapter.py": {
-      "baseline_sha256": "6182c63702b8a7d8c01ac0990824341dec7b87d9cfb971fd6d5eeeb80215c319",
-      "sha256": "af00baded2c508b6ab4e6017536ef4941a4cd447993422deb80e0aded34ffa89"
-    }
-  }
+  "protected": "Python/runtime/launchers, CSS, vendors, upstream editor, templates, page model and the complete Word component stay byte-identical to verified v2.0.0.",
+  "approved_word_material_changes": {},
+  "approved_word_contract_adapter_changes": {}
 }

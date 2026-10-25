@@ -10,6 +10,7 @@ from report_contract import analyze
 from agent_readonly import project
 from project_workspace import is_link
 from project_commit import report_lock,commit_report_locked
+from asset_paths import asset_file
 
 SCHEMA='hrs-block-plan-v1'
 
@@ -28,7 +29,7 @@ def resource_snapshot(folder,resources):
     if is_link(root):raise BlockCommandError('Assets directory may not be a link')
     for resource in sorted(set(resources)):
         if not resource.startswith('assets/'):raise BlockCommandError('Invalid asset path')
-        name=clean_asset_name(resource[7:]);path=root/name
+        name=clean_asset_name(resource[7:]);path=asset_file(root,name)
         if is_link(path) or not path.is_file():raise BlockCommandError('MISSING_ASSET: '+resource)
         data=path.read_bytes();check_image(path.suffix.lower(),data)
         result[resource]=sha(data)

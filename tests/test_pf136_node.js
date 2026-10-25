@@ -9,7 +9,7 @@ assert(!reader.includes('Object.hasOwn('));
 assert(reader.includes(catalog));
 const ctx=vm.createContext({console});
 vm.runInContext('Object.hasOwn = undefined',ctx);
-vm.runInContext(fs.readFileSync(path.join(dir,'report_clone.js'),'utf8')+'\n'+fs.readFileSync(path.join(dir,'report_tables.js'),'utf8')+'\n'+catalog,ctx);
+vm.runInContext(['asset_paths_data.js','asset_paths.js','report_clone.js','report_tables.js'].map(name=>fs.readFileSync(path.join(dir,name),'utf8')).join('\n')+'\n'+catalog,ctx);
 const records=[
  {kind:'table',id:'tbl-a',numbered:true},
  {kind:'table',id:'tbl-native',sourceKind:'gfm-pipe',numbered:false},

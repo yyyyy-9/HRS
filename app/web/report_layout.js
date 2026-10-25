@@ -2,7 +2,8 @@
 (function(root){
 'use strict';
 const groupOpen=/^ {0,3}:::[ \t]+\{([^\r\n]*)\}[ \t]*$/;
-const asset=/^assets\/[A-Za-z0-9][A-Za-z0-9_.-]{0,120}\.(?:png|jpe?g|gif|webp|svg)$/i;
+const paths=root.ReportAssetPaths||(typeof module!=='undefined'&&module.exports?require('./asset_paths.js'):null);
+const asset={test:value=>!!paths.normalize(value)&&paths.normalize(value)===value};
 const sourceAsset=/^assets\/([a-f0-9]{16})\.(emf|pdf|svg|png|jpe?g|webp)$/i;
 const imageLine=/^!\[((?:\\.|[^\]\\])*)\]\(([^\s()]+)\)(?:\s+\{([^\r\n{}]+)\})?$/;
 const rendKeys=['format','dpi','page','width','height','engine'];
