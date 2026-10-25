@@ -88,7 +88,8 @@ Python 和浏览器各有适应运行环境的解析实现，以现行规范及�
 | `web/report_layout.js` | 组图围栏解析、验证与序列化 |
 | `web/list_styles.js`、`web/report_equations.js`、`web/table_content.js` | 列表显示样式、块公式、表格单元格文本/数学分段 |
 | `web/mermaid_renderer.js`、`web/vendor/pele/` | 本地完整Pele渲染Mermaid源文，缓存布局、统一主题及MathJax公式；预览、编辑窗口、阅读包共用，HTML/PDF/Word使用固化主题的独立SVG |
-| `web/diagram.js`、`web/inline_formula.js`、`web/code_highlight.js`、`web/dialogs.js` | 简单流程图的节点文字/连线编辑辅助、行内公式插入、基础高亮和共用确认窗口；Flow子集不决定正式渲染范围 |
+| `web/diagram.js`、`web/diagram_layout.js` | 既有基本流程图模型与源码保真的位置注释；对完整引擎生成的SVG应用位置并连接拖动事件，连线/箭头随节点更新，预览和输出共用；不是第二个渲染器，Flow子集不决定完整渲染范围 |
+| `web/inline_formula.js`、`web/code_highlight.js`、`web/dialogs.js` | 行内公式插入、基础高亮和共用确认窗口 |
 | `web/design_tokens.css`、`web/surface_components.css`、其他现有 CSS | 共享样式与编辑/打印/阅读布局 |
 
 模型助手返回结构或源码片段；程序可用block_cli生成候选，再由显式apply提交。预览折叠、工具栏、阅读导航和代码卡片属于显示层，不产生新的 Markdown 对象。复杂内容继续保留原文，不用可视化近似结果覆盖源内容。

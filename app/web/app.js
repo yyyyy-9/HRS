@@ -1838,9 +1838,12 @@ async function editMath(span){
 }
 async function diagramDialog(originalSource,options={}){
  let graph;try{graph=Flow.parse(originalSource);}catch{graph=null;}
- const info={selected:graph?.nodes[0]?.id||null};let source,canvas,nameField,shapeField,statusP,titleField,edgePicker,buttons=[];
- return modal({title:options.caption===undefined?'编辑 Mermaid 图形':'编辑图形及图题',kicker:'Mermaid · Pele 离线渲染',wide:true,
-   note:'简单流程图可改节点与连线；其他图形直接修改 Mermaid 源码',
+ const info={selected:graph?.nodes[0]?.id||null};let source,canvas,nameField,shapeField,statusP,titleField,edgePicker,buttons=[],disposeDrag=()=>{},sourceRaw=originalSource;
+ const newline=originalSource.match(/\r\n|\r|\n/)?.[0]||'\n',normalized=value=>value.replace(/\r\n?|\n/g,'\n');
+ const readSource=()=>source.value===normalized(sourceRaw)?sourceRaw:source.value.replace(/\n/g,newline);
+ const writeSource=value=>{sourceRaw=value;source.value=value;};
+ try{return await modal({title:options.caption===undefined?'流程图可视化编辑':'编辑图形及图题',kicker:'Mermaid · Pele 离线渲染',wide:true,
+   note:'基本流程图可拖动节点、改字及连线；位置会随文稿保存和导出',
    body:outer=>{
     if(options.caption!==undefined){titleField=document.createElement('input');titleField.className='table-caption-input';titleField.placeholder='图题（不手填编号）';titleField.setAttribute('aria-label','图题');titleField.maxLength=300;titleField.value=options.caption;outer.append(titleField);}
     const grid=document.createElement('div');grid.className='diagram-modal-grid';outer.append(grid);
@@ -1850,17 +1853,18 @@ async function diagramDialog(originalSource,options={}){
     shapeField=document.createElement('select');shapeField.innerHTML='<option value="box">矩形</option><option value="round">圆角</option><option value="decision">判断菱形</option>';shapeField.style.cssText='margin:10px 0;padding:8px;width:100%;border:1px solid #d9e1ec;border-radius:8px';left.append(shapeField);
     const controls=document.createElement('div');controls.className='diagram-forms';left.append(controls);
     const addBtn=(text,fn)=>{const b=document.createElement('button');b.type='button';b.textContent=text;b.onclick=()=>{if(!graph)return;try{fn();}catch(e){toast(e.message);}};controls.append(b);buttons.push(b);};
-    addBtn('＋ 节点',()=>{if(graph.nodes.length>=90)throw Error('当前最多支持 90 个节点');let i=1;while(graph.nodes.some(n=>n.id==='N'+i))i++;const node={id:'N'+i,label:'新节点',shape:'box',x:45+graph.nodes.length*90,y:60};graph.nodes.push(node);info.selected=node.id;sync();});
+    addBtn('＋ 节点',()=>{if(graph.nodes.length>=90)throw Error('当前最多支持 90 个节点');let i=1;while(graph.nodes.some(n=>n.id==='N'+i))i++;const node={id:'N'+i,label:'新节点',shape:'box'};graph.nodes.push(node);info.selected=node.id;sync();});
     addBtn('－ 删除',()=>{if(!info.selected)return;graph.nodes=graph.nodes.filter(n=>n.id!==info.selected);graph.edges=graph.edges.filter(e=>e.from!==info.selected&&e.to!==info.selected);info.selected=graph.nodes[0]?.id||null;sync();});
     const group=document.createElement('div');group.className='diagram-forms';left.append(group);
     const from=document.createElement('input'),to=document.createElement('input');from.placeholder='起点 ID，如 A';to.placeholder='终点 ID，如 B';group.append(from,to);
     addBtn('→ 添加连线',()=>{const a=from.value.trim(),b=to.value.trim();if(!graph.nodes.some(n=>n.id===a)||!graph.nodes.some(n=>n.id===b))return toast('请填写已有节点 ID');if(graph.edges.length>=100)throw Error('当前最多支持 100 条连线');graph.edges.push({from:a,to:b,label:'',dashed:false});sync();});
     edgePicker=document.createElement('select');edgePicker.className='diagram-edge-picker';edgePicker.setAttribute('aria-label','选择连线');left.append(edgePicker);
     addBtn('删除选中连线',()=>{const index=Number(edgePicker.value);if(!Number.isInteger(index)||!graph.edges[index])return;graph.edges.splice(index,1);sync();});
-    const hint=document.createElement('p');hint.className='diagram-help';hint.textContent='简单流程图可单击右侧节点后改字；Enter 为节点文字换行。保留 Mermaid 语法，由 Pele 自动布局。子图、时序图等请直接改下方源码，预览和导出沿用原文。';left.append(hint);
+    addBtn('自动布局',()=>{writeSource(Flow.writePositions(readSource(),{}));graph=Flow.parse(sourceRaw);paint();statusP.textContent='已恢复自动布局；应用后生效。';});
+    const hint=document.createElement('p');hint.className='diagram-help';hint.textContent='拖动右侧节点调整位置，单击后改字；Enter 为文字换行。位置随文稿保存，自动布局可重新排列。子图、时序图等仍完整预览，可直接编辑源码。';left.append(hint);
     source=modalTextarea(left,'Mermaid 源码（可交给 AI 修改）',originalSource,165);source.className='diagram-source-input';
     statusP=document.createElement('p');statusP.className='diagram-help';left.append(statusP);
-    const rt=document.createElement('label');rt.textContent='Pele 预览 · 自动布局';right.append(rt);
+    const rt=document.createElement('label');rt.textContent='Pele 预览 · 基本流程图可拖动';right.append(rt);
     canvas=document.createElement('div');canvas.className='modal-diagram-svg';right.append(canvas);
     function select(id){info.selected=id;const n=graph?.nodes.find(x=>x.id===id);nameField.value=n?.label||'';shapeField.value=n?.shape||'box';
       canvas.querySelectorAll('[data-node]').forEach(x=>x.classList.toggle('selected',x.dataset.node===id));}
@@ -1870,18 +1874,21 @@ async function diagramDialog(originalSource,options={}){
      select(info.selected);
      ReportMermaid.into(canvas,source.value).then(()=>{
       if(!graph)return;
-      canvas.querySelectorAll('.pele-node[data-id]').forEach(node=>{const id=node.dataset.id;if(graph.nodes.some(n=>n.id===id))node.dataset.node=id;});select(info.selected);
+      canvas.querySelectorAll('.pele-node[data-id]').forEach(node=>{const id=node.dataset.id;if(graph.nodes.some(n=>n.id===id)){node.dataset.node=id;node.style.cursor='grab';node.style.touchAction='none';}});select(info.selected);
      }).catch(error=>{statusP.textContent=error.message;});
     }
-    function sync(){source.value=Flow.serialize(graph,{positions:false});paint();statusP.textContent='';}
+    function sync(){writeSource(Flow.serialize(graph).replace(/\n/g,newline));paint();statusP.textContent='';}
     nameField.oninput=()=>{const node=graph?.nodes.find(n=>n.id===info.selected);if(node){const old=node.label;node.label=nameField.value;try{sync();}catch(e){node.label=old;toast(e.message);}nameField.focus();nameField.setSelectionRange(nameField.value.length,nameField.value.length);}};
     shapeField.onchange=()=>{const node=graph?.nodes.find(n=>n.id===info.selected);if(node){const old=node.shape;node.shape=shapeField.value;try{sync();}catch(e){node.shape=old;paint();toast(e.message);}}};
-    source.oninput=()=>{try{graph=Flow.parse(source.value);info.selected=graph.nodes[0]?.id||null;statusP.textContent='';}catch{graph=null;statusP.textContent='请在源码中编辑此图；完整预览不受节点编辑范围限制。';}paint();};
+    source.oninput=()=>{sourceRaw=readSource();try{graph=Flow.parse(sourceRaw);info.selected=graph.nodes[0]?.id||null;statusP.textContent='';}catch{graph=null;statusP.textContent='请在源码中编辑此图；完整预览不受节点编辑范围限制。';}paint();};
     canvas.addEventListener('click',ev=>{const node=ev.target.closest('[data-node]');if(node&&graph)select(node.dataset.node);});
+    disposeDrag=ReportDiagramLayout.bindDrag(canvas,{getGraph:()=>graph,onSelect:select,
+     onCommit:positions=>{writeSource(Flow.writePositions(readSource(),positions));graph=Flow.parse(sourceRaw);paint();statusP.textContent='位置已调整；应用后保存到文稿。';},
+     onError:error=>{statusP.textContent=error.message;}});
     paint();
    },
-   onOk:()=>{if(!source.value.trim()||source.value.length>50000)throw Error('Mermaid 源码必须非空，且不超过 50000 字符');return {source:source.value===originalSource.replace(/\r\n?/g,'\n')?originalSource:source.value,caption:titleField?.value};}
- });
+   onOk:()=>{const accepted=readSource();if(!accepted.trim()||accepted.length>50000)throw Error('Mermaid 源码必须非空，且不超过 50000 字符');return {source:accepted,caption:titleField?.value};}
+ });}finally{disposeDrag();}
 }
 async function editDiagram(block){
  if(!block||state.saving)return;
@@ -1896,7 +1903,7 @@ async function editDiagram(block){
  try{if(state.md!==snapshot||state.session!==session)throw Error('文稿已变化，请重新打开图形');SourceMap.assertRange(state.md,{start,end},raw,snapshot);}catch(e){toast(e.message);scheduleRender();return;}
  let next;
  if(accepted.caption){const obj=figureDefault('mermaid');obj.source=accepted.source;obj.caption=accepted.caption;next=SourceBlocks.replacement(raw,figureSnippet(figureValidate(obj)));}
- else next=raw.slice(0,fence.bodyFrom)+accepted.source+'\n'+raw.slice(fence.bodyTo);
+ else next=raw.slice(0,fence.bodyFrom)+accepted.source+(raw.includes('\r\n')?'\r\n':'\n')+raw.slice(fence.bodyTo);
  changed(state.md.slice(0,start)+next+state.md.slice(end),'diagram');await render();
  toast('流程图已经更新，保存后自动进入 HTML 交付。');
 }

@@ -99,7 +99,7 @@ FEATURES = {
         document_search_browser table_position_browser'''),
     'word': ('HRS Word boundary, real local compiler, optional math, notes and references', '''
         word_export word_export_browser word_lite_browser word_footnotes_browser native_picker'''),
-    'mermaid': ('Offline Pele/Mermaid syntax, theme cache, mathematical labels, editing and bounded resources', 'mermaid_browser'),
+    'mermaid': ('Offline Mermaid syntax, saved drag layout, mathematical labels and bounded resources', 'mermaid_browser mermaid_node'),
     'docs': ('Real help HTTP/offline links, generated files and preserved source history', '''
         doc_layout_contract pf131_help_browser'''),
     'tooling': ('Test outcomes, selection, fixture cleanup, API documentation and release contracts', '''

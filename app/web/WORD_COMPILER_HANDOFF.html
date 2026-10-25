@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Word 数据交接 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="8db488761006b88a579704534f1ed0c24f71cff60b923a17542467468aace1f3"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Word 数据交接 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="41875787c3aa8e37b44db590660b8ca1163086a113ad84d4495ed87d3edcfedf"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -583,7 +583,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.3<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">输出模式与模板角色</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.4<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">输出模式与模板角色</a>
 <a class="level2" href="#section-3">编辑入口与源稿提交</a>
 <a class="level2" href="#section-4">笔记降级边界</a>
 <a class="level2" href="#section-5">项目分工与内容来源</a>
@@ -699,7 +699,7 @@ python tools/audit_modules.py --check
 <p>图（含组图、普通Mermaid及对象Mermaid）、表（含GFM及增强表）、全部块公式分别按有效正文顺序派生序号。ID与可选题名不决定是否计数。匿名对象保留原语法，不在源文捏造身份；只读编译可使用本次快照的局部标识装配图形。章节/图表在Word中始终编号，块公式按render_options.show_equation_numbers显示。</p>
 <p>空题注的编号对象仍显示“图 N／表 N”；caption 只存用户文字。增强表的 <code>align[]</code>、<code>verticalAlign</code> 与可选 <code>columnWidths</code> 是布局来源；未提供的值不应擅自强制补成居中。GFM 水平对齐来自分隔行，没有垂直对齐或合并语义。两种表格都应生成可编辑表格，源码视图和复制按钮不改变其类型。</p>
 <h2 id="section-13">图形原件、预览与资源</h2>
-<p>Mermaid源文由HRS的完整本地Pele适配器生成SVG，图内公式复用MathJax；Word页面模型继续携带固化主题和字体的PNG，模型Schema和图形身份不变。布局与旧Mermaid引擎有差异，方向沿源码固定。源语言/兼容范围见源规范，Agent继续生成Mermaid，不需要生成Pele专用语法。</p>
+<p>Mermaid源文由HRS的完整本地Pele适配器生成SVG，图内公式复用MathJax；Word页面模型继续携带固化主题和字体的PNG，模型Schema和图形身份不变。布局与旧Mermaid引擎有差异，方向沿源码固定；基本流程图的%% pos手动位置由同一SVG层应用，PNG与正文预览保持，不需Bridge重新排图。源语言/兼容范围见源规范，Agent继续生成Mermaid，不需要生成Pele专用语法。</p>
 <p><code>src</code> 是显示图，<code>sourceAsset</code> 可指向归档 EMF/PDF 等原件，<code>rendition</code> 记录预览信息。选择 Word 兼容格式时应先检查原件，再决定矢量或栅格降级；不能从 HTML 提取 PNG 后丢掉原件关系。旧 <code>vectorSource/rasterFallback</code> 按现行规范兼容。</p>
 <p>PDF 作为插图导入时保留完整原件，PNG 预览是第一页；DPI 为实际有效值，未知时省略，不假定 300。普通外部 PDF 文献链接只是引用，不自动复制或栅格化整本资料。HTML 的 PDF 打开按钮、附件压缩和阅读索引不是新的 Word 数据类型。</p>
 <p>组图保留 <code>rows/columns/images/showSubfigureLabels</code>；关闭字母仅隐藏前缀，保留子图说明、顺序和整组题注。每组一个图号，目前没有子图稳定 ID 或子图级交叉引用。</p>

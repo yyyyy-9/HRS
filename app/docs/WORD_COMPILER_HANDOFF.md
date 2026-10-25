@@ -97,7 +97,7 @@ HRS已提供block_cli的显式plan/apply；Bridge委托它，不再另写候选�
 
 ## 图形原件、预览与资源
 
-Mermaid源文由HRS的完整本地Pele适配器生成SVG，图内公式复用MathJax；Word页面模型继续携带固化主题和字体的PNG，模型Schema和图形身份不变。布局与旧Mermaid引擎有差异，方向沿源码固定。源语言/兼容范围见源规范，Agent继续生成Mermaid，不需要生成Pele专用语法。
+Mermaid源文由HRS的完整本地Pele适配器生成SVG，图内公式复用MathJax；Word页面模型继续携带固化主题和字体的PNG，模型Schema和图形身份不变。布局与旧Mermaid引擎有差异，方向沿源码固定；基本流程图的%% pos手动位置由同一SVG层应用，PNG与正文预览保持，不需Bridge重新排图。源语言/兼容范围见源规范，Agent继续生成Mermaid，不需要生成Pele专用语法。
 
 `src` 是显示图，`sourceAsset` 可指向归档 EMF/PDF 等原件，`rendition` 记录预览信息。选择 Word 兼容格式时应先检查原件，再决定矢量或栅格降级；不能从 HTML 提取 PNG 后丢掉原件关系。旧 `vectorSource/rasterFallback` 按现行规范兼容。
 

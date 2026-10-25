@@ -1,6 +1,6 @@
 {
   "catalog_format": "hrs-module-catalog-v1",
-  "app_baseline": "2.0.3 R1",
+  "app_baseline": "2.0.4 R1",
   "scope": "source tree only; no external report files are opened",
   "caveat": "This is an interface index, not a Python import dependency graph or a DOCX compiler.",
   "items": [
@@ -1007,8 +1007,8 @@
       "output": "visual preview and UI events",
       "side_effects": "modifies editor state via explicit action",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 234502,
-      "sha256": "aa3ecced057e60d97bc434fe7a21d2c10f50eba42928a9223e09551d89b905ab",
+      "bytes": 235425,
+      "sha256": "6bf8ae4de9392f93351e76bc3bc337e8de6c3dd20659f58d9ad92be7980a6da5",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -1327,8 +1327,8 @@
       "output": "safe standalone SVG with frozen export colors",
       "side_effects": "temporary DOM and bounded render cache",
       "word_pipeline_role": "needs-vector-rendition",
-      "bytes": 7707,
-      "sha256": "dd709d597b34d405008c099e74fe38ecc8213c211ed92a5fc795abde5a1d11fd",
+      "bytes": 8223,
+      "sha256": "5a45bb1d6e6b799097781269b898ba2985b796c6d1d589022121637392080a5f",
       "review_flags": []
     },
     {
@@ -1337,14 +1337,34 @@
       "layer": "mermaid-editor-helper",
       "responsibility": "optional simple-node editing model; never gates complete Mermaid rendering",
       "entrypoints": [
-        "parse"
+        "parse",
+        "serialize",
+        "writePositions",
+        "placement"
       ],
       "input": "Mermaid source",
-      "output": "editable diagram model",
-      "side_effects": "read-only parse",
+      "output": "editable model / source-preserving position comments",
+      "side_effects": "read-only helper",
       "word_pipeline_role": "needs-vector-rendition",
-      "bytes": 8471,
-      "sha256": "0fb582a4838f0c6f167a8698288ab858cf8aeed7bb33cab7d82fe90e7f4f49bc",
+      "bytes": 4939,
+      "sha256": "32de84d2df4edf5cd92c39d69fbe0698414e5f2b1e356df317b7bbfc6fe808ca",
+      "review_flags": []
+    },
+    {
+      "id": "diagram_layout",
+      "path": "web/diagram_layout.js",
+      "layer": "presentation",
+      "responsibility": "places renderer-generated SVG shapes, reroutes basic edges and binds disposable pointer sessions",
+      "entrypoints": [
+        "apply",
+        "bindDrag"
+      ],
+      "input": "SVG / existing Flow model",
+      "output": "placed SVG / complete position snapshot",
+      "side_effects": "temporary DOM and dialog pointer listeners",
+      "word_pipeline_role": "needs-vector-rendition",
+      "bytes": 8661,
+      "sha256": "e017e2abbc4f63607db5386ba56df885c48740138db19f2c62068119fe424669",
       "review_flags": []
     },
     {

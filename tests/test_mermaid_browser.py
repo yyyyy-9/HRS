@@ -15,6 +15,18 @@ CASES=json.loads((ROOT/'tests/fixtures/mermaid_full.json').read_text('utf8'))
 def manuscript(cases=CASES):
     return '# Mermaid 验证\n\n'+''.join('## '+c['name']+'\n\n```mermaid\n'+c['source']+'\n```\n\n' for c in cases)
 
+def geometry(page,selector):
+    """Observe actual SVG shape/arrow positions in its viewBox coordinates."""
+    return page.locator(selector).evaluate('''svg=>{
+      const nodes={};for(const node of svg.querySelectorAll('.pele-node[data-id]')){
+        const shape=[...node.children].find(e=>['rect','polygon','ellipse','circle','path'].includes(e.localName));
+        const b=shape.getBBox(),p=svg.createSVGPoint();p.x=b.x;p.y=b.y;
+        const point=p.matrixTransform(shape.getCTM()).matrixTransform(svg.getCTM().inverse());
+        nodes[node.dataset.id]={x:point.x,y:point.y,width:b.width,height:b.height};
+      }
+      return {nodes,view:svg.getAttribute('viewBox').split(/[ ,]+/).map(Number),edges:[...svg.querySelectorAll('.pele-edge[data-hrs-to]')].map(e=>({from:e.dataset.hrsFrom,to:e.dataset.hrsTo,path:e.querySelector('path:not(.pele-marker)').getAttribute('d'),tip:e.querySelector('.pele-marker').getAttribute('d').match(/-?\\d*\\.?\\d+/g).slice(0,2).map(Number)}))};
+    }''')
+
 class MermaidFull(ManualService):
     def setUp(self):
         super().setUp()
@@ -213,6 +225,97 @@ class MermaidFull(ManualService):
         a,b=sorted([luminance(colors[2]),luminance(ink)])
         self.assertEqual(len(set(colors)),3)
         self.assertGreaterEqual((b+0.05)/(a+0.05),3,'Categorical color was replaced by a low-contrast node surface')
+        self.assertEqual(self.external,[])
+
+    def test_10_real_drag_updates_source_and_cancel_keeps_original(self):
+        # MERMAID-DRAG-01: real pointer input must persist the old position
+        # annotations, rather than moving a disposable modal-only SVG.
+        text=self.load_diagrams(CASES[:1]);p=self.page
+        p.locator('#preview-content .mermaid-card').dblclick()
+        node=p.locator('#modal-body .modal-diagram-svg .pele-node[data-id="B"]')
+        node.wait_for();box=node.bounding_box()
+        p.mouse.move(box['x']+box['width']/2,box['y']+box['height']/2)
+        p.mouse.down();p.mouse.move(box['x']+box['width']/2+65,box['y']+box['height']/2+35,steps=8);p.mouse.up()
+        self.assertIn('%% pos B ',p.locator('.diagram-source-input').input_value(),'Dragging did not preserve a node position')
+        placed=p.locator('.diagram-source-input').input_value()
+        node=p.locator('#modal-body .modal-diagram-svg .pele-node[data-id="B"]');box=node.bounding_box()
+        p.mouse.move(box['x']+box['width']/2,box['y']+box['height']/2);p.mouse.down()
+        p.mouse.move(box['x']+box['width']/2+25,box['y']+box['height']/2+10,steps=3)
+        node.dispatch_event('pointercancel',{'pointerId':1});p.mouse.up()
+        self.assertEqual(p.locator('.diagram-source-input').input_value(),placed,'Cancelled pointer movement wrote positions')
+        p.locator('#modal-cancel').click();self.assertEqual(value(p),text)
+
+    def test_11_legacy_positions_arrows_math_html_pdf_and_word_png_agree(self):
+        cases=[{'name':direction,'source':'flowchart '+direction+'\n    %% pos A 40 200\n    %% pos B 420 40\n    A["输入<br/>$$\\boldsymbol{k}$$"] -->|是| B{判断}\n    B -.-> A\n    B --> B'} for direction in ['LR','TB','RL','BT']]
+        text=self.load_diagrams(cases);p=self.page
+        for i,case in enumerate(cases):
+            selector=f'#preview-content .hrs-mermaid-render >> nth={i} >> svg.pele'
+            layout=geometry(p,selector)
+            for key,wanted in {'A':(40,200),'B':(420,40)}.items():
+                self.assertAlmostEqual(layout['nodes'][key]['x'],wanted[0],delta=.01)
+                self.assertAlmostEqual(layout['nodes'][key]['y'],wanted[1],delta=.01)
+            self.assertEqual(len(layout['edges']),3)
+            for edge in layout['edges']:
+                b=layout['nodes'][edge['to']];x,y=edge['tip']
+                self.assertGreaterEqual(x,b['x']-.1);self.assertLessEqual(x,b['x']+b['width']+.1)
+                self.assertGreaterEqual(y,b['y']-.1);self.assertLessEqual(y,b['y']+b['height']+.1)
+                if edge['to']=='B':
+                    self.assertAlmostEqual(abs((x-b['x']-b['width']/2)/(b['width']/2))+abs((y-b['y']-b['height']/2)/(b['height']/2)),1,delta=.001,msg='Arrow detached from diamond')
+                else:
+                    self.assertLess(min(abs(x-b['x']),abs(x-b['x']-b['width']),abs(y-b['y']),abs(y-b['y']-b['height'])),.1,'Arrow detached from its node')
+            png=p.evaluate('''async ({source,layout})=>{
+              const m=await ReportBridgeModel.render({markdown:'# Diagram',sections:[],sectionStarts:[],inline:[],diagram_sources:{test:source}});
+              const image=new Image();image.src='data:image/png;base64,'+m.diagrams.test;await image.decode();
+              const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;const c=canvas.getContext('2d');c.drawImage(image,0,0);
+              const a=layout.nodes.A,v=layout.view,x=(a.x+5-v[0])*canvas.width/v[2],y=(a.y+a.height/2-v[1])*canvas.height/v[3];
+              return {pixel:[...c.getImageData(Math.floor(x),Math.floor(y),1,1).data],width:canvas.width,height:canvas.height};
+            }''',{'source':case['source'],'layout':layout})
+            self.assertEqual(png['pixel'],[238,243,255,255],'Word image did not preserve the manually placed node')
+        html=p.evaluate('()=>ReportStudioProgrammatic.exportHTML({sourceMode:"recompilable"})')
+        dest=self.folder/'placed.html';dest.write_text(html,encoding='utf8')
+        reader=self.browser.new_page()
+        try:
+            reader.goto(dest.as_uri())
+            static=geometry(reader,'main .hrs-mermaid-render >> nth=0 >> svg.pele')
+            self.assertAlmostEqual(static['nodes']['B']['x'],420,delta=.01)
+            self.assertTrue(reader.pdf(print_background=True).startswith(b'%PDF-'))
+        finally:reader.close()
+        restored=p.evaluate('async html=>{const d=new DOMParser().parseFromString(html,"text/html");return (await ReportExportArchive.readArchive(JSON.parse(d.querySelector("#report-source").textContent),d)).markdown}',html)
+        self.assertEqual(restored,text);self.assertEqual(value(p),text);self.assertEqual(self.external,[])
+
+    def test_12_drag_apply_undo_save_reopen_rename_and_auto_layout(self):
+        p=self.page;did='d'*32;self.server.registry.register(did,self.project)
+        p.evaluate('id=>ReportStudioProgrammatic.open(id)',did)
+        text=manuscript(CASES[:1]).replace('\n','\r\n');source(p,text)
+        p.wait_for_selector('#preview-content .mermaid-card svg')
+        p.locator('#preview-content .mermaid-card').dblclick()
+        node=p.locator('#modal-body .modal-diagram-svg [data-node="B"]');node.wait_for();box=node.bounding_box()
+        p.mouse.move(box['x']+box['width']/2,box['y']+box['height']/2);p.mouse.down();p.mouse.move(box['x']+box['width']/2+75,box['y']+box['height']/2+45,steps=10);p.mouse.up()
+        p.locator('#modal-ok').click();p.wait_for_function('document.querySelector("#markdown").sourceEditor.value.includes("%% pos B ")')
+        placed=value(p);self.assertEqual(re.sub(r'^[ \t]*%% pos[^\r\n]*(?:\r\n|\n|\r)','',placed,flags=re.M),text)
+        found=re.search(r'%% pos B (\d+) (\d+)',placed);wanted=(int(found[1]),int(found[2]))
+        selector='#preview-content .hrs-mermaid-render > svg'
+        p.wait_for_function('text=>[...document.querySelectorAll("#preview-content .doc-block")].every(b=>b._sourceDocument===text)&&!!document.querySelector("#preview-content svg")',arg=placed)
+        observed=geometry(p,selector)['nodes']['B'];self.assertAlmostEqual(observed['x'],wanted[0],delta=.01);self.assertAlmostEqual(observed['y'],wanted[1],delta=.01)
+        p.locator('#btn-undo').click();self.assertEqual(value(p),text)
+        p.locator('#btn-redo').click();self.assertEqual(value(p),placed)
+        with p.expect_response(lambda r:'/api/save' in r.url and r.request.method=='POST') as pending:p.locator('#btn-save').click()
+        self.assertTrue(pending.value.ok,pending.value.text());self.assertEqual((self.project/'report.md').read_bytes(),placed.encode('utf8'))
+        p.reload();p.wait_for_function('typeof ReportStudioProgrammatic!=="undefined"');p.evaluate('async id=>{await ReportStudioProgrammatic.ready();await ReportStudioProgrammatic.open(id)}',did)
+        p.wait_for_selector(selector);self.assertEqual(value(p),placed)
+        observed=geometry(p,selector)['nodes']['B'];self.assertAlmostEqual(observed['x'],wanted[0],delta=.01);self.assertAlmostEqual(observed['y'],wanted[1],delta=.01)
+        p.locator('#preview-content .mermaid-card').dblclick();p.locator('#modal-body [data-node="B"]').click()
+        if self.evidence:p.locator('#modal-body').screenshot(path=str(self.evidence/'dragged.png'))
+        p.locator('[aria-label="节点文字"]').fill('修改后的节点\n第二行');p.locator('#modal-ok').click()
+        p.wait_for_function('document.querySelector("#preview-content").textContent.includes("修改后的节点")')
+        observed=geometry(p,selector)['nodes']['B'];self.assertAlmostEqual(observed['x'],wanted[0],delta=.01);self.assertAlmostEqual(observed['y'],wanted[1],delta=.01)
+        p.locator('#btn-undo').click();self.assertEqual(value(p),placed)
+        p.wait_for_function('text=>[...document.querySelectorAll("#preview-content .doc-block")].every(b=>b._sourceDocument===text)&&!!document.querySelector("#preview-content svg")',arg=placed)
+        p.locator('#preview-content .mermaid-card').dblclick();p.get_by_role('button',name='自动布局',exact=True).click()
+        self.assertNotIn('%% pos',p.locator('.diagram-source-input').input_value())
+        if self.evidence:p.locator('#modal-body').screenshot(path=str(self.evidence/'automatic.png'))
+        p.locator('#modal-ok').click();self.assertEqual(value(p),text)
+        self.assertEqual((self.project/'report.md').read_bytes(),placed.encode('utf8'),'Unsaved layout reset overwrote the saved project')
         self.assertEqual(self.external,[])
 
 if __name__=='__main__':unittest.main(verbosity=2)

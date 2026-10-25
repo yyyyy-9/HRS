@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用手册 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="0bc0b3654a8167a7e3407cf0873c0b25b91e31b64862505bad18b97d28416929"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用手册 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="7ee9794d5125382c0fab37a85461a72be8609000d05468710cdadf3f6641cd9a"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -583,7 +583,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.3<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">先看这一页：五分钟完成第一份报告</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.4<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">先看这一页：五分钟完成第一份报告</a>
 <a class="level2" href="#section-3">Windows桌面运行</a>
 <a class="level2" href="#section-4">章节、图表与公式编号</a>
 <a class="level2" href="#section-5">导出 Word（beta）</a>
@@ -954,7 +954,8 @@ exportgraphics(fig, &quot;result.pdf&quot;, ContentType=&quot;vector&quot;);
 </code></pre>
 <p>节点中可使用 <code>&lt;br/&gt;</code> 换行，例如 <code>A[&quot;PLD100L&lt;br/&gt;0.5 nm&quot;]</code>。每张图放在独立的 <code>mermaid</code> 围栏中，不能在同一个围栏连续声明多个独立的 <code>flowchart</code>。</p>
 <p>图内可使用<code>$$...$$</code>公式标签，复用本地MathJax，包括<code>\boldsymbol</code>；图题、编号和引用仍由HRS管理。配色随HRS主题，纯颜色切换不重新计算布局；导出前固化颜色和字体，保持独立HTML、PDF和Word图片。源码的LR/TB方向固定，窄窗口不自动改方向。Pele兼容目标为Mermaid12.1，布局外观与原引擎不同；不支持任意HTML标签或JavaScript回调，Mermaid的theme/themeVariables不覆盖HRS主题。无法解析时显示错误并保留原稿，导出不使用旧图代替新源码。</p>
-<p>双击图形打开同一官方引擎的预览。简单流程图可改节点/连线，复杂结构直接改源码。普通Mermaid和带ID图形都进入图号并支持Word输出；需要题名可在原图形窗口填写。HTML/PDF使用已生成SVG，离线阅读不需携带渲染库，回编恢复原Markdown。</p>
+<p>双击图形打开编辑窗口。基本流程图可直接拖动右侧节点，连线和箭头跟随；单击节点后可改字、换形状，也可增加或删除节点和连线。点击“应用”后才修改文稿，可撤销／重做；取消不改原稿。手动位置随文稿保存，重开、预览和HTML/PDF/Word图片保持一致；“自动布局”清除手动位置，恢复按源码方向排列。</p>
+<p>可视化编辑支持<code>flowchart/graph LR/RL/TB/TD/BT</code>、矩形／圆角／菱形节点、<code>--&gt;</code>和<code>-.-&gt;</code>连线及<code>|文字|</code>边标签。节点ID沿用字母或下划线开头的ASCII名称，最多90节点、100连线。位置使用原<code>%% pos ID X Y</code>注释，不改节点ID、图题或编号；仅拖动不重写其余源码。子图、时序图等超出此编辑范围的结构仍完整预览，请直接改源码，不会自动简化。普通Mermaid和带ID图形都进入图号并支持Word输出；需要题名可在原图形窗口填写。HTML/PDF使用已生成SVG，离线阅读不需携带渲染库，回编恢复原Markdown。</p>
 <h2 id="section-41">发布前整理图片素材</h2>
 <p>从正文删除图片后，<strong>文件还会留在项目 <code>assets/</code> 里</strong>，这是为了避免误删原始科研图。想收拾这些不用的文件，不需要在编辑器里找新按钮：</p>
 <ol>

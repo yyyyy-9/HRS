@@ -43,7 +43,8 @@ function localResources(model){
  }
  check(model);
 }
-function instance(svg,live){
+function instance(prepared,live,graph){
+ const {svg,edges}=prepared;
  const doc=new DOMParser().parseFromString(svg,'image/svg+xml'),node=doc.documentElement;
  if(node.localName!=='svg'||doc.querySelector('parsererror'))throw Error('Mermaid 未生成有效 SVG');
  const prefix='hrs-mmd-'+(++serial)+'-',ids=new Map(),used=new Set();
@@ -73,6 +74,14 @@ function instance(svg,live){
   }
  }
  theme(node,live);
+ if(graph){
+  const facts=new Map(edges.map(edge=>[edge.id,edge]));
+  for(const group of node.querySelectorAll('.pele-edge[data-id]')){
+   const edge=facts.get(group.dataset.id);if(!edge)continue;
+   group.dataset.hrsFrom=edge.start;group.dataset.hrsTo=edge.end;
+  }
+  root.ReportDiagramLayout.apply(node,graph);
+ }
  return new XMLSerializer().serializeToString(node);
 }
 async function equation(tex,size){
@@ -104,17 +113,18 @@ async function geometry(source){
   for(const item of equations.values())item.value=await equation(item.tex,item.size);
   result=root.pele.render(model,options);
  }
- return result.svg;
+ return {svg:result.svg,edges:model.type==='flowchart'?model.edges.map(({id,start,end})=>({id,start,end})):[]};
 }
 async function render(source,{liveTheme=false}={}){
  if(typeof source!=='string'||!source.trim()||source.length>maxSource)throw Error('Mermaid 源码须非空，且不超过 '+maxSource+' 字符');
- let pending=cache.get(source);
+ const placement=root.Flow.placement(source),key=placement.source;
+ let pending=cache.get(key);
  if(!pending){
-  pending=geometry(source);cache.set(source,pending);
-  pending.catch(()=>{if(cache.get(source)===pending)cache.delete(source);});
+  pending=geometry(key);cache.set(key,pending);
+  pending.catch(()=>{if(cache.get(key)===pending)cache.delete(key);});
   if(cache.size>limit)cache.delete(cache.keys().next().value);
  }
- return instance(await pending,liveTheme);
+ return instance(await pending,liveTheme,placement.graph);
 }
 async function into(host,source){
  const ticket=(host._mermaidTicket||0)+1;host._mermaidTicket=ticket;

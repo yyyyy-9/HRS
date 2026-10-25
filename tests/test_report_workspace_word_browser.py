@@ -18,7 +18,7 @@ class NativeReportWord(unittest.TestCase):
                 raise RuntimeError('This explicit integration group requires '+name)
 
     def test_preview_edit_native_word_and_duplicate_note_refusal(self):
-        figure={'schema':'report-figure-v1','id':'fig-path','kind':'mermaid','source':'flowchart TB\n A["Input<br/>$$\\boldsymbol{k}$$"] --> B[Output]','caption':'Optical path'}
+        figure={'schema':'report-figure-v1','id':'fig-path','kind':'mermaid','source':'flowchart TB\n %% pos A 40 200\n %% pos B 420 40\n A["Input<br/>$$\\boldsymbol{k}$$"] --> B[Output]','caption':'Optical path'}
         text='# Ledger\n\nNotes\n\n# Independent report\n\n## Method\n\nSee @fig:fig-path and @tbl:data.\n\n'+r'$\boldsymbol{k}=2\pi/\lambda$'+'\n\n```report-figure\n'+json.dumps(figure)+'\n```\n\n| Parameter | Value |\n| --- | --- |\n| n | 1 |\n: Parameter table[^note] {#tbl-data}\n\n[^note]: Native note.\n\n# Other\n\nOther text\n'
         # Existing object ID convention uses tbl-… in both declaration and reference.
         text=text.replace('@tbl:data','@tbl:tbl-data')

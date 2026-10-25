@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="fe0da47b445f66871167944387607c6a14007596468649822c44e4063baeb9f4"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="7de8bf437f061f9a56397fbb8ebb79172527b8bc344abce6d6e44d42c0d909b1"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -583,7 +583,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.3<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.4<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
 <a class="level2" href="#section-3">同源桌面宿主</a>
 <a class="level2" href="#section-4">Word beta 界面适配</a>
 <a class="level2" href="#section-5">渲染与输出配置</a>
@@ -722,8 +722,12 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <td>本地完整Pele渲染Mermaid源文，缓存布局、统一主题及MathJax公式；预览、编辑窗口、阅读包共用，HTML/PDF/Word使用固化主题的独立SVG</td>
 </tr>
 <tr>
-<td><code>web/diagram.js</code>、<code>web/inline_formula.js</code>、<code>web/code_highlight.js</code>、<code>web/dialogs.js</code></td>
-<td>简单流程图的节点文字/连线编辑辅助、行内公式插入、基础高亮和共用确认窗口；Flow子集不决定正式渲染范围</td>
+<td><code>web/diagram.js</code>、<code>web/diagram_layout.js</code></td>
+<td>既有基本流程图模型与源码保真的位置注释；对完整引擎生成的SVG应用位置并连接拖动事件，连线/箭头随节点更新，预览和输出共用；不是第二个渲染器，Flow子集不决定完整渲染范围</td>
+</tr>
+<tr>
+<td><code>web/inline_formula.js</code>、<code>web/code_highlight.js</code>、<code>web/dialogs.js</code></td>
+<td>行内公式插入、基础高亮和共用确认窗口</td>
 </tr>
 <tr>
 <td><code>web/design_tokens.css</code>、<code>web/surface_components.css</code>、其他现有 CSS</td>
