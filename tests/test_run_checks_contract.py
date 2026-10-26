@@ -37,16 +37,18 @@ class CheckResults(unittest.TestCase):
         for groups in [['full'],['browsers'],['contracts']]:
             defaults=select_tests(ROOT,groups)
             self.assertNotIn('test_report_workspace_word_browser',[t['id'] for t in defaults])
+            self.assertNotIn('test_word_import_browser',[t['id'] for t in defaults])
             self.assertNotIn('test_desktop_runtime',[t['id'] for t in defaults])
             for item in defaults:
                 if item['id']=='test_numbering_v2_browser':
                     self.assertNotIn('UnifiedNumbering.test_04_word_formula_numbers_and_reference_policy',item['selectors'])
                     self.assertNotIn('UnifiedNumbering.test_03_mathml_mixed_paste_preserves_inline_math_and_table',item['selectors'])
         selected=select_tests(ROOT,['report_word'])
-        self.assertEqual({t['id'] for t in selected},{'test_numbering_v2_browser','test_report_workspace_word_browser'})
+        self.assertEqual({t['id'] for t in selected},{'test_numbering_v2_browser','test_report_workspace_word_browser','test_word_import_browser'})
         native=next(t for t in selected if t['id']=='test_numbering_v2_browser')
         self.assertEqual(native['selectors'],['UnifiedNumbering.test_03_mathml_mixed_paste_preserves_inline_math_and_table','UnifiedNumbering.test_04_word_formula_numbers_and_reference_policy','UnifiedNumbering.test_07_plain_markdown_figures_and_tables_use_native_word_numbers'])
         self.assertTrue(next(t for t in selected if t['id']=='test_report_workspace_word_browser')['explicit_selection_required'])
+        self.assertTrue(next(t for t in selected if t['id']=='test_word_import_browser')['explicit_selection_required'])
         desktop=select_tests(ROOT,['desktop_runtime']);self.assertEqual([t['id'] for t in desktop],['test_desktop_runtime'])
         self.assertTrue(desktop[0]['explicit_selection_required'])
 
