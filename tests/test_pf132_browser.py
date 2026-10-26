@@ -25,6 +25,54 @@ MD='''# PF13.2 合成验收
 '''
 
 class TableMath(unittest.TestCase):
+    def test_emphasis_can_span_math_in_both_tables_and_captions(self):
+      # TABLE-MATH-EMPHASIS-01: parsing each side of a formula separately
+      # breaks the matching Markdown delimiters. Exercise the real renderer.
+      cells=[r'**参数 $x$ 的说明**',r'**\(y\)**',r'**前 $\frac{1}{2}$ 后**',r'`**$literal$**`',r'**甲** $q$ **乙**',r'**显示 $$r^2$$ 说明**',r'TABLEMATHcelltblnative70P0HOLDER $s$']
+      caption='**表题 $z$ 说明**'
+      enhanced={'schema':'report-table-v1','id':'tbl-enhanced','caption':caption,
+        'rows':[[{'text':'内容','rowspan':1,'colspan':1}]]+[[{'text':s,'rowspan':1,'colspan':1}] for s in cells]}
+      text='# 内联格式\n\n**正文 $x$ 说明**\n\n| 内容 |\n| --- |\n'+''.join('| '+s+' |\n' for s in cells)+'\n: '+caption+' {#tbl-native}\n\n```report-table\n'+json.dumps(enhanced,ensure_ascii=False)+'\n```\n'
+      with browser_session() as browser,tempfile.TemporaryDirectory(prefix='hrs-table-math-') as folder:
+       for profile in ['free','engineering']:
+        with LiveDocument(browser,Path(folder)/profile,text,profile=profile,registered=True) as document:
+         page=document.page
+         # Caption bars deliberately contain display mirrors. Count formulas
+         # in real cells, not all repeated presentation nodes in the page.
+         try:page.wait_for_function('document.querySelectorAll("#preview-content .report-table-wrap tr td .markdown-math > svg").length===12')
+         except Exception:
+          print('Inline render state:',page.evaluate('''()=>({count:document.querySelectorAll('#preview-content .markdown-math > svg').length,math:[...document.querySelectorAll('#preview-content .markdown-math')].map(n=>({raw:n.dataset.raw,svg:!!n.querySelector(':scope > svg')})),errors:document.querySelector('#preview-content').textContent.slice(0,500)})'''),flush=True)
+          raise
+         def assert_tables(scope):
+          tables=scope.locator('.report-table-wrap');self.assertEqual(tables.count(),2)
+          for table in tables.all():
+           for i in range(3):
+            cell=table.locator('tr').nth(i+1).locator('td').first
+            self.assertEqual(cell.locator('strong .markdown-math > svg').count(),1,(profile,i,cell.inner_html()))
+            self.assertNotIn('**',cell.inner_text())
+           literal=table.locator('tr').nth(4).locator('td').first
+           self.assertEqual(literal.locator('code').inner_text(),'**$literal$**')
+           self.assertEqual(literal.locator('.markdown-math').count(),0)
+           separated=table.locator('tr').nth(5).locator('td').first
+           self.assertEqual(separated.locator('strong').count(),2)
+           self.assertEqual(table.locator('tr').nth(6).locator('strong .math-display > svg').count(),1)
+           sentinel=table.locator('tr').nth(7).locator('td').first
+           self.assertTrue(sentinel.inner_text().startswith('TABLEMATHcelltblnative70P0HOLDER'))
+           self.assertEqual(sentinel.locator('.markdown-math > svg').count(),1)
+           self.assertEqual(table.locator('caption strong .markdown-math > svg').count(),1)
+         assert_tables(page.locator('#preview-content'))
+         page.locator('[data-view="reading"]').click()
+         page.wait_for_function('document.querySelectorAll("#preview-content .report-table-wrap tr td .markdown-math > svg").length===12')
+         assert_tables(page.locator('#preview-content'))
+         exported=document.export();reader=browser.new_page()
+         try:
+          reader.set_content(exported,wait_until='load');assert_tables(reader.locator('main'))
+         finally:reader.close()
+         archived=json.loads(re.search(r'<script type="application/json" id="report-source">(.*?)</script>',exported,re.S)[1])
+         self.assertEqual(archived['markdown'],text)
+         self.assertEqual((document.project/'report.md').read_bytes(),text.encode('utf8'))
+         self.assertEqual(document.errors,[])
+
     def test_original_preview_export_and_reader_regression(self):
       with browser_session() as browser, tempfile.TemporaryDirectory(prefix='hrs-retained-') as directory:
        with LiveDocument(browser,Path(directory),MD,profile='engineering',registered=True) as document:

@@ -77,6 +77,8 @@ HRS 可以显示受限 HTML，但它仍保留在原 markdown 源块中，不变�
 
 ### 完整预检与安装命令
 
+整篇DOCX导入由配套Bridge的from-docx承担：自身导出件使用原来源映射，外来DOCX使用WPS扫描/识别及受限投影，生成新report.md/assets工程和诊断；不能表达的对象/域明确拒绝。当前HRS菜单未直接调用此入口，后续UI接入应复用它并正确呈现NEEDS_REVIEW及局部未决，不另写Word解析器。
+
 标准安装后的hrs capabilities返回命令/副作用/可选依赖。hrs read ACTION SOURCE委托原A0；hrs plan .../hrs apply ...委托原块提交；hrs html export/recover ...委托原HTML引擎。完整预检使用hrs check PROJECT --render-profile engineering --browser BROWSER，复用页面Marked/脚注及输出策略，并检查附件，返回hrs-output-preflight-v1、完整范围、源摘要和diagnostics；失败非零退出，源不写。未安装Playwright/未提供本机浏览器时明确失败，不安装依赖或退回成“检查通过”。
 
 HTTP /api/validate仅Python源码契约，返回source_contract_valid、preflight.complete=false及保守valid=false/safeToCompile=false。A0相应字段为sourceContractValid。完整页面入口为ReportStudioProgrammatic.check({renderProfile,renderOptions,expectSourceSha256})，仅programmatic=1暴露，返回完整文本检查，互斥/快照约束沿原open/export。页面文本检查本身不扫描磁盘附件，CLI另做附件快照；任何预检都不等于Word装配/Office页面验收。旧客户应迁移结构门槛或调用完整check，不再将旧safeToCompile作为完整检查。

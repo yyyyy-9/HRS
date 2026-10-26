@@ -83,7 +83,7 @@ Python 和浏览器各有适应运行环境的解析实现，以现行规范及�
 | 模块 | 当前职责 |
 | --- | --- |
 | `web/safe_html.js` | 预览、表格行内、阅读包共用的惰性 HTML 标签/属性/样式白名单，不改源文 |
-| `web/app.js`、`web/vendor/source-editor.js` | 主界面调度与 CodeMirror Markdown 编辑器，组织预览和用户操作 |
+| `web/app.js`、`web/vendor/source-editor.js` | 主界面调度与CodeMirror编辑；正文/表格/题注共用数学保护，表格/题注完整解析内联后恢复数学，保留跨公式强调，不拆成多次Markdown解析 |
 | `web/pipe_tables.js`、`web/report_tables.js`、`web/table_editor.js` | GFM/增强表模型、粘贴与逻辑网格操作、临时表格编辑窗口 |
 | `web/report_layout.js` | 组图围栏解析、验证与序列化 |
 | `web/list_styles.js`、`web/report_equations.js`、`web/table_content.js` | 列表显示样式、块公式、表格单元格文本/数学分段 |

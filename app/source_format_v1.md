@@ -128,6 +128,8 @@ IR 为 `type:table`、`sourceKind:gfm-pipe`、`data.schema:gfm-pipe-table-v1`，
 
 不等长数据行的显示按表头列数补空/忽略额外列，原始 Markdown 保留；显式保存涉及丢失信息时按现有确认处理。单元格富文本仍须从源文安全解析，不能以 HTML 表格 DOM 代替语义。
 
+表格单元格与图表题注先保护数学，再用现有Marked/安全HTML链完整解析一次内联，最后恢复数学节点；加粗、斜体、链接等边界可跨越数学，如`**参数 $x$ 的说明**`。普通表与增强表共用，不修改原文字/TeX/ID；行内代码仍按字面。Markdown强调不代替数学字形命令。
+
 ### 增强表与合并网格
 
 ````markdown
@@ -329,4 +331,4 @@ CF_HTML的UTF-8字节范围必须有效，HTML不超过2 MB、图片不超过100
 
 ### 混合粘贴的公式边界（2.0）
 
-本机显式Ctrl+V复用原对象粘贴事务。`/api/clipboard/document`读取同一次Windows快照中的WPS原生DOCX选择、HTML、文字及图片；核对文字与视觉位置后才绑定公式。KSEE3的Equation Native/MTEF3通过有界只读解析转换为LaTeX，不激活OLE服务器。OMML和标准MathML复用现有Word组件的MathAdapter/Pandoc批量转换；`/api/clipboard/math`是同源、user-action保护的内部适配接口，接受formulas数组（format为omml/mathml，source为XML），不接受文件路径。返回tex列表，不写源。与公式分离且可明确定位的外部括号式号不进入HRS；表达式内部数字保留。未知版本/模板、数学缺失、快照或位置不一致均整段拒绝，不以预览图冒充数学。具体支持范围见使用手册。
+本机显式Ctrl+V复用原对象粘贴事务。`/api/clipboard/document`读取同一次Windows快照中的WPS原生DOCX选择、HTML、文字及图片；核对文字与视觉位置后才绑定公式。KSEE3的Equation Native/MTEF3通过有界只读解析转换为LaTeX，不激活OLE服务器。OMML和标准MathML复用现有Word组件的MathAdapter/Pandoc批量转换；`/api/clipboard/math`是同源、user-action保护的内部适配接口，接受formulas数组（format为omml/mathml，source为XML），不接受文件路径。返回tex列表，不写源。与公式分离且可明确定位的外部括号式号不进入HRS；表达式内部数字保留。未知版本/模板、数学缺失、快照或位置不一致均整段拒绝，不以预览图冒充数学。只有普通图片数据而无可识别数学信息时仍按图片对象接收，不做OCR或从alt文字猜数学；表内普通图片的拒绝规则保持。具体支持范围见使用手册。

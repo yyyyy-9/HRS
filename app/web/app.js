@@ -536,15 +536,16 @@ function safeMarkdownFragment(html,options={}){
  }});
 }
 marked.setOptions({renderer,gfm:true,breaks:false,headerIds:false,mangle:false,smartLists:true});
-function maskInlineMath(source,records,offset=0){
+function maskInlineMath(source,records,offset=0,{includeDisplay=false,prefix='MATHHOLDER'+offset+'P'}={}){
  // Protect inline TeX before Marked treats \( / \) as ordinary escapes.
  // This shared lexer is also used for native and enhanced table cells.
  const parts=ReportTableContent.tokenize(source);
+ if(source.includes(prefix))prefix+='X'+freshID().replace(/[^A-Za-z0-9]/g,'')+'P';
  let out='';
  for(const part of parts){
-  if(part.kind!=='math'||part.display){out+=part.text??part.raw;continue;}
-  const id='MATHHOLDER'+offset+'P'+records.length+'HOLDER';
-  records.push({id,tex:part.tex,raw:part.raw,start:offset+part.from,end:offset+part.to,display:false});
+  if(part.kind!=='math'||part.display&&!includeDisplay){out+=part.text??part.raw;continue;}
+  const id=prefix+records.length+'HOLDER';
+  records.push({id,tex:part.tex,raw:part.raw,start:offset+part.from,end:offset+part.to,display:part.display});
   out+=id;
  }
  return out;
@@ -595,10 +596,11 @@ function appendSafeTableInline(target,raw){
  target.append(ReportSafeHTML.fragment(html,{inlineOnly:true,images:false}));
 }
 function appendCaptionInline(target,raw,identity){
- for(const part of ReportTableContent.tokenize(raw)){
-  if(part.kind==='text')appendSafeTableInline(target,part.text);
-  else target.append(makeMathElement({...part,id:identity+'-'+part.from}));
- }
+ // Parse the entire Markdown span once: emphasis/link delimiters can enclose
+ // math. Restore formulas only after the original parser and HTML allowlist.
+ const records=[],prefix='TABLEMATH'+String(identity).replace(/[^A-Za-z0-9]/g,'')+'P';
+ appendSafeTableInline(target,maskInlineMath(raw,records,0,{includeDisplay:true,prefix}));
+ replaceMathMarkers(target,records);
 }
 
 /** TSV is deliberately text/plain so Excel/WPS can place one value in each cell.
@@ -696,10 +698,7 @@ function renderTableObject(obj){
  const colgroup=document.createElement('colgroup');ReportTables.getColumnWidths(obj).forEach(width=>{const col=document.createElement('col');col.style.width=width+'%';colgroup.append(col);});table.append(colgroup);
  obj.rows.forEach((row,r)=>{const tr=document.createElement('tr');row.forEach((cell,c)=>{if(cell===null)return;const td=document.createElement(r===0?'th':'td');
   const content=document.createElement('div');content.className='table-cell-content';
-  for(const part of ReportTableContent.tokenize(ReportTables.compactDisplayText(cell.text))){
-   if(part.kind==='text')appendSafeTableInline(content,part.text);
-   else content.append(makeMathElement({...part,id:'cell-'+obj.id+'-'+r+'-'+c+'-'+part.from}));
-  }
+  appendCaptionInline(content,ReportTables.compactDisplayText(cell.text),'cell-'+obj.id+'-'+r+'-'+c);
   td.append(content);td.dataset.cellRaw=cell.text;td.rowSpan=cell.rowspan;td.colSpan=cell.colspan;
   if(obj.align?.[c])td.style.textAlign=obj.align[c];
   if(obj.verticalAlign)td.style.verticalAlign=obj.verticalAlign;

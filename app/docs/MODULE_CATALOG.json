@@ -1,6 +1,6 @@
 {
   "catalog_format": "hrs-module-catalog-v1",
-  "app_baseline": "2.0.4 R1",
+  "app_baseline": "2.0.5 R1",
   "scope": "source tree only; no external report files are opened",
   "caveat": "This is an interface index, not a Python import dependency graph or a DOCX compiler.",
   "items": [
@@ -1007,8 +1007,8 @@
       "output": "visual preview and UI events",
       "side_effects": "modifies editor state via explicit action",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 235425,
-      "sha256": "6bf8ae4de9392f93351e76bc3bc337e8de6c3dd20659f58d9ad92be7980a6da5",
+      "bytes": 235586,
+      "sha256": "ed254bb9667f8c773081d71f4fef98ab2a7e69b34fb645b535a0c8448d9e0d62",
       "review_flags": [
         "large-monolithic-module"
       ]

@@ -1,21 +1,16 @@
 {
   "schema": "hrs-release-policy-v1",
-  "purpose": "MERMAID-DRAG-01: v2.0.3 to v2.0.4 restores persistent basic flowchart dragging on the existing complete Pele SVG; runtime, vendors, CSS and Word model stay unchanged.",
+  "purpose": "TABLE-MATH-EMPHASIS-01: v2.0.4 to v2.0.5 parses table/caption inline Markdown once across protected math; source and Word contracts unchanged.",
   "allowed_application_changes": [
     "app/CHANGELOG.md",
     "app/MANIFEST.json",
-    "app/README.md",
     "app/release.json",
     "app/source_format_v1.md",
-    "app/tools/audit_modules.py",
     "app/web/app.js",
-    "app/web/index.html",
-    "app/web/mermaid_renderer.js",
     "app/docs/CURRENT_STATUS.md",
     "app/docs/USER_GUIDE.md",
     "app/docs/MODULE_OVERVIEW.md",
     "app/docs/WORD_COMPILER_HANDOFF.md",
-    "app/docs/WORD_IR_HANDOFF.json",
     "app/docs/CHANGELOG_READABLE.md",
     "app/docs/MODULE_CATALOG.json",
     "app/docs/CHANGELOG_READABLE.html",
@@ -28,12 +23,10 @@
     "app/web/CHANGELOG_READABLE.html",
     "app/web/MODULE_OVERVIEW.html",
     "app/web/WORD_COMPILER_HANDOFF.html",
-    "app/web/help.html",
-    "app/web/diagram.js",
-    "app/web/diagram_layout.js"
+    "app/web/help.html"
   ],
   "approved_css_changes": {},
-  "protected": "Original v2.0.3 runtime, launchers, CSS, all vendors, templates, page model and Word component stay byte-identical.",
+  "protected": "Original v2.0.4 runtime, launchers, CSS, all vendors, templates, editor, page model and Word component stay byte-identical.",
   "approved_word_material_changes": {},
   "approved_word_contract_adapter_changes": {},
   "approved_renderer_vendor_changes": {}
