@@ -36,6 +36,7 @@ from reading_pack import ReadBundle, ReadPackManager, MIME as READER_MIME, MAX_Z
 from asset_housekeeping import AssetHousekeeper
 from asset_paths import normalize_asset, asset_file
 from word_export import WordExport
+from word_import import WordImport
 
 HERE = Path(__file__).resolve().parent
 APP_MANIFEST_SHA256 = hashlib.sha256((HERE/'MANIFEST.json').read_bytes()).hexdigest() if (HERE/'MANIFEST.json').is_file() else None
@@ -539,6 +540,7 @@ class StudioServer(ThreadingHTTPServer):
         self.lock=threading.RLock()
         self.readpacks=ReadPackManager()  # Read-only external bundles; never registered as editable projects.
         self.word_export=WordExport(HERE,self.workspace)
+        self.word_import=WordImport(self.word_export,self.workspace)
         from module_exports import ModuleExports
         self.module_exports=ModuleExports(self.workspace)
         self.workspace_jobs=WorkspaceJobs()
@@ -550,6 +552,7 @@ class StudioServer(ThreadingHTTPServer):
         try:
             super().server_close()
         finally:
+            self.word_import.close()
             self.workspace_jobs.close()
             self.module_exports.close()
 
@@ -739,6 +742,27 @@ class Handler(BaseHTTPRequestHandler):
             if source.stat().st_size>36*1024*1024:raise ValueError('HTML 超过 36 MiB')
             result={'kind':'html','filename':source.name,'source':source.read_bytes().decode('utf-8-sig')}
         else:raise ValueError('只接受 Markdown 或可回编 HTML')
+        return self.resp({'ok':True,**result})
+
+    def import_word_action(self,action,req):
+        if not self._picker_origin_ok():return self.fail('请通过当前编辑器的 Word 导入入口操作',403)
+        importer=self.server.word_import
+        allowed={'start':set(),'step':{'job_token','seq','result'},'cancel':{'job_token'},'finish':{'job_token','selection_token'}}
+        if action not in allowed or set(req)-allowed[action]:raise ValueError('Word 导入请求无效；路径只能来自本机选择窗口')
+        if action=='start':
+            try:source=pick_import_file(word_document=True)
+            except NotImplementedError as exc:return self.fail(str(exc),501)
+            if source is None:return self.resp({'ok':True,'cancelled':True})
+            return self.resp({'ok':True,**importer.begin(source)})
+        token=req.get('job_token')
+        if action=='cancel':
+            importer.cancel(token);return self.resp({'ok':True})
+        if action=='step':return self.resp({'ok':True,**importer.step(token,req.get('seq'),req.get('result'))})
+        with self.server.lock:
+            target=self.server.registry.consume_selection(req.get('selection_token'),'create','new')
+            def register(path):
+                doc_id=uuid.uuid4().hex;self.server.registry.register(doc_id,path);return doc_id
+            result=importer.commit(token,target,register)
         return self.resp({'ok':True,**result})
 
     def readpack_open_zip(self,req):
@@ -981,6 +1005,7 @@ class Handler(BaseHTTPRequestHandler):
             if p=='/api/project/pick':return self.project_pick(req)
             if p=='/api/project/open':return self.project_open(req)
             if p=='/api/import/local-file':return self.import_local_file(req)
+            if p.startswith('/api/import/word/'):return self.import_word_action(p.rsplit('/',1)[1],req)
             if p=='/api/export/open-folder':
                 if not self._picker_origin_ok():return self.fail('仅接受当前编辑器的打开文件夹操作',403)
                 self.server.word_export.open_result(req.get('result_token'),folder=True)

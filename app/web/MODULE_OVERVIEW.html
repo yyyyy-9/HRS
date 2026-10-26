@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="f64c565323e3f5eec861dd10822cbd4d68ef18fac44b1bd88d6ca12c6ceab493"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="c4431b85a8ff316d4141503c592ca151a2a02f0df9a1b49e168c4958aac91687"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -583,7 +583,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.5<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.1.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
 <a class="level2" href="#section-3">同源桌面宿主</a>
 <a class="level2" href="#section-4">Word beta 界面适配</a>
 <a class="level2" href="#section-5">渲染与输出配置</a>
@@ -608,6 +608,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <h2 id="section-3">同源桌面宿主</h2>
 <p>浏览器与桌面共用同一App；<code>desktop/</code>只维护窗口、私有preload、固定运行库和更新器。<code>host_services.py</code>适配私有PDF和父进程句柄，<code>portable_host/portable_window</code>继续拥有页面租约；窗口关闭共用app的原草稿冲刷，不另存正文。<code>host_capabilities.json</code>定义核心支持的宿主协议，产品版本仍来自release.json。原build_release可由同一冻结负载生成两端，独立verify_desktop核对最终包与Python/Word组件，详见源码安装说明。</p>
 <h2 id="section-4">Word beta 界面适配</h2>
+<p>word_import.py/web/word_import.js是整篇Word的薄适配：本机选择DOCX、冻结原件及同名来源映射、复用word_export的匹配运行时/Pandoc设置，在隔离子进程调用原Bridge from-docx。受限JSON通道只请求当前页面既有组图/表格/公式序列化，不执行文稿代码或任意页面操作。读取/待审/取消/失败分别处理，源摘要与暂存校验通过后沿原目录凭据、copy_project_tree和注册机制保存到新工程；登记失败保留完整新目录，原件和当前稿不覆盖。进程、请求和快照均有期限，服务关闭/取消清理所属任务。没有第二个Word或Markdown解析器。</p>
 <p>web/word_export.js 管模板选择、生成状态、错误和打开成品；word_export.py 只用标准库管理本机选择凭据、工程模板偏好与独立子进程。studio.py 复用现有 IR、revision 和正式／草稿附件校验冻结快照；独立便携包的 word_support 包含原 Bridge／WPS 核心与四个库，复用自带 Python；同源 browser_model.js 由当前页面提供模型，prepare／提交绑定快照，不另起 Node 或浏览器。原生公式才使用可选 Pandoc。Full 继续支持原完整 CLI。源范围、编号、模板契约和 Word 原生对象规则仍归原项目，不在 HRS 增加第二套编译器。</p>
 <p>report_workspace.js提供范围/恢复/管理选择与任务进度，report_workspace.py管理有界任务、分块附件和可逆生命周期；studio.py只沿原revision/资源/目录选择接口提交。operations.js集中UI租约和请求期限，避免相互解锁。临时稿默认独立；用户审查差异并确认后，可沿冻结范围/共享定义显式同步，复用原锁/备份/原子保存。独立保存另分配新身份，旧临时稿保留。图片对象转换在确认目录后应用，取消选择不改写源文。preflight.js统一页面输出诊断，Python接口只标出源码契约范围；安装cli委托这些已有读/检查/提交/HTML实现。</p>
 <h2 id="section-5">渲染与输出配置</h2>

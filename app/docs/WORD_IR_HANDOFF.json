@@ -369,6 +369,16 @@
     "effects": "Native application/folder navigation only; no target content returned or imported, no source edits; program/script/shortcut targets refused",
     "not_agent_write_or_command_api": true
   },
+  "word_import_ui": {
+    "routes": ["/api/import/word/start", "/api/import/word/step", "/api/import/word/cancel", "/api/import/word/finish"],
+    "required_header": "X-HRS-Project-Action:user-action and same origin",
+    "source": "Native-selected .docx plus optional adjacent .docx.hrs-bridge.json, frozen and SHA256 checked",
+    "binding": ["server job_token", "current serializer seq", "new-project selection_token"],
+    "delegates": "Matching Bridge from-docx and WPS scanner/recognition; existing open-page serializers only",
+    "status": ["COMPLETE", "NEEDS_REVIEW"],
+    "writes": "Explicit new project only; diagnostics/source receipt retained; original DOCX/current HRS source never overwritten",
+    "not_agent_write_or_command_api": true
+  },
   "desktop_host": {
     "core": "same App and existing CLI/IR/preflight/save/Word chain",
     "protocol_source": "host_capabilities.json",

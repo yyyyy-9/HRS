@@ -16,6 +16,8 @@
 
 ## Word beta 界面适配
 
+word_import.py/web/word_import.js是整篇Word的薄适配：本机选择DOCX、冻结原件及同名来源映射、复用word_export的匹配运行时/Pandoc设置，在隔离子进程调用原Bridge from-docx。受限JSON通道只请求当前页面既有组图/表格/公式序列化，不执行文稿代码或任意页面操作。读取/待审/取消/失败分别处理，源摘要与暂存校验通过后沿原目录凭据、copy_project_tree和注册机制保存到新工程；登记失败保留完整新目录，原件和当前稿不覆盖。进程、请求和快照均有期限，服务关闭/取消清理所属任务。没有第二个Word或Markdown解析器。
+
 web/word_export.js 管模板选择、生成状态、错误和打开成品；word_export.py 只用标准库管理本机选择凭据、工程模板偏好与独立子进程。studio.py 复用现有 IR、revision 和正式／草稿附件校验冻结快照；独立便携包的 word_support 包含原 Bridge／WPS 核心与四个库，复用自带 Python；同源 browser_model.js 由当前页面提供模型，prepare／提交绑定快照，不另起 Node 或浏览器。原生公式才使用可选 Pandoc。Full 继续支持原完整 CLI。源范围、编号、模板契约和 Word 原生对象规则仍归原项目，不在 HRS 增加第二套编译器。
 
 report_workspace.js提供范围/恢复/管理选择与任务进度，report_workspace.py管理有界任务、分块附件和可逆生命周期；studio.py只沿原revision/资源/目录选择接口提交。operations.js集中UI租约和请求期限，避免相互解锁。临时稿默认独立；用户审查差异并确认后，可沿冻结范围/共享定义显式同步，复用原锁/备份/原子保存。独立保存另分配新身份，旧临时稿保留。图片对象转换在确认目录后应用，取消选择不改写源文。preflight.js统一页面输出诊断，Python接口只标出源码契约范围；安装cli委托这些已有读/检查/提交/HTML实现。

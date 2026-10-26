@@ -39,10 +39,12 @@ def validate_project_name(value:str)->str:
     return text
 
 
-def pick_import_file(*,word_template:bool=False,word_formula:bool=False)->Path|None:
+def pick_import_file(*,word_template:bool=False,word_formula:bool=False,word_document:bool=False)->Path|None:
     from native_picker import choose
+    if word_document:
+        return choose(purpose='word-import',title='导入 Word（.docx，原文件不变）',filters=[('Word 文档','*.docx')])
     purpose='word-formula' if word_formula else 'word-template' if word_template else 'document-import'
-    title='选择已有的 pandoc.exe（仅原生公式输出需要）' if word_formula else '选择已准备好的 Word 母模板（.docx）' if word_template else '导入 Markdown / HTML（相对图片自动读取，原文件不变）'
+    title='选择已有的 pandoc.exe（原生公式转换需要）' if word_formula else '选择已准备好的 Word 母模板（.docx）' if word_template else '导入 Markdown / HTML（相对图片自动读取，原文件不变）'
     filters=[('Pandoc 公式转换器','pandoc.exe')] if word_formula else [('Word 模板文档','*.docx')] if word_template else [('Markdown / 可回编 HTML','*.md;*.markdown;*.html;*.htm'),('Markdown','*.md;*.markdown'),('HTML','*.html;*.htm')]
     return choose(purpose=purpose,title=title,filters=filters)
 
@@ -78,9 +80,10 @@ def copy_project_tree(source:Path,target:Path)->int:
     if target.exists() or is_link(target):raise ValueError('目标项目文件夹已存在，拒绝覆盖')
     if parent==source or source in parent.parents:
         raise ValueError('项目不允许拷贝到自己的子目录或父目录')
-    files=[]
+    files=[];directories=[]
     for folder,dirs,names in os.walk(source,followlinks=False):
         at=Path(folder)
+        directories.append(at.relative_to(source))
         for d in dirs:
             if is_link(at/d):raise ValueError('原项目包含链接目录，迁移中止')
         for n in names:
@@ -91,6 +94,9 @@ def copy_project_tree(source:Path,target:Path)->int:
     stage=parent/('.hrs_copy_'+secrets.token_hex(12))
     stage.mkdir(exist_ok=False)
     try:
+        # Text-only projects still own empty assets/output directories. Keep
+        # directory structure as well as files in copies and migrations.
+        for relative in directories:(stage/relative).mkdir(parents=True,exist_ok=True)
         for file,relative,expected in files:
             dest=stage/relative;dest.parent.mkdir(parents=True,exist_ok=True)
             shutil.copy2(file,dest,follow_symlinks=False)

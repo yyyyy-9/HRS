@@ -37,7 +37,7 @@ FEATURES = {
         maintenance_contract maintenance_browser maintenance_node report_workspace_contract report_workspace_browser
         source_index_node notebook_node core_consistency_contract distribution_contract pf131_contract
         interfaces_contract run_checks_contract release_contract block_commit_contract'''),
-    'report_word': ('Explicit native Word component integration for the temporary report workflow; requires HRS_WORD_SUPPORT/PYTHON/PANDOC', '''report_workspace_word_browser
+    'report_word': ('Explicit native Word component integration for import and the temporary report workflow; requires HRS_WORD_SUPPORT/PYTHON/PANDOC', '''report_workspace_word_browser word_import_browser
         numbering_v2_browser:UnifiedNumbering.test_03_mathml_mixed_paste_preserves_inline_math_and_table
         numbering_v2_browser:UnifiedNumbering.test_04_word_formula_numbers_and_reference_policy
         numbering_v2_browser:UnifiedNumbering.test_07_plain_markdown_figures_and_tables_use_native_word_numbers'''),
@@ -190,7 +190,7 @@ def select_tests(source, groups, *, require_all=True):
 
 def execution_requirements(plan):
     tests=[test for entry in plan for test in entry['tests']]
-    needs_word=any(test['id'] in {'test_word_export_browser','test_word_lite_browser','test_report_workspace_word_browser'} or
+    needs_word=any(test['id'] in {'test_word_export_browser','test_word_lite_browser','test_word_import_browser','test_report_workspace_word_browser'} or
                    test['id']=='test_word_footnotes_browser' and test.get('selectors') is None for test in tests)
     return ['native-word-components','word-test-environment'] if needs_word else []
 

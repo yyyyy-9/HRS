@@ -48,6 +48,8 @@ Electron只用于显式桌面组，默认full/contracts不因缺少桌面内核�
 工作页体验专项：--groups report_workspace，覆盖新工作页、旧notebook、保存/滚动/标题引用、表格脚注和共享公式；--plan查看去重后的具体范围。
 原生输出专项：--groups report_word，设置HRS_WORD_SUPPORT为匹配word_support目录、HRS_WORD_PYTHON为其Python3.13运行时、HRS_WORD_PANDOC为已选pandoc.exe；另设置浏览器。缺少必需组件会明确失败，不能当成通过。
 
+report_word同时包含整篇Word导入的真实服务专项：外来DOCX的表/组图/OMML、NEEDS_REVIEW保留、自身导出映射回编、取消/来源变化/无组件/登记失败与原稿保护。只替代本机选择窗口的返回值，使用原配套组件及当前页面，不模拟转换结果；无Node/第二浏览器依赖也有反例。普通import组继续保护原Markdown/HTML入口；无浏览器Word请求边界纳入word契约。
+
 4. 完整自动检查与效率
 
 python -X utf8 -B tools/run_checks.py --browser "C:/Program Files/Google/Chrome/Application/chrome.exe" --evidence ../hrs-full-results

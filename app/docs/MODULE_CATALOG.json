@@ -1,6 +1,6 @@
 {
   "catalog_format": "hrs-module-catalog-v1",
-  "app_baseline": "2.0.5 R1",
+  "app_baseline": "2.1.0 R1",
   "scope": "source tree only; no external report files are opened",
   "caveat": "This is an interface index, not a Python import dependency graph or a DOCX compiler.",
   "items": [
@@ -723,8 +723,8 @@
       "output": "project location / registry",
       "side_effects": "writes only on explicit operation",
       "word_pipeline_role": "indirect",
-      "bytes": 9529,
-      "sha256": "88ec7663a8833233fbb0738214f73d7949a4aae8efb2abbef964b1166d5295e4",
+      "bytes": 10005,
+      "sha256": "af2f948c47a4645bd38acb9de667c7714394180c38e5bac892fdbc2f8dcee089",
       "review_flags": []
     },
     {
@@ -758,8 +758,8 @@
       "output": "JSON API / binary resources",
       "side_effects": "reads/writes projects and drafts",
       "word_pipeline_role": "do-not-import",
-      "bytes": 116388,
-      "sha256": "c14d2a45bc5b558c0a268ef620a26303c7f5c574ac5c4bc0ec39da7088305c80",
+      "bytes": 118028,
+      "sha256": "cfdfa293d69aefef3fc2d88014da4a0193eee8a9722d88a28471126e0a853694",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -814,6 +814,42 @@
       "word_pipeline_role": "never-source-of-truth",
       "bytes": 11613,
       "sha256": "0f2b03bd22ad6bfe6f0d6d968550cdd1e36390e8c38e46c30943cabb001efdf1",
+      "review_flags": []
+    },
+    {
+      "id": "word_import",
+      "path": "word_import.py",
+      "layer": "word-import-adapter",
+      "responsibility": "frozen DOCX and isolated existing Bridge with bounded page serializer channel, safe new-project commit and cancellation",
+      "entrypoints": [
+        "WordImport",
+        "selected_source",
+        "worker"
+      ],
+      "input": "native-selected DOCX and matching Word runtime",
+      "output": "new HRS project, source receipt and recognition diagnostics",
+      "side_effects": "never overwrites original/current; explicit new destination only",
+      "word_pipeline_role": "delegates",
+      "bytes": 15650,
+      "sha256": "803f8666b150a19a6a716963e6813f7905ae0072846b23f79d9db62c259d2a95",
+      "review_flags": []
+    },
+    {
+      "id": "word_import_ui",
+      "path": "web/word_import.js",
+      "layer": "browser-ui",
+      "responsibility": "Word component selection, existing serializers, progress, review and cancellation",
+      "entrypoints": [
+        "configure",
+        "read",
+        "review"
+      ],
+      "input": "source-bound import session and Bridge receipt",
+      "output": "explicit native import requests",
+      "side_effects": "no parser or model client",
+      "word_pipeline_role": "never-source-of-truth",
+      "bytes": 6020,
+      "sha256": "0409026d30233a1961530ba818a9761b41218ecf50042ab2783b1779cde98e25",
       "review_flags": []
     },
     {
@@ -1007,8 +1043,8 @@
       "output": "visual preview and UI events",
       "side_effects": "modifies editor state via explicit action",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 235586,
-      "sha256": "ed254bb9667f8c773081d71f4fef98ab2a7e69b34fb645b535a0c8448d9e0d62",
+      "bytes": 238269,
+      "sha256": "a411b2991b86daf2fe2791ea7ea3a9451112bc713a9ebb7d1603e97d3655e6b4",
       "review_flags": [
         "large-monolithic-module"
       ]

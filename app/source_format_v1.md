@@ -319,6 +319,10 @@ IR 是结构基础，不是完整 Word 排版 IR；完整行内/列表 AST、模
 
 本机“导入Markdown/HTML”从系统文件选择窗口取得MD的真实来源；HTTP请求不得指定任意源路径。markdown_import仅适配既有report_contract与object_clipboard资源/范围改写，整批准备成功后经原draft-import进入草稿。只改写真实图片目的路径；代码、普通链接、其余文字/数值/公式不推断改写。来源目录及其子目录可确定的图片一次处理，缺失/越界集中失败，原件只读。该入口不改变归档Schema、正式对象语法、普通粘贴或Word契约。
 
+## 本机 Word 导入
+
+“导入Word”是配套Bridge from-docx的同源用户入口，不是Agent任意路径接口。原DOCX及相邻`.docx.hrs-bridge.json`冻结并校验摘要，隔离组件沿原WPS扫描/识别与数学适配生成原HRS源格式；当前页面只执行既有组图/表格/公式序列化。后续请求绑定服务端job_token、当前序号和新工程目录选择凭据；旧回复、来源/映射变化、超限、取消或不支持结构明确失败。COMPLETE与NEEDS_REVIEW分别呈现，待确认文字保留且不冒充已确认结构，诊断随新工程保存。只创建显式选择的新工程，不覆盖原Word或当前HRS稿；原A0/plan/apply、对象Schema、编号及Word页面模型保持。
+
 ## Word混合剪贴板适配
 
 源码区的显式粘贴可将Word/WPS HTML适配为字面正文、report-figure和report-table，复用既有对象格式及objects/paste事务，不增加源Schema。图片／表格按原顺序获得独立ID，题注默认空白；不把附近段落猜作题注，不从Word字体猜标题。普通代码围栏内保留字面粘贴；HRS自身富剪贴板优先使用原资源包。

@@ -77,7 +77,7 @@ HRS 可以显示受限 HTML，但它仍保留在原 markdown 源块中，不变�
 
 ### 完整预检与安装命令
 
-整篇DOCX导入由配套Bridge的from-docx承担：自身导出件使用原来源映射，外来DOCX使用WPS扫描/识别及受限投影，生成新report.md/assets工程和诊断；不能表达的对象/域明确拒绝。当前HRS菜单未直接调用此入口，后续UI接入应复用它并正确呈现NEEDS_REVIEW及局部未决，不另写Word解析器。
+整篇DOCX导入由配套Bridge的from-docx承担：自身导出件使用原来源映射，外来DOCX使用WPS扫描/识别及受限投影，生成新report.md/assets工程和诊断；不能表达的对象/域明确拒绝。HRS“打开→导入Word”直接委托该入口：沿原Word组件设置启动隔离子进程，当前页面仅提供现有序列化，展示COMPLETE/NEEDS_REVIEW和未决条目后显式选择新工程位置。接口是同源用户操作，路径由本机窗口选择，后续绑定服务端token/序号；不属于Agent任意文件写入API。来源/映射变化、过期回复、取消或失败不能覆盖原稿。原页面模型和Word组件字节不变。
 
 标准安装后的hrs capabilities返回命令/副作用/可选依赖。hrs read ACTION SOURCE委托原A0；hrs plan .../hrs apply ...委托原块提交；hrs html export/recover ...委托原HTML引擎。完整预检使用hrs check PROJECT --render-profile engineering --browser BROWSER，复用页面Marked/脚注及输出策略，并检查附件，返回hrs-output-preflight-v1、完整范围、源摘要和diagnostics；失败非零退出，源不写。未安装Playwright/未提供本机浏览器时明确失败，不安装依赖或退回成“检查通过”。
 

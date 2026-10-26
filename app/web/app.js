@@ -6,7 +6,7 @@ const RENDER_CONTROLS=[['show-object-numbers','show_object_numbers'],['show-head
 // Check bundled scripts before touching any of them, so a missing file shows
 // a readable message instead of a silent ReferenceError on "正在加载".
 const REQUIRED_SCRIPTS=['marked','Flow','ReportClone','ReportTableContent','ReportTables','ReportPipeTables','ReportTableEditor','ReportDialogs','ReportLayout','ReportListStyles','ReportEquations','SourceEditor','ReportSourceProjection','SourceBlocks','SourceActions','ReportObjectClipboard','ReportRichClipboard','SourceMap','ScrollFollow','ReportNotes','ReportLinks','ReportWordExport','ReportWorkspace','ReportBridgeModel'];
-REQUIRED_SCRIPTS.push('ReportDocumentSearch','ReportSettings','ReportProfile','ReportTheme','ReportNotebook','ReportPreviewImages','ReportPreflight','ReportOperations','ReportPreviewCommit');
+REQUIRED_SCRIPTS.push('ReportDocumentSearch','ReportSettings','ReportProfile','ReportTheme','ReportNotebook','ReportPreviewImages','ReportPreflight','ReportOperations','ReportPreviewCommit','ReportWordImport');
 const missingScripts=REQUIRED_SCRIPTS.filter(name=>typeof window[name]==='undefined');
 if(missingScripts.length){
  const indicator=$('save-indicator');if(indicator){indicator.className='status error';indicator.textContent='本地静态依赖缺失';}
@@ -249,7 +249,7 @@ function projectFolderSuggestion(){
  let value=(head?.[1]||'未命名工程').replace(/[<>:\"/\\|?*\u0000-\u001f]/g,'_').trim().replace(/[. ]+$/,'').slice(0,60);
  return value||'未命名工程';
 }
-async function askProjectFolder(action='create',documentId=state.documentId){
+async function askProjectFolder(action='create',documentId=state.documentId,{suggestion=null}={}){
  let field;
  const chosen=await modal({title:action==='create'?'首次正式保存 · 建立文档工程':'迁移项目到独立目录',
   kicker:'工程目录 · 使用 Windows 文件夹选择器',
@@ -258,7 +258,7 @@ async function askProjectFolder(action='create',documentId=state.documentId){
    const detail=document.createElement('p');detail.className='modal-help';
    detail.textContent='选择保存工程的父目录，软件会在其中新建下面命名的项目文件夹（包含 report.md、assets/、output/）。';outer.append(detail);
    const label=document.createElement('label');label.className='modal-help';label.textContent='项目文件夹名称（不要输入完整路径）';outer.append(label);
-   field=document.createElement('input');field.className='table-caption-input';field.maxLength=70;field.value=projectFolderSuggestion();field.setAttribute('aria-label','项目文件夹名称');outer.append(field);
+   field=document.createElement('input');field.className='table-caption-input';field.maxLength=70;field.value=suggestion||projectFolderSuggestion();field.setAttribute('aria-label','项目文件夹名称');outer.append(field);
   },onOk:async()=>{
    const name=field.value.trim();if(!name)throw Error('请输入工程文件夹名称');
    if(/[\\/:]/.test(name))throw Error('此处只能填写项目文件夹名称（例如：未命名技术报告），不能填写 D:\\GAME\\未命名技术报告；请在 Windows 文件夹选择器中选父目录 D:\\GAME。');
@@ -2610,6 +2610,38 @@ async function printSnapshot(){
  }catch(e){toast('打印预览失败：'+e.message);}
 }
 let importingLocalFile=false;
+async function importWordFile(){
+ if(operations.busy||state.saving||workspaceBusy)return toast('请等待当前操作完成后再导入 Word');
+ commitSource();commitFocusedVisual();
+ const release=operations.acquire({nodes:document.querySelectorAll('#app button,#app input,#app select'),editing:true});
+ const overlay=$('workspace-operation'),progress=$('workspace-operation-text'),cancelButton=$('workspace-operation-cancel');
+ let token=null;
+ try{
+  const before={session:state.session,markdown:state.md};
+  const context={document_id:state.documentId,draft_id:state.draftId,template:state.template};
+  if(!await ReportWordImport.configure({api,modal,context}))return;
+  overlay.hidden=false;progress.textContent='请在本机选择窗口中选择 Word 文档…';
+  const result=await ReportWordImport.read({api,progress,cancelButton,onToken:value=>{token=value;}});
+  overlay.hidden=true;if(!result)return;
+  if(state.session!==before.session||state.md!==before.markdown)throw Error('当前文稿已变化，Word 导入已取消');
+  if(!await ReportWordImport.review({modal,result}))return;
+  const snapshot={session:state.session,markdown:state.md};
+  const suggestion=result.filename.replace(/\.docx$/i,'').replace(/[<>:"/\\|?*\u0000-\u001f]/g,'_').replace(/[. ]+$/,'').slice(0,55)+'_HRS';
+  const target=await askProjectFolder('create','new',{suggestion});if(!target)return;
+  if(state.session!==snapshot.session||state.md!==snapshot.markdown)throw Error('当前文稿已变化，Word 导入已取消');
+  overlay.hidden=false;progress.textContent='正在保存并打开新的 HRS 工程…';
+  const imported=await api('/api/import/word/finish','POST',{job_token:token,selection_token:target.selection_token},{'X-HRS-Project-Action':'user-action'});
+  token=null;overlay.hidden=true;
+  await refreshRecent();
+  if(!await askLeave()){toast('Word 已导入并保存到 '+imported.project_path+'；当前文稿保持，可从最近打开。');return;}
+  await load(imported.document_id,'engineering',{recover:false});
+  toast(imported.receipt.status==='NEEDS_REVIEW'?`Word 已导入；${imported.receipt.recognition.unresolved} 项结构待确认，原文和诊断已保留。`:'Word 已导入并保存为新工程；原 Word 文件保持不变。');
+ }catch(error){toast('Word 导入失败：'+error.message);}
+ finally{
+  if(token)try{await api('/api/import/word/cancel','POST',{job_token:token},{'X-HRS-Project-Action':'user-action'});}catch{}
+  overlay.hidden=true;cancelButton.hidden=true;cancelButton.onclick=null;release();updateHistoryButtons();
+ }
+}
 async function importLocalFile(){
  if(importingLocalFile)return;
  try{
@@ -2856,6 +2888,7 @@ function init(){
  $('btn-fold-all').addEventListener('click',()=>{scrollFollow.suspend();editor.foldAll();});
  $('btn-unfold-all').addEventListener('click',()=>{scrollFollow.suspend();editor.unfoldAll();});
  $('btn-import').addEventListener('click',importLocalFile);
+ $('btn-import-word').addEventListener('click',importWordFile);
  $('file-import').addEventListener('change',async e=>{const f=e.target.files[0];if(f)await importFile(f);e.target.value='';});
  $('file-image').addEventListener('change',async e=>{
   const files=[...e.target.files];e.target.value='';if(!files.length)return;
