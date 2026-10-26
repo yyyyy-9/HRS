@@ -1,6 +1,6 @@
 {
   "schema": "hrs-release-policy-v1",
-  "purpose": "WORD-IMPORT-UI-01: v2.0.5 to v2.1.0 adds native-selected DOCX import through existing Bridge and open-page serializers; preserves original/current documents and component bytes.",
+  "purpose": "WORD-IMPORT-UI-01: v2.0.5 to v2.0.6 adds native-selected DOCX import through existing Bridge and open-page serializers; preserves original/current documents and component bytes.",
   "allowed_application_changes": [
     "app/CHANGELOG.md",
     "app/MANIFEST.json",
