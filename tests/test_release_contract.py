@@ -5,6 +5,7 @@ import importlib.util
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,6 +32,16 @@ def seal(files):
 
 
 class ReleaseContracts(unittest.TestCase):
+    def test_word_runtime_reuse_rejects_a_different_baseline_before_building(self):
+        """WORD-HYPERLINK-01: reusing pinned libraries must bind the actual input ZIP."""
+        producer=module('word_support_producer_test',ROOT/'tools/build_word_support.py')
+        with tempfile.TemporaryDirectory() as directory,patch.dict('sys.modules',{'build_release':BUILD}):
+            root=Path(directory);baseline=root/'baseline.zip';baseline.write_bytes(b'different input')
+            output=root/'new.zip'
+            with self.assertRaisesRegex(ValueError,'Baseline portable SHA mismatch'):
+                producer.build(root/'bridge',root/'wps',None,output,baseline_portable=baseline,baseline_sha256='0'*64)
+            self.assertFalse(output.exists())
+
     def test_renderer_vendor_migration_is_exact_and_cannot_change_other_vendors(self):
         """PELE-01: additions/removals must both be bound to actual bytes."""
         source,baseline=self.fixture();old='app/web/vendor/mermaid/mermaid.min.js';new='app/web/vendor/pele/pele.global.js'
@@ -123,9 +134,11 @@ class ReleaseContracts(unittest.TestCase):
                                   {'schema':'hrs-release-policy-v1','allowed_application_changes':allowed})
 
     def test_word_adapter_approval_requires_both_exact_fingerprints(self):
-        for filename in ('runtime.py','__main__.py'):
-            with self.subTest(adapter=filename):
-                source,baseline=self.fixture();name='word_support/bridge/hrs_bridge/'+filename
+        for relative in ('bridge/hrs_bridge/runtime.py','bridge/hrs_bridge/__main__.py',
+                         'bridge/hrs_bridge/ooxml.py','wps/src/wps_pipeline/scan_docx.py',
+                         'wps/src/wps_pipeline/verify_scan_fidelity.py'):
+            with self.subTest(adapter=relative):
+                source,baseline=self.fixture();name='word_support/'+relative
                 baseline[name]=b'old adapter';seal(baseline)
                 portable=copy.deepcopy(baseline);portable[name]=b'new adapter'
                 component=json.loads(portable['word_support/MANIFEST.json'])

@@ -1,6 +1,6 @@
 {
   "schema": "hrs-release-policy-v1",
-  "purpose": "WORD-IMPORT-UI-01: v2.0.5 to v2.0.6 adds native-selected DOCX import through existing Bridge and open-page serializers; preserves original/current documents and component bytes.",
+  "purpose": "WORD-HYPERLINK-01: v2.0.6 to v2.0.7 native hyperlink import, matching beta badge, target-aware round trip and factual range audit.",
   "allowed_application_changes": [
     "app/CHANGELOG.md",
     "app/MANIFEST.json",
@@ -19,23 +19,49 @@
     "app/docs/WORD_COMPILER_HANDOFF.html",
     "app/docs/WORD_COMPILER_HANDOFF.md",
     "app/docs/WORD_IR_HANDOFF.json",
-    "app/project_workspace.py",
     "app/release.json",
     "app/source_format_v1.md",
-    "app/studio.py",
-    "app/tools/audit_modules.py",
     "app/web/CHANGELOG_READABLE.html",
     "app/web/MODULE_OVERVIEW.html",
     "app/web/WORD_COMPILER_HANDOFF.html",
-    "app/web/app.js",
     "app/web/help.html",
     "app/web/index.html",
+    "app/web/word_export.js",
     "app/web/word_import.js",
     "app/word_import.py"
   ],
   "approved_css_changes": {},
-  "protected": "Original v2.0.5 runtime, launchers, CSS, all vendors, templates, editor, page model and Word component stay byte-identical.",
+  "protected": "Runtime, launchers, CSS, vendors, page model, templates and all native dependency libraries remain byte-identical; only the exact listed Bridge/WPS adapter fingerprints may change.",
   "approved_word_material_changes": {},
-  "approved_word_contract_adapter_changes": {},
+  "approved_word_contract_adapter_changes": {
+    "word_support/MANIFEST.json": {
+      "baseline_sha256": "6b5ca48f4886688f03a0c76919a30459fdbe4f7de37329246e6fa1b9fb945984",
+      "sha256": "828dff5396e293c29f55ecb05c261ea0ffdfc9818f1da171d60bc62af8060b31"
+    },
+    "word_support/bridge/hrs_bridge/__init__.py": {
+      "baseline_sha256": "4cbc1068939a3a546bd8357082222629987369525ccf43279e8682dc71bba3d6",
+      "sha256": "c7e514811eb0ec60fbcd9c06a6ea1cae235a2789a9d5526b0bbca5710371d37e"
+    },
+    "word_support/bridge/hrs_bridge/docx_export.py": {
+      "baseline_sha256": "c8fd45a024f9f845b5863ce34dc646bd1dbec2169757afd88ca7b043d95aa2b5",
+      "sha256": "375e9300b0ba5897337d134ce60e4dea221e1e30ad109f134e17256e870222ab"
+    },
+    "word_support/bridge/hrs_bridge/docx_import.py": {
+      "baseline_sha256": "869d55197a46a3784cebf223b398e368ce3d7ea1d7148be78cbf9e354319b380",
+      "sha256": "7f3cb944349111cbf2e14df48c194a26356be2f1cd032cdf5ccf4baf2f40c46a"
+    },
+    "word_support/bridge/hrs_bridge/ooxml.py": {
+      "baseline_sha256": "eba5374e2f48133383f09484751dd69b78274479df5eaf05253efbbbea837bd7",
+      "sha256": "fae4969dc836bedcc80eeaefd69644eb6779c23cc21b734b2edaebf3a3004af8"
+    },
+    "word_support/wps/src/wps_pipeline/scan_docx.py": {
+      "baseline_sha256": "48ade217b33c8c78f3dd78fd0b350b0c9913cbac9e175200dc96c39cd96b2932",
+      "sha256": "8e1f18af9c1923aebad0cc547bc2760c789fda421e19fd361f88962426f343cd"
+    },
+    "word_support/wps/src/wps_pipeline/verify_scan_fidelity.py": {
+      "baseline_sha256": "e84ee375b27a66525c1d1565294bde3abd87060fe26e9098c0eee3a17ccec494",
+      "sha256": "dc867f4c05f93806f3b3b26623011cc6fb64175817378701a07374c3b5caa940"
+    }
+  },
   "approved_renderer_vendor_changes": {}
 }

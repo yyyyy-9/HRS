@@ -16,7 +16,7 @@
 
 ## Word beta 界面适配
 
-word_import.py/web/word_import.js是整篇Word的薄适配：本机选择DOCX、冻结原件及同名来源映射、复用word_export的匹配运行时/Pandoc设置，在隔离子进程调用原Bridge from-docx。受限JSON通道只请求当前页面既有组图/表格/公式序列化，不执行文稿代码或任意页面操作。读取/待审/取消/失败分别处理，源摘要与暂存校验通过后沿原目录凭据、copy_project_tree和注册机制保存到新工程；登记失败保留完整新目录，原件和当前稿不覆盖。进程、请求和快照均有期限，服务关闭/取消清理所属任务。没有第二个Word或Markdown解析器。
+word_import.py/web/word_import.js是整篇Word的薄适配：本机选择DOCX、冻结原件及同名来源映射、复用word_export的匹配运行时/Pandoc设置，在隔离子进程调用原Bridge from-docx。受限JSON通道只请求当前页面既有组图/表格/公式序列化，不执行文稿代码或任意页面操作。读取/待审/取消/失败分别处理，源摘要与暂存校验通过后沿原目录凭据、copy_project_tree和注册机制保存到新工程；登记失败保留完整新目录，原件和当前稿不覆盖。进程、请求和快照均有期限，服务关闭/取消清理所属任务。没有第二个Word或Markdown解析器。导入/核对窗口共用Word导出的beta徽标构造与主题样式；Bridge消费WPS的hyperlink_ranges事实完成目标映射，未可靠映射的目标以诊断返回。
 
 web/word_export.js 管模板选择、生成状态、错误和打开成品；word_export.py 只用标准库管理本机选择凭据、工程模板偏好与独立子进程。studio.py 复用现有 IR、revision 和正式／草稿附件校验冻结快照；独立便携包的 word_support 包含原 Bridge／WPS 核心与四个库，复用自带 Python；同源 browser_model.js 由当前页面提供模型，prepare／提交绑定快照，不另起 Node 或浏览器。原生公式才使用可选 Pandoc。Full 继续支持原完整 CLI。源范围、编号、模板契约和 Word 原生对象规则仍归原项目，不在 HRS 增加第二套编译器。
 

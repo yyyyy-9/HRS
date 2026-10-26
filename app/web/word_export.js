@@ -120,5 +120,5 @@ async function open({api,modal,toast,getRequest,validate=async()=>{}}){
   },onOk:()=>true});
  document.querySelector('#modal-title').classList.remove('feature-label');
 }
-root.ReportWordExport={open};
+root.ReportWordExport={open,badge};
 })(window);

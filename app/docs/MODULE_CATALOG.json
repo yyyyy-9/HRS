@@ -1,6 +1,6 @@
 {
   "catalog_format": "hrs-module-catalog-v1",
-  "app_baseline": "2.0.6 R1",
+  "app_baseline": "2.0.7 R1",
   "scope": "source tree only; no external report files are opened",
   "caveat": "This is an interface index, not a Python import dependency graph or a DOCX compiler.",
   "items": [
@@ -812,8 +812,8 @@
       "output": "Word export UI requests",
       "side_effects": "explicit user actions only",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 11613,
-      "sha256": "0f2b03bd22ad6bfe6f0d6d968550cdd1e36390e8c38e46c30943cabb001efdf1",
+      "bytes": 11619,
+      "sha256": "81c541d061de74d30c6c329c4d60755a1f0be55bc955c9f1a197312931f6fccd",
       "review_flags": []
     },
     {
@@ -830,8 +830,8 @@
       "output": "new HRS project, source receipt and recognition diagnostics",
       "side_effects": "never overwrites original/current; explicit new destination only",
       "word_pipeline_role": "delegates",
-      "bytes": 15650,
-      "sha256": "803f8666b150a19a6a716963e6813f7905ae0072846b23f79d9db62c259d2a95",
+      "bytes": 15846,
+      "sha256": "17d5196ff4f102f04ca65961cbe0edacd75d1f9470b52b0c335303aed5ff5528",
       "review_flags": []
     },
     {
@@ -848,8 +848,8 @@
       "output": "explicit native import requests",
       "side_effects": "no parser or model client",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 6020,
-      "sha256": "0409026d30233a1961530ba818a9761b41218ecf50042ab2783b1779cde98e25",
+      "bytes": 6570,
+      "sha256": "0de0a120678cbb3ac022ecbcd12879919891ad0b327456c27eb98879124d2a1a",
       "review_flags": []
     },
     {

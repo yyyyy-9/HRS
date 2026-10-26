@@ -4,11 +4,11 @@ No network, installation, Python interpreter, browser, Node or Pandoc is bundled
 """
 from pathlib import Path,PurePosixPath
 from zipfile import ZipFile,ZIP_DEFLATED,ZipInfo
-import argparse,hashlib,json,subprocess
+import argparse,ast,hashlib,json,subprocess
 
 def digest(raw):return hashlib.sha256(raw).hexdigest()
 def encoded(obj):return (json.dumps(obj,ensure_ascii=False,indent=2)+'\n').encode('utf8')
-def build(bridge,wps,wheels,output):
+def build(bridge,wps,wheels,output,*,baseline_portable=None,baseline_sha256=None):
     files={};origins=[]
     expected={'python_docx-1.2.0-py3-none-any.whl','lxml-6.1.1-cp313-cp313-win_amd64.whl',
               'pillow-12.3.0-cp313-cp313-win_amd64.whl','typing_extensions-4.16.0-py3-none-any.whl'}
@@ -16,7 +16,18 @@ def build(bridge,wps,wheels,output):
             'lxml-6.1.1-cp313-cp313-win_amd64.whl':'a10bd2fd62e8ce916ececb342f348f190724a098c1faa056fdfb2a22ad5e8660',
             'pillow-12.3.0-cp313-cp313-win_amd64.whl':'1cca606cd25738df4ed873d5ad46bbdb3d83b5cbca291f6b4ff13a4df6b0bbe8',
             'typing_extensions-4.16.0-py3-none-any.whl':'481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8'}
-    for name in sorted(expected):
+    if baseline_portable is not None:
+        from build_release import read_zip,validate_manifest
+        if not baseline_sha256 or digest(baseline_portable.read_bytes())!=baseline_sha256:raise ValueError('Baseline portable SHA mismatch')
+        original=read_zip(baseline_portable);validate_manifest(original)
+        support={n[len('word_support/'):]:raw for n,raw in original.items() if n.startswith('word_support/')}
+        manifest=validate_manifest(support)
+        if manifest.get('schema')!='hrs-word-support-v1' or manifest.get('python')!='3.13' or manifest.get('platform')!='win_amd64':raise ValueError('Baseline Word runtime mismatch')
+        origins=manifest['wheels']
+        if {r['wheel']:r['sha256'] for r in origins}!=hashes:raise ValueError('Baseline Word dependencies differ from the pinned wheels')
+        files.update({n:raw for n,raw in support.items() if n.startswith('libs/')})
+        if not files:raise ValueError('Baseline has no Word dependencies')
+    for name in sorted(expected) if wheels is not None else ():
         path=wheels/name
         if not path.is_file():raise ValueError('Missing pinned Python 3.13 wheel: '+name)
         if digest(path.read_bytes())!=hashes[name]:raise ValueError('Pinned wheel digest mismatch: '+name)
@@ -59,6 +70,10 @@ def build(bridge,wps,wheels,output):
         else:
             identity[name]={'commit':subprocess.check_output(['git','-C',str(root),'rev-parse','HEAD']).decode().strip(),
                             'development_dirty':bool(subprocess.check_output(['git','-C',str(root),'status','--porcelain']).strip())}
+    def constant(path,name):
+        return next(ast.literal_eval(n.value) for n in ast.parse(path.read_text('utf8')).body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id==name for t in n.targets))
+    identity['bridge']['version']=constant(bridge/'hrs_bridge/__init__.py','__version__')
+    identity['wps']['scan_version']=constant(wps/'src/wps_pipeline/scan_docx.py','VERSION')
     manifest={'schema':'hrs-word-support-v1','python':'3.13','platform':'win_amd64','engines':identity,'wheels':origins,
               'browser_model_sha256':digest(files['bridge/hrs_bridge/browser_model.js']),
               'files':[{'path':name,'bytes':len(raw),'sha256':digest(raw)} for name,raw in sorted(files.items())]}
@@ -75,5 +90,7 @@ def build(bridge,wps,wheels,output):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
-    for name in ('bridge','wps','wheels','output'):p.add_argument('--'+name,type=Path,required=True)
-    a=p.parse_args();build(a.bridge.resolve(),a.wps.resolve(),a.wheels.resolve(),a.output.resolve())
+    for name in ('bridge','wps','output'):p.add_argument('--'+name,type=Path,required=True)
+    sources=p.add_mutually_exclusive_group(required=True);sources.add_argument('--wheels',type=Path);sources.add_argument('--baseline-portable',type=Path)
+    p.add_argument('--baseline-sha256')
+    a=p.parse_args();build(a.bridge.resolve(),a.wps.resolve(),a.wheels.resolve() if a.wheels else None,a.output.resolve(),baseline_portable=a.baseline_portable,baseline_sha256=a.baseline_sha256)

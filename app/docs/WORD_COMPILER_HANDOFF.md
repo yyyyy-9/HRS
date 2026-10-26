@@ -77,7 +77,7 @@ HRS 可以显示受限 HTML，但它仍保留在原 markdown 源块中，不变�
 
 ### 完整预检与安装命令
 
-整篇DOCX导入由配套Bridge的from-docx承担：自身导出件使用原来源映射，外来DOCX使用WPS扫描/识别及受限投影，生成新report.md/assets工程和诊断；不能表达的对象/域明确拒绝。HRS“打开→导入Word”直接委托该入口：沿原Word组件设置启动隔离子进程，当前页面仅提供现有序列化，展示COMPLETE/NEEDS_REVIEW和未决条目后显式选择新工程位置。接口是同源用户操作，路径由本机窗口选择，后续绑定服务端token/序号；不属于Agent任意文件写入API。来源/映射变化、过期回复、取消或失败不能覆盖原稿。原页面模型和Word组件字节不变。
+整篇DOCX导入由配套Bridge的from-docx承担：自身导出件使用原来源映射，外来DOCX使用WPS扫描/识别及受限投影，生成新report.md/assets工程和诊断；不能表达的对象/域明确拒绝。HRS“打开→导入Word”直接委托该入口：沿原Word组件设置启动隔离子进程，当前页面仅提供现有序列化，展示COMPLETE/NEEDS_REVIEW和未决条目后显式选择新工程位置。接口是同源用户操作，路径由本机窗口选择，后续绑定服务端token/序号；不属于Agent任意文件写入API。来源/映射变化、过期回复、取消或失败不能覆盖原稿。原页面模型保持；本版Word组件更新Bridge超链接适配及WPS链接范围事实，运行库和模板保持。原生Word超链接（w:hyperlink）保留显示文字、加粗等强调及可确认目标。HTTP/HTTPS、邮件和绝对file地址沿原链接入口处理；指向已确认章节、图表或其题注的唯一书签映射到HRS稳定身份，预览、HTML和再次导出Word继续可定位。未知/重复书签、危险或相对地址保留文字与原目标记录，标为NEEDS_REVIEW，不激活不可靠链接；不猜新的路径基准。HYPERLINK等复杂域、嵌套链接仍按原受限导入边界处理。
 
 标准安装后的hrs capabilities返回命令/副作用/可选依赖。hrs read ACTION SOURCE委托原A0；hrs plan .../hrs apply ...委托原块提交；hrs html export/recover ...委托原HTML引擎。完整预检使用hrs check PROJECT --render-profile engineering --browser BROWSER，复用页面Marked/脚注及输出策略，并检查附件，返回hrs-output-preflight-v1、完整范围、源摘要和diagnostics；失败非零退出，源不写。未安装Playwright/未提供本机浏览器时明确失败，不安装依赖或退回成“检查通过”。
 
@@ -139,7 +139,7 @@ prepare／convert 的 options 包含 notes_mode（footnotes／references）和 p
 
 自由笔记的专题目录和局部显示编号属于浏览器投影，A0/IR和plan/apply仍针对全文源快照与稳定ID。整篇编译不能读取聚焦后的DOM；专题编译继续先由原提取器生成独立源稿，再按该稿编号。2.0.2未改页面模型与Word组件。普通Mermaid由用户添加图题时，源事务提升为既有report-figure-v1，下游直接消费原图形契约。文件/文件夹跳转属于用户点击UI，不是Agent文件访问或执行接口。
 
-HRS 2.0系列便携包内的Word组件固定携带Bridge 0.3.0；独立DocFlow组合采用Bridge 0.4.2。两者是不同发行组合，不能仅比较版本号来决定替换。Word组件以页面模型SHA-256、协议及组件清单核兼容；HTML恢复还依赖目标HRS核心和Reader，不由Bridge版本号单独决定。本次2.0.1未修改页面模型或随包Word组件。
+本版HRS便携包携带Bridge 0.3.1的匹配快照；本地独立Bridge 0.4.3由DocFlow权威源码构建，增加相同的超链接适配。两套组合保持各自身份及扫描基线，兼容性由页面模型摘要、协议与组件清单核对，不以Bridge版本号大小判断。DocFlow固定HRS子模块和既有任务不自动更新；已有冻结任务继续用原程序。
 
 页面模型请求声明numbering_policy=document-v2，并绑定source render_options（含公式开关）及源快照。build/validate消费相同值，模型摘要拒绝旧组件或配置变化，不能将旧页面模型用于新编号。公式批量粘贴与Word编译共用MathAdapter，不增加第二套TeX→OMML链；clipboard-math子进程只返回转换结果，原粘贴事务持有身份、资源及提交。
 

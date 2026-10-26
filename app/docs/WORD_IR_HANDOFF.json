@@ -364,20 +364,43 @@
   "local_link_ui": {
     "route": "/api/local-link/open",
     "required_header": "X-HRS-Project-Action:user-action and same origin",
-    "request": ["document_id", "href"],
+    "request": [
+      "document_id",
+      "href"
+    ],
     "scope": "Explicit Windows user click; relative targets require a saved project base; absolute paths and file:// may open existing documents/folders",
     "effects": "Native application/folder navigation only; no target content returned or imported, no source edits; program/script/shortcut targets refused",
     "not_agent_write_or_command_api": true
   },
   "word_import_ui": {
-    "routes": ["/api/import/word/start", "/api/import/word/step", "/api/import/word/cancel", "/api/import/word/finish"],
+    "routes": [
+      "/api/import/word/start",
+      "/api/import/word/step",
+      "/api/import/word/cancel",
+      "/api/import/word/finish"
+    ],
     "required_header": "X-HRS-Project-Action:user-action and same origin",
     "source": "Native-selected .docx plus optional adjacent .docx.hrs-bridge.json, frozen and SHA256 checked",
-    "binding": ["server job_token", "current serializer seq", "new-project selection_token"],
+    "binding": [
+      "server job_token",
+      "current serializer seq",
+      "new-project selection_token"
+    ],
     "delegates": "Matching Bridge from-docx and WPS scanner/recognition; existing open-page serializers only",
-    "status": ["COMPLETE", "NEEDS_REVIEW"],
+    "status": [
+      "COMPLETE",
+      "NEEDS_REVIEW"
+    ],
     "writes": "Explicit new project only; diagnostics/source receipt retained; original DOCX/current HRS source never overwritten",
-    "not_agent_write_or_command_api": true
+    "not_agent_write_or_command_api": true,
+    "beta": true,
+    "hyperlinks": {
+      "carrier": "native w:hyperlink with WPS hyperlink_ranges facts",
+      "resolved": "HTTP(S), mailto, absolute file URI; unique confirmed heading/object bookmarks map to existing HRS IDs",
+      "unresolved": "Visible text plus original target/anchor/doc_location diagnostics; NEEDS_REVIEW; no guessed active target",
+      "round_trip": "Internal native anchors and external relationship targets are semantic fingerprint data",
+      "not_supported": "HYPERLINK/complex fields and nested links remain subject to existing import limits"
+    }
   },
   "desktop_host": {
     "core": "same App and existing CLI/IR/preflight/save/Word chain",

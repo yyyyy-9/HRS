@@ -16,7 +16,7 @@ W='http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 M='http://schemas.openxmlformats.org/officeDocument/2006/math'
 WP='http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing'
 N={'w':W,'m':M,'wp':WP,'a':'http://schemas.openxmlformats.org/drawingml/2006/main','r':'http://schemas.openxmlformats.org/officeDocument/2006/relationships'}
-VERSION='2.0.0-experimental.4'
+VERSION='2.0.0-experimental.5'
 
 
 def sha(data):return hashlib.sha256(data).hexdigest()
@@ -86,8 +86,11 @@ class Scanner:
             if space==W and local in ('pPr','rPr'):return
             if space==W and local=='hyperlink':
                 rid=e.get('{'+N['r']+'}id')
+                span={'link_index':len(block['hyperlinks']),'start':len(segments),'end':None}
+                block.setdefault('hyperlink_ranges',[]).append(span)
                 block['hyperlinks'].append({'attributes':dict(e.attrib),'relationship':self.rels.get(rid) if rid else None})
                 for child in e:visit(child,run)
+                span['end']=len(segments)
                 return
             if space==W and local=='pict':
                 # Narrow, observed legacy VML horizontal rule. Other VML remains

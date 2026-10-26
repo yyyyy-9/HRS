@@ -260,6 +260,8 @@ def worker(request_path):
         detail=str(error) or type(error).__name__
         if detail.startswith('PANDOC_PATH is required'):
             detail='此 Word 含原生公式，请在导入窗口选择 Pandoc 后重试。'
+        elif detail=='Native hyperlink import needs a destination-preserving mapping':
+            detail='所选 Word 组件不含超链接导入，请选择本版配套 Word 组件后重试。'
         send({'kind':'result','ok':False,'error':detail})
 
 
