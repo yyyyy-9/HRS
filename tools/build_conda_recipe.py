@@ -33,6 +33,9 @@ build:
   number: 0
   noarch: python
   script: python -m pip install . -vv --no-deps --no-build-isolation
+  files:
+    exclude:
+      - "**/direct_url.json"
   python:
     entry_points:
 @ENTRY_POINTS@

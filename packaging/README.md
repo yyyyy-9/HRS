@@ -37,7 +37,7 @@ packaging/conda/recipe.yaml使用v1格式，由tools/build_conda_recipe.py读取
 ```text
 python tools/build_conda_recipe.py --write
 python tools/build_conda_recipe.py --check
-rattler-build build --recipe packaging/conda/recipe.yaml --output-dir /new/conda-output
+rattler-build build --recipe packaging/conda/recipe.yaml --output-dir /new/conda-output --no-include-recipe
 ```
 
 GitHub tag固定后，下载公开源归档并核对SHA256，以同一生成器产生staged-recipes配方：
@@ -47,6 +47,8 @@ python tools/build_conda_recipe.py --source-url 'https://github.com/yyyyy-9/HRS/
 ```
 
 提交版只替换source为公开HTTPS地址和完整SHA256，避免把本地路径提交到CI；包名、版本、依赖、CLI、许可和安装测试仍来自同一生成器。生成不会上传包或创建PR。升级时重新生成、实际构建并检查版本及资源。PR合并和频道构建完成后，安装命令为`conda install -c conda-forge hrstudio`，启动仍使用`hrs`。noarch仅描述基础包构成，Word原生组件与系统交互的适配范围不变。
+
+公开Conda附件使用`--no-include-recipe`，避免构建器将本地绝对来源路径写入包内配方。统一配方同时排除pip生成的`direct_url.json`，其PEP610来源也可能指向临时目录。应用、许可、版本和依赖不变；公开源码/配方仍随Git提供。构建后检查实际包中的App字节和元数据，不只核对安装成功。
 
 曾安装旧分发`html-report-studio`的环境应先卸载旧分发，再安装hrstudio；两者提供同一个模块及命令，不能共存。卸载不会主动删除环境外的工程及用户数据。
 
