@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="a9aaaaad585a8375827489e14ce47c0f2ee5cc01f614efeb8a10a6bfc593dbdd"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="0adb77514868ae1838fdfad9c5a5b63e367d2992b4a79e7533c2e3a4070dd938"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -308,7 +308,7 @@ body.hrs-reader-mode{max-width:none;margin:0;padding:0;background:var(--hrs-bg, 
 
 /* Preserve explicit quote lines and synthesize Chinese italics consistently. */
 .paper,.reader-paper{font-synthesis:style}
-.paper blockquote p,.reader-paper blockquote p{white-space:pre-line}
+.paper blockquote p,.reader-paper blockquote p,[data-hrs-reader-root] blockquote p{white-space:pre-line}
 .paper[data-hrs-render-profile="free"] blockquote p,[data-hrs-reader-root][data-hrs-render-profile="free"] blockquote p{margin:0;line-height:1.5}
 .paper[data-hrs-render-profile="free"] blockquote p+p,[data-hrs-reader-root][data-hrs-render-profile="free"] blockquote p+p{margin-top:.7em}
 
@@ -583,7 +583,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.7<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.8<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
 <a class="level2" href="#section-3">同源桌面宿主</a>
 <a class="level2" href="#section-4">Word beta 界面适配</a>
 <a class="level2" href="#section-5">渲染与输出配置</a>
@@ -626,7 +626,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <p><code>web/external_links.js</code>接管网页链接点击，经同源、显式动作的 <code>/api/external/open</code> 请求由本机系统打开 HTTP／HTTPS。独立离线 Reader 只设置新页面打开，不调用本机服务。<code>app-icon.svg/png/ico</code>及 manifest 复用已有 R 标记。</p>
 <p>离线 MathJax 主包保持 3.2.1，配套本地 <code>vendor/input/tex/extensions/boldsymbol.js</code>显式加载；原 TeX 不替换为 mathbf。许可随既有 MATHJAX-LICENSE 分发。</p>
 <h2 id="section-9">内容真源与处理流程</h2>
-<p>正式内容保存为工程中的 <code>report.md</code> 与 <code>assets/</code>。编辑器缓冲区用于本次编辑，草稿用于恢复；IR、预览和导出 HTML 都从内容真源派生，不能分别维护成另一份正文。</p>
+<p>正式内容保存为工程中的 <code>report.md</code> 与 <code>assets/</code>，或直接编辑模式中显式选择的原 Markdown 文件。编辑器缓冲区用于本次编辑，草稿用于恢复；IR、预览和导出 HTML 都从内容真源派生，不能分别维护成另一份正文。</p>
 <pre><code class="language-text">Markdown 与 assets
   → Python 结构解析 / 校验 → IR 与 Agent 只读结果
   → 浏览器 Markdown 渲染 → 编辑预览 → HTML 导出 / 打印
@@ -738,6 +738,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <p>模型助手返回结构或源码片段；程序可用block_cli生成候选，再由显式apply提交。预览折叠、工具栏、阅读导航和代码卡片属于显示层，不产生新的 Markdown 对象。复杂内容继续保留原文，不用可视化近似结果覆盖源内容。</p>
 <h2 id="section-12">本地服务、保存与文档生命周期</h2>
 <p><code>studio.py</code> 的 <code>StudioServer</code> / <code>Handler</code> 提供本机 HTTP 服务，协调工程、校验、上传、草稿、正式保存和导出相关请求。正式保存复用已有 revision 冲突检查和原子写入；自动草稿独立于正式 <code>report.md</code>。<code>project_workspace.py</code> 负责工程路径、注册与显式复制/迁移。</p>
+<p><code>markdown_file.py</code>只适配显式选择的无附件文件位置；原文件是唯一正文，应用数据区只持有位置索引、meta、锁和保存备份。<code>StudioServer.source_path</code>区分文件来源与工程report.md，原上下文/编辑/导出链共用；HTML/PDF通过output_path选择同目录。转工程复用原目录凭据和创建过程。附件判断仍消费report_contract/object_clipboard；没有第二套Markdown解析或编号。</p>
 <p><code>portable_host.py</code> 启动服务并选择浏览器，<code>portable_sessions.py</code> 管理窗口租约与断开超时，<code>portable_transport.py</code> 负责本地控制消息。便携版使用随包 Python 和原启动脚本。服务生命周期能力已存在，不能因尚无 Agent 写接口就另建一套服务或保存机制。</p>
 <p>帮助页由现有静态路由提供：<code>/web/</code> 是前端资源，<code>/docs/</code> 是限定类型的只读文档，另有三份明确公开的根文档。文档路由不允许写入、路径越界或读取程序文件。它不等于 Agent HTTP RPC。</p>
 <h2 id="section-13">图形资源与安全边界</h2>

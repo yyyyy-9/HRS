@@ -25,6 +25,8 @@ from release_info import load_release
 CATALOG=ROOT/'docs/MODULE_CATALOG.json'
 # Names verified from source, not guessed reflection values.
 DEFS=[
+ ('markdown_file','markdown_file.py','source-storage','selected attachment-free Markdown remains the only source; preferences/backups live in app data and exports beside source',
+   ['MarkdownFiles','require_text_only','needs_project'],'native selected file and original IR/revision','registered file identity and guarded native commit','explicit save or project conversion; shared atomic commit','not-semantic'),
  ('local_links','local_links.py','explicit-system-navigation','parse user-clicked file/folder references and resolve an existing non-program target without importing content',
    ['path_text','resolve_target','open_target'],'explicit path/URI and selected project base','checked native-open target','explicit native navigation only; no target content reads or source edits','exclude'),
  ('asset_paths','asset_paths.py','resource-boundary','canonical project image spelling and guarded file access from the shared JSON rules',

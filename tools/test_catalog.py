@@ -20,7 +20,9 @@ FEATURES = {
     'desktop': ('Shared close/print adapter, offline core update/rollback and host integrity boundaries', 'desktop_contract desktop_node portable_contract native_picker release_contract'),
     'desktop_browser': ('Existing browser explicit exit still flushes the original draft and keeps failed closes open', 'maintenance_browser:MaintenanceExperience.test_browser_exit_flushes_latest_large_draft_and_refuses_failed_write'),
     'desktop_runtime': ('Explicit real Electron host save/close/failure/ownership/PDF/Word and final desktop payload', 'desktop_runtime'),
-    'files': ('Scoped object tail input, explicit asset recycle cleanup and output-folder actions', '''
+    'files': ('Direct Markdown files, scoped object tail input, explicit asset recycle cleanup and output-folder actions', '''
+        markdown_file_contract markdown_file_browser
+        block_commit_contract block_save_api_contract
         maintenance_contract:AssetCleanup
         maintenance_browser:MaintenanceExperience.test_asset_recycle_clear_requires_confirmation_and_preserves_live_assets
         maintenance_browser:MaintenanceExperience.test_export_toast_folder_action_uses_created_result_and_expires_cleanly
@@ -71,6 +73,7 @@ FEATURES = {
         pf131_contract pf133_contract pf135_contract pf137_contract
         block_commit_contract block_save_api_contract html_cli_contract'''),
     'html': ('Native HTML, safe tags/assets, archives, old reader trust, opt-in API', '''
+        preview_follow_browser:PreviewFollow.test_01_quote_single_lines_paragraphs_and_explicit_break_share_offline_style
         pf13_contract pf132_browser pf137_programmatic_browser pf138_html_browser
         safe_html_contract reader_headings_contract v060_cli_browser html_cli_contract'''),
     'math': ('TeX delimiters, table/paragraph math, literal code, supplied article', '''
@@ -92,7 +95,8 @@ FEATURES = {
         rc2_clipboard_contract pf1310_clipboard_browser pf1310_rc2_browser word_clipboard_contract word_clipboard_browser
         report_workspace_browser:ReportExperience.test_scoped_tail_object_allows_new_paragraphs_and_undo
         report_workspace_browser:ReportExperience.test_image_tail_enter_in_scoped_last_topic_and_whole_document'''),
-    'import': ('Relative local images, save failure protection and real manual/read packs', '''
+    'import': ('Relative local images, direct Markdown files, save failure protection and real manual/read packs', '''
+        markdown_file_contract markdown_file_browser
         v061_import_contract v061_import_browser pf1310_import_browser
         rc3_save_contract pf1310_rc3_browser pf1310_rc3_node'''),
     'search': ('Full-source and rendered search, focus, folds, updates and source fidelity', '''

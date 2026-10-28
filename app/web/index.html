@@ -93,6 +93,7 @@
         <details class="top-menu" id="menu-open">
           <summary class="btn top-menu-trigger" title="打开工程、导入文稿或只读浏览阅读包">打开 <span class="caret">▾</span></summary>
           <div class="top-menu-list">
+            <button id="btn-markdown-open" type="button" class="menu-item"><b>直接编辑 Markdown…</b><small>无附件的 .md 原位保存，HTML / PDF 导出到同目录</small></button>
             <button id="btn-project-open" type="button" class="menu-item"><b>打开工程…</b><small>选择包含 report.md 和 assets 的文件夹</small></button>
             <button id="btn-import" type="button" class="menu-item"><b>导入 Markdown / HTML…</b><small>选择文稿，自动读取同目录相对图片；原文件不变</small></button>
             <button id="btn-import-word" type="button" class="menu-item"><b class="feature-label">导入 Word…<span class="beta-badge">beta</span></b><small>读取 DOCX，识别图表公式，保存为新的 HRS 工程</small></button>
@@ -104,6 +105,7 @@
           <details class="top-menu" id="menu-save">
             <summary class="btn top-menu-trigger split-caret" title="更多保存选项" aria-label="更多保存选项"><span class="caret">▾</span></summary>
             <div class="top-menu-list">
+              <button id="btn-markdown-project" type="button" class="menu-item" hidden><b>另存为 HRS 工程…</b><small>保留原 Markdown，将当前修改保存为可带附件的工程</small></button>
               <button id="btn-project-migrate" type="button" class="menu-item"><b>项目另存为…</b><small>复制到新的工程目录，原项目保留不删</small></button>
               <button id="btn-exit" type="button" class="menu-item"><b>保存草稿并退出</b><small>确认恢复草稿写入后关闭窗口；正式稿仍需 Ctrl+S</small></button>
             </div>

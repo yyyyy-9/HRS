@@ -19,7 +19,7 @@ function eligible(text){
  const records=root.SourceMap.create(text,root.marked.lexer(root.SourceBlocks.normalized(text).text)).blocks;
  return records.some(r=>r.type!=='code'&&r.type!=='html'&&/!\[[^\]]*\]\([^)]+\)/.test(r.raw||r.token.raw));
 }
-function attach(editor,{request,context,commit,chooseImage,prepareRich,onError}={}){
+function attach(editor,{request,context,commit,chooseImage,prepareRich,beforePaste,onError}={}){
  let pasting=false;
  const same=before=>{const now=context();if(now.session!==before.session||now.markdown!==before.markdown||editor.selectionStart!==before.start||editor.selectionEnd!==before.end)throw Error('文稿或选区在剪贴板处理期间变化，请重新操作');};
  async function copy(text,item,operation='copy'){
@@ -32,9 +32,10 @@ function attach(editor,{request,context,commit,chooseImage,prepareRich,onError}=
   return true;
  }
  async function paste(bundle,replaceAll=false){
-  if(pasting)return;pasting=true;const before=context();let local_files={};
+  if(pasting)return;pasting=true;let before=context(),local_files={};
   try{
    if(typeof bundle==='function'){bundle=await bundle();same(before);if(!bundle)return;}
+   if(beforePaste){same(before);if(await beforePaste(bundle)===false)return;before=context();}
    let result;
    for(;;){
     same(before);

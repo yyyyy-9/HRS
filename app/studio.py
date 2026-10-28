@@ -534,6 +534,8 @@ class StudioServer(ThreadingHTTPServer):
         self.doc=self.project/'report.md'       # compatibility with v0.1 API tests
         if not self.doc.exists():atomic_write(self.doc,b'# New report\n\n')
         self.registry=ProjectRegistry(self.workspace)
+        from markdown_file import MarkdownFiles
+        self.markdown_files=MarkdownFiles(self.workspace)
         # Standalone Test API calls preserve v0.5.x compatibility. The actual
         # Windows portable launcher and source CLI enforce explicit selection.
         self.require_project_location=require_project_location
@@ -560,12 +562,24 @@ class StudioServer(ThreadingHTTPServer):
         if doc_id=='new':return None
         if doc_id=='legacy':return self.project
         if not isinstance(doc_id,str) or not DOC_ID.fullmatch(doc_id):raise ValueError('文档 ID 无效')
+        if doc_id in self.markdown_files.mapping:
+            self.markdown_files.source(doc_id)  # Missing/redirected originals never fall back to a copy.
+            return self.markdown_files.folder(doc_id)
         registered=self.registry.lookup(doc_id)
         if registered is not None:return registered
         result=self.workspace/doc_id
         if is_link(result) or not result.is_dir() or not (result/'report.md').is_file():
             raise ValueError('文档不存在或已移动')
         return result
+
+    def source_path(self,doc_id):
+        if doc_id in self.markdown_files.mapping:return self.markdown_files.source(doc_id)
+        folder=self.project_path(doc_id)
+        return folder/'report.md' if folder is not None else None
+
+    def output_path(self,doc_id,folder):
+        if doc_id in self.markdown_files.mapping:return self.markdown_files.source(doc_id).parent
+        return folder/'output'
 
     def draft_path(self, draft_id: str) -> Path:
         if not isinstance(draft_id, str) or not DRAFT_ID.fullmatch(draft_id):
@@ -592,7 +606,7 @@ class StudioServer(ThreadingHTTPServer):
                 if document_id is not None and doc_id!=document_id:continue
                 if doc_id!='new':
                     actual=self.project_path(doc_id)
-                    if digest((actual/'report.md').read_bytes())==digest(item['markdown'].encode('utf-8')):
+                    if self.source_path(doc_id).read_bytes().decode('utf-8-sig')==item['markdown']:
                         continue  # Already committed before an interrupted cleanup.
                 out.append({'draft_id':path.name,'document_id':doc_id,'template':item['template'],
                             'title':document_title(item['markdown']),'updated':item.get('updated',''),
@@ -609,18 +623,21 @@ class StudioServer(ThreadingHTTPServer):
         for doc_id in self.registry.mapping:
             try:paths.append((doc_id,self.project_path(doc_id)))
             except (ValueError,OSError):continue  # Missing drive: keep registry, do not fall back to stale source.
+        for doc_id in self.markdown_files.mapping:
+            try:paths.append((doc_id,self.project_path(doc_id)))
+            except (ValueError,OSError):continue
         for doc_id,p in paths:
-            doc=p/'report.md'
-            if not doc.is_file() or is_link(doc):continue
             try:
+                doc=self.source_path(doc_id)
+                if not doc.is_file() or is_link(doc):continue
                 meta=json.loads((p/'meta.json').read_text(encoding='utf-8')) if (p/'meta.json').is_file() else {}
                 if report_workspace_info(p,self.workspace) and meta.get('workspace_state')=='archived':continue
-                title=meta.get('title') or document_title(doc.read_text(encoding='utf-8'))
+                title=document_title(doc.read_text(encoding='utf-8-sig')) if doc_id in self.markdown_files.mapping else meta.get('title') or document_title(doc.read_text(encoding='utf-8'))
                 updated=meta.get('updated') or datetime.fromtimestamp(doc.stat().st_mtime,timezone.utc).isoformat()
                 projects.append({'id':doc_id,'title':title,'updated':updated,
                                  'template':meta.get('template','engineering'),
                                  'theme':meta.get('theme','engineering'),
-                                 'external_project':doc_id in self.registry.mapping,'report_workspace':report_workspace_info(p,self.workspace)})
+                                 'external_project':doc_id in self.registry.mapping,'markdown_file':doc_id in self.markdown_files.mapping,'report_workspace':report_workspace_info(p,self.workspace)})
             except (OSError,UnicodeError,ValueError,TypeError,json.JSONDecodeError):continue
         projects.sort(key=lambda x:x['updated'],reverse=True)
         return projects[:15]
@@ -663,7 +680,7 @@ class Handler(BaseHTTPRequestHandler):
             raw=info['markdown'].encode('utf-8')
             return None,raw,template,info['theme']
         p=self.server.project_path(doc_id)
-        raw=(p/'report.md').read_bytes()
+        raw=self.server.source_path(doc_id).read_bytes()
         try:meta=json.loads((p/'meta.json').read_text(encoding='utf-8'))
         except (FileNotFoundError,json.JSONDecodeError,OSError):meta={}
         return p,raw,meta.get('template','engineering'),meta.get('theme','engineering')
@@ -743,6 +760,38 @@ class Handler(BaseHTTPRequestHandler):
             result={'kind':'html','filename':source.name,'source':source.read_bytes().decode('utf-8-sig')}
         else:raise ValueError('只接受 Markdown 或可回编 HTML')
         return self.resp({'ok':True,**result})
+
+    def markdown_file_action(self,action,req):
+        if not self._picker_origin_ok():return self.fail('仅接受编辑器显式选择或转换 Markdown 文件',403)
+        if action=='check':
+            from markdown_file import needs_project
+            return self.resp({'ok':True,'needs_project':needs_project(req.get('markdown'))})
+        if action=='open':
+            if req:raise ValueError('Markdown 路径只能来自本机文件选择窗口')
+            from native_picker import choose
+            source=choose(purpose='markdown-edit',title='直接编辑 Markdown（保存会更新原文件）',filters=[('Markdown','*.md;*.markdown')])
+            if source is None:return self.resp({'ok':True,'cancelled':True})
+            with self.server.lock:doc_id=self.server.markdown_files.register(source)
+            return self.resp({'ok':True,'document_id':doc_id})
+        if action!='to-project':raise ValueError('Markdown 文件操作不存在')
+        with self.server.lock:
+            doc_id=self._docid(req)
+            if doc_id not in self.server.markdown_files.mapping:raise ValueError('当前不是直接编辑的 Markdown 文件')
+            folder,original,template,theme=self._context(doc_id)
+            if not self._check_revision(req,original):return
+            from markdown_file import require_text_only
+            text=req.get('markdown');require_text_only(text)
+            draft_id=self._draft_id(req);self._verify_draft_owner(draft_id,doc_id)
+            target=self.server.registry.consume_selection(req.get('selection_token'),'create','new')
+            final,new_id=self._create_with_assets(text,template,theme,{},target,
+                meta_extra={'render_profile':normalize_profile(req.get('render_profile','free')),
+                    'render_options':normalize_options(req.get('render_options')),'color_theme':normalize_color_theme(req.get('color_theme'))},
+                before_commit=lambda:self._assert_file_revision(doc_id,original))
+            self._clear_draft(draft_id)
+        return self.resp({'ok':True,'document_id':new_id,'project_path':str(final)})
+
+    def _assert_file_revision(self,doc_id,expected):
+        if self.server.source_path(doc_id).read_bytes()!=expected:raise RuntimeError('Markdown 来源已变化，工程转换已取消')
 
     def import_word_action(self,action,req):
         if not self._picker_origin_ok():return self.fail('请通过当前编辑器的 Word 导入入口操作',403)
@@ -864,7 +913,7 @@ class Handler(BaseHTTPRequestHandler):
         doc_id=self._docid(req)
         folder,raw,_,_=self._context(doc_id,self._template(req))
         if folder is None:raise ValueError('请先创建工程目录，导出不能直接放在 Downloads')
-        if self.server.require_project_location and doc_id not in self.server.registry.mapping:
+        if self.server.require_project_location and doc_id not in self.server.registry.mapping and doc_id not in self.server.markdown_files.mapping:
             raise ValueError('请先把旧文档迁移到独立工程目录后再导出')
         # read-only source and asset dependency validation, same as preflight
         snap=self._checked_export_snapshot(req)
@@ -876,7 +925,7 @@ class Handler(BaseHTTPRequestHandler):
         date=datetime.now().strftime('%Y%m%d_%H%M%S')
         prefix='笔记' if normalize_profile(req.get('render_profile'))=='free' else '报告'
         filename=f'{prefix}_{kind}_{quality}_{date}.html'
-        output=folder/'output'
+        output=self.server.output_path(doc_id,folder)
         if is_link(output):raise ValueError('output 目录不能指向符号链接')
         output.mkdir(exist_ok=True)
         target=output/filename
@@ -927,6 +976,7 @@ class Handler(BaseHTTPRequestHandler):
             if p=='/api/readpack/file':return self.readpack_file()
             if p.startswith('/assets/'):
                 name=clean_asset_name(p[len('/assets/'):]);doc_id=self._docid()
+                if doc_id in self.server.markdown_files.mapping:return self.fail('直接编辑 Markdown 不读取附件；请先转为 HRS 工程',409)
                 folder=self.server.project_path(doc_id)
                 requested_draft=self._parameters().get('draft_id',[None])[0]
                 if requested_draft:
@@ -953,21 +1003,23 @@ class Handler(BaseHTTPRequestHandler):
                 return self.resp({'ok':True,'draft':draft,'markdown_sha256':digest(draft['markdown'].encode('utf-8'))})
             if p=='/api/doc':
                 doc_id=self._docid();folder,raw,template,theme=self._context(doc_id,self._template())
-                return self.resp({'ok':True,'document_id':doc_id,'markdown':raw.decode('utf-8'),
-                                  'revision':digest(raw),'title':document_title(raw.decode('utf-8')),
-                                  'project':('新建 · '+TEMPLATES[template]['label'] if folder is None else document_title(raw.decode('utf-8'))),
+                file_path=self.server.markdown_files.source(doc_id) if doc_id in self.server.markdown_files.mapping else None
+                return self.resp({'ok':True,'document_id':doc_id,'markdown':raw.decode('utf-8-sig'),
+                                  'revision':digest(raw),'title':document_title(raw.decode('utf-8-sig')),
+                                  'project':('Markdown · '+file_path.name if file_path else '新建 · '+TEMPLATES[template]['label'] if folder is None else document_title(raw.decode('utf-8-sig'))),
                                   'template':template,'theme':theme,
                                   'render_profile':read_profile(folder,'engineering' if folder is None and template=='engineering' else None),
                                   'render_options':read_options(folder) if folder is not None else new_options('engineering' if template=='engineering' else 'free'),
                                   'color_theme':read_color_theme(folder),
                                   'project_path':str(folder) if folder else None,
+                                  'markdown_file':str(file_path) if file_path else None,
                                   'external_project':doc_id in self.server.registry.mapping,
                                   'report_workspace':report_workspace_info(folder,self.server.workspace)})
             if p in ('/api/download','/api/download-pdf','/api/print'):
                 doc_id=self._docid();folder=self.server.project_path(doc_id)
                 if folder is None:return self.fail('请先保存报告',409)
                 ext='pdf' if p=='/api/download-pdf' else 'html'
-                target=folder/'output'/('报告_单文件.'+ext)
+                target=self.server.output_path(doc_id,folder)/('报告_单文件.'+ext)
                 if not target.is_file() or is_link(target):return self.fail('请先生成'+ext.upper(),404)
                 content=target.read_bytes()
                 typ='application/pdf' if ext=='pdf' else 'text/html; charset=utf-8'
@@ -997,6 +1049,9 @@ class Handler(BaseHTTPRequestHandler):
             req=json.loads(self.rfile.read(count))
             if not isinstance(req,dict):raise ValueError('请求必须是 JSON 对象')
             p=urlsplit(self.path).path
+            if p.startswith('/api/markdown-file/'):return self.markdown_file_action(p.rsplit('/',1)[1],req)
+            if self._docid(req) in self.server.markdown_files.mapping and (p in ('/api/project/migrate','/api/import','/api/upload','/api/clipboard/paste','/api/report-workspace','/api/word/prepare','/api/word/export') or p.startswith('/api/project/assets/')):
+                return self.fail('此操作需要附件或工程状态，请先另存为 HRS 工程；原 Markdown 保留',409)
             if p=='/api/external/open':return self.open_external_link(req)
             if p=='/api/local-link/open':return self.open_local_link(req)
             if p=='/api/readpack/open-zip':return self.readpack_open_zip(req)
@@ -1140,7 +1195,9 @@ class Handler(BaseHTTPRequestHandler):
     def open_local_link(self,req):
         if not self._picker_origin_ok():return self.fail('仅接受当前编辑器的显式文件链接点击',403)
         from local_links import resolve_target,open_target
-        target=resolve_target(req.get('href'),self.server.project_path(self._docid(req)))
+        doc_id=self._docid(req)
+        base=self.server.markdown_files.source(doc_id).parent if doc_id in self.server.markdown_files.mapping else self.server.project_path(doc_id)
+        target=resolve_target(req.get('href'),base)
         open_target(target)
         return self.resp({'ok':True,'opened_by':'system-default-application','kind':'folder' if target.is_dir() else 'file'})
 
@@ -1243,7 +1300,7 @@ class Handler(BaseHTTPRequestHandler):
             if normalize_profile(req.get('render_profile'))!='free':raise ValueError('专题分册只适用于自由笔记')
             doc_id=self._docid(req)
             folder,original,_,_=self._context(doc_id,self._template(req))
-            if folder is None or self.server.require_project_location and doc_id not in self.server.registry.mapping:
+            if folder is None or self.server.require_project_location and doc_id not in self.server.registry.mapping and doc_id not in self.server.markdown_files.mapping:
                 raise ValueError('请先确定工程目录')
             if req.get('revision')!=digest(original):raise RuntimeError('正式文档已变化，请重新载入')
             text=req.get('markdown')
@@ -1274,9 +1331,10 @@ class Handler(BaseHTTPRequestHandler):
             stamp=datetime.now().strftime('%Y%m%d_%H%M%S')
             filename=('笔记_分册_'+stamp+'.zip') if count>1 else job['names'][0][4:-5]+'_'+stamp+'.html'
             stem,suffix=Path(filename).stem,Path(filename).suffix;attempt=2
-            while (job['context']['folder']/'output'/filename).exists():
+            output=self.server.output_path(job['context']['document_id'],job['context']['folder'])
+            while (output/filename).exists():
                 filename=f'{stem}_{attempt}{suffix}';attempt+=1
-            target,names=store.finish(token,job['context']['folder']/'output',filename,self._checked_export_snapshot)
+            target,names=store.finish(token,output,filename,self._checked_export_snapshot)
             return self.resp({'ok':True,'filename':target.name,'path':str(target),'bytes':target.stat().st_size,'modules':names,'document_id':req['document_id'],
                               'result_token':self.server.word_export.result(target)})
         raise ValueError('未知分册导出操作')
@@ -1291,6 +1349,9 @@ class Handler(BaseHTTPRequestHandler):
         if not isinstance(text,str) or len(text.encode('utf-8'))>10*1024*1024:
             raise ValueError('待导出的 Markdown 大小无效')
         ir=analyze_report_contract(text)
+        if doc_id in self.server.markdown_files.mapping:
+            from markdown_file import require_text_only
+            require_text_only(text)
         invalid=[d for d in ir['diagnostics'] if d['severity']=='error']
         if validate:
             if invalid:raise ValueError('导出结构错误：'+invalid[0]['message'])
@@ -1355,7 +1416,7 @@ class Handler(BaseHTTPRequestHandler):
         with self.server.lock:
             folder,raw,_,_=self._context(doc_id,self._template(req))
             if folder is None:raise ValueError('请先建立工程再输出 PDF')
-            if self.server.require_project_location and doc_id not in self.server.registry.mapping:
+            if self.server.require_project_location and doc_id not in self.server.registry.mapping and doc_id not in self.server.markdown_files.mapping:
                 raise ValueError('请先迁移旧报告的独立工程目录')
             snap=self._readonly_export_snapshot(req)
             if req.get('markdown_sha256')!=snap['markdown_sha256'] or req.get('asset_hashes')!={name:info['sha256'] for name,info in snap['files'].items()}:
@@ -1372,7 +1433,7 @@ class Handler(BaseHTTPRequestHandler):
             if not body.startswith(b'%PDF-'):raise RuntimeError('浏览器未生成 PDF 文件')
         with self.server.lock:
             if self._readonly_export_snapshot(req)!=snap:raise RuntimeError('PDF 生成期间正式稿或附件发生变化，请重新导出')
-            output=folder/'output'
+            output=self.server.output_path(doc_id,folder)
             if is_link(output):raise ValueError('项目 output 目录不能是链接')
             output.mkdir(exist_ok=True)
             prefix='笔记' if normalize_profile(req.get('render_profile'))=='free' else '报告'
@@ -1575,7 +1636,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self._check_revision(req,raw):return
         options=normalize_options(req.get('render_options',read_options(folder)))
         color=normalize_color_theme(req.get('color_theme',read_color_theme(folder)))
-        if folder is not None:self._store_meta(folder,doc_id,raw.decode('utf8'),template,theme,profile,options,color)
+        if folder is not None:self._store_meta(folder,doc_id,raw.decode('utf-8-sig'),template,theme,profile,options,color)
         self.resp({'ok':True,'render_profile':profile,'render_options':options,'color_theme':color,'revision':digest(raw)})
 
     def save(self,req):
@@ -1587,8 +1648,20 @@ class Handler(BaseHTTPRequestHandler):
         ir=analyze_report_contract(text)
         invalid=[d for d in ir['diagnostics'] if d['severity']=='error']
         doc_id=self._docid(req);p,old,template,theme=self._context(doc_id,self._template(req))
-        if invalid and not report_workspace_info(p,self.server.workspace):raise ValueError('工程文档结构错误：'+invalid[0]['message'])
+        is_file=doc_id in self.server.markdown_files.mapping
+        if invalid and not is_file and not report_workspace_info(p,self.server.workspace):raise ValueError('工程文档结构错误：'+invalid[0]['message'])
         if not self._check_revision(req,old):return
+        if is_file:
+            if req.get('draft_id'):self._verify_draft_owner(req['draft_id'],doc_id)
+            try:raw=self.server.markdown_files.save(doc_id,text,digest(old))
+            except ValueError as exc:
+                if str(exc).startswith(('STALE_SNAPSHOT','WRITE_BUSY')):return self.fail(str(exc),409)
+                raise
+            self._store_meta(p,doc_id,text,template,theme,req.get('render_profile',read_profile(p)),req.get('render_options',read_options(p)),req.get('color_theme',read_color_theme(p)))
+            if req.get('draft_id'):
+                self._clear_draft(req['draft_id'])
+            return self.resp({'ok':True,'document_id':doc_id,'revision':digest(raw),'saved':raw!=old,
+                'title':document_title(text),'theme':theme,'markdown_file':str(self.server.source_path(doc_id))})
         assets=self._retain_draft_assets(req,p,self._asset_preflight(req,ir['assets'],p))
         raw=text.encode('utf-8')
         if p is None:
@@ -1648,6 +1721,10 @@ class Handler(BaseHTTPRequestHandler):
         folder,roots,key=self._object_clipboard_context(req)
         result=paste_bundle(req.get('bundle'),req.get('target_markdown'),roots,key,check_image,
             req.get('local_files'),folder)
+        if self._docid(req) in self.server.markdown_files.mapping:
+            from markdown_file import require_text_only
+            require_text_only(result['markdown'])
+            if result['assets']:raise ValueError('粘贴附件前请先另存为 HRS 工程')
         target=self._graphic_dir(req)
         for name,data in result.pop('assets').items():
             path=asset_file(target,name)
@@ -1847,9 +1924,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def _legacy_output(self,doc_id,folder):
         # Older single-file endpoints follow the same output rules as /api/export/store.
-        if self.server.require_project_location and doc_id not in self.server.registry.mapping:
+        if self.server.require_project_location and doc_id not in self.server.registry.mapping and doc_id not in self.server.markdown_files.mapping:
             raise ValueError('请先把旧文档迁移到独立工程目录后再导出')
-        output=folder/'output'
+        output=self.server.output_path(doc_id,folder)
         if is_link(output):raise ValueError('output 目录不能指向链接')
         output.mkdir(exist_ok=True)
         return output

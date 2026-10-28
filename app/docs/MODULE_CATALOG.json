@@ -1,9 +1,27 @@
 {
   "catalog_format": "hrs-module-catalog-v1",
-  "app_baseline": "2.0.7 R1",
+  "app_baseline": "2.0.8 R1",
   "scope": "source tree only; no external report files are opened",
   "caveat": "This is an interface index, not a Python import dependency graph or a DOCX compiler.",
   "items": [
+    {
+      "id": "markdown_file",
+      "path": "markdown_file.py",
+      "layer": "source-storage",
+      "responsibility": "selected attachment-free Markdown remains the only source; preferences/backups live in app data and exports beside source",
+      "entrypoints": [
+        "MarkdownFiles",
+        "require_text_only",
+        "needs_project"
+      ],
+      "input": "native selected file and original IR/revision",
+      "output": "registered file identity and guarded native commit",
+      "side_effects": "explicit save or project conversion; shared atomic commit",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 3971,
+      "sha256": "9208fe81b4fab13f00b779e9bca1a3e663a0e38818615cb36c28dab9a76e9f41",
+      "review_flags": []
+    },
     {
       "id": "local_links",
       "path": "local_links.py",
@@ -388,8 +406,8 @@
       "output": "existing editor change transaction",
       "side_effects": "explicit clipboard reads/writes and draft import",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 5470,
-      "sha256": "b5d5ffd69deff600bbed4a5c9b5139ebd92d75ba5cedade9bff083a8429979c9",
+      "bytes": 5571,
+      "sha256": "24246e09716c3231b40ba60dc90373f7819401f0de9370869f8056c8176bdeb1",
       "review_flags": []
     },
     {
@@ -475,8 +493,8 @@
       "output": "backup path and committed report",
       "side_effects": "writes original only inside explicit commit",
       "word_pipeline_role": "primary",
-      "bytes": 2595,
-      "sha256": "d4c48b7b64d7eebe8ae2d38d5aba09131197627bd69f9f947863526ff10950bb",
+      "bytes": 2793,
+      "sha256": "2db0b8f0e7a9b4da16e6291f27d2ede35d402a2ef6db675b9adecb466e91ee87",
       "review_flags": []
     },
     {
@@ -758,8 +776,8 @@
       "output": "JSON API / binary resources",
       "side_effects": "reads/writes projects and drafts",
       "word_pipeline_role": "do-not-import",
-      "bytes": 118028,
-      "sha256": "cfdfa293d69aefef3fc2d88014da4a0193eee8a9722d88a28471126e0a853694",
+      "bytes": 124145,
+      "sha256": "349238f950311b5f19f2b57ee45ad64108ebd0d7f7b006665c8b11ae4effcf7f",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -1043,8 +1061,8 @@
       "output": "visual preview and UI events",
       "side_effects": "modifies editor state via explicit action",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 238269,
-      "sha256": "a411b2991b86daf2fe2791ea7ea3a9451112bc713a9ebb7d1603e97d3655e6b4",
+      "bytes": 242649,
+      "sha256": "846744199de19c42b30650b1212937e579f8a3d678fa4c5b8898e5705cf86414",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -1519,8 +1537,8 @@
       "output": "responsive and print styles",
       "side_effects": "CSS only",
       "word_pipeline_role": "not-semantic",
-      "bytes": 9936,
-      "sha256": "463de5594dcc325c76b67c658ae2abc99e0219790394b46e5e6af7ad675588bb",
+      "bytes": 9972,
+      "sha256": "5080eac5983432a5872abf8dcb697402fb355267e9e630a3126bf217a6fd7608",
       "review_flags": []
     },
     {

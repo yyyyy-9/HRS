@@ -308,7 +308,7 @@ body.hrs-reader-mode{max-width:none;margin:0;padding:0;background:var(--hrs-bg, 
 
 /* Preserve explicit quote lines and synthesize Chinese italics consistently. */
 .paper,.reader-paper{font-synthesis:style}
-.paper blockquote p,.reader-paper blockquote p{white-space:pre-line}
+.paper blockquote p,.reader-paper blockquote p,[data-hrs-reader-root] blockquote p{white-space:pre-line}
 .paper[data-hrs-render-profile="free"] blockquote p,[data-hrs-reader-root][data-hrs-render-profile="free"] blockquote p{margin:0;line-height:1.5}
 .paper[data-hrs-render-profile="free"] blockquote p+p,[data-hrs-reader-root][data-hrs-render-profile="free"] blockquote p+p{margin-top:.7em}
 
@@ -583,7 +583,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.7<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">输出策略的持续方向</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.8<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">输出策略的持续方向</a>
 <a class="level2" href="#section-3">当前能力基础</a>
 <a class="level2" href="#section-4">近期能力路线</a>
 <a class="level2" href="#section-5">为独立 Word 双向转换保留的结构基础</a>

@@ -2,7 +2,7 @@
   "contract": "engineering-report-ir-v1",
   "producer": "report_contract.analyze(markdown, assets=None) + agent_readonly.py A0 (read-only)",
   "status": "Current HRS upstream projection and callable interfaces. Word/OMML/template implementations exist in independent Bridge/WPS; gaps below describe this upstream analyze() IR only.",
-  "source_of_truth": "report.md (UTF-8 original bytes), assets/ original files",
+  "source_of_truth": "project report.md and assets/ originals, or the explicitly selected attachment-free Markdown file; original UTF-8 bytes remain authoritative",
   "change_detection": [
     "source_snapshot.text_utf8_sha256",
     "source_snapshot.utf16_length",

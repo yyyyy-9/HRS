@@ -41,6 +41,13 @@ ReportNotes.bindNavigation(preview);
 ReportLinks.attach(document.body,{open:url=>api('/api/external/open','POST',{url},{'X-HRS-External-Link':'user-action'}),
  openPath:href=>api('/api/local-link/open','POST',{href,document_id:state.documentId},{'X-HRS-Project-Action':'user-action'}),onError:toast});
 const objectClipboard=ReportObjectClipboard.attach(editor,{
+ beforePaste:async bundle=>{
+  if(!state.markdownFile)return true;
+  const before={session:state.session,markdown:state.md,start:editor.selectionStart,end:editor.selectionEnd};
+  const reply=await api('/api/markdown-file/check','POST',{markdown:bundle.markdown},{'X-HRS-Project-Action':'user-action'});
+  if(before.session!==state.session||before.markdown!==state.md||before.start!==editor.selectionStart||before.end!==editor.selectionEnd)throw Error('文稿或选区已变化，请重新粘贴');
+  return !reply.needs_project||await ensureAttachmentProject();
+ },
  request:(path,data)=>api(path,'POST',data,{'X-Report-Studio-Clipboard':'user-action'}),
  context:()=>({session:state.session,markdown:state.md,document_id:state.documentId,draft_id:state.draftId,start:editor.selectionStart,end:editor.selectionEnd}),
  commit:(from,to,text,kind)=>{if(state.saving)return;editor.setRangeText(text,from,to,'end');changed(editor.value,kind,true);},
@@ -176,7 +183,9 @@ async function load(documentId='new',template='engineering',{recover=true,draftI
   state.renderProfile=ReportProfile.normalize(data.render_profile);state.renderOptions=ReportProfile.normalizeOptions(data.render_options);$("render-profile").value=state.renderProfile;syncRenderControls();
   state.hasNumberPreference=data.document_id!=='new';state.reportWorkspace=data.report_workspace||null;syncReportWorkspace();
   await setColorTheme(urlColorTheme||data.color_theme);
-   state.template=data.template;state.theme=data.theme;state.projectPath=data.project_path||null;state.externalProject=!!data.external_project;state.dirty=false;state.saving=false;state.draftError=false;
+   state.template=data.template;state.theme=data.theme;state.projectPath=data.project_path||null;state.externalProject=!!data.external_project;state.markdownFile=data.markdown_file||null;state.dirty=false;state.saving=false;state.draftError=false;
+  $('btn-markdown-project').hidden=!state.markdownFile;operations.setDisabled($('btn-project-migrate'),!!state.markdownFile);
+  if(state.markdownFile){$('bottom-left').textContent='直接编辑 Markdown · Ctrl+S 保存原文件 · HTML/PDF 导出同目录';$('bottom-left').title=state.markdownFile;}
   state.selectedBlock=null;state.visualFocused=null;state.visualPending=false;state.draftId=freshID();state.draftSeq=0;state.draftQueue=Promise.resolve();state.draftSnapshot=null;state.exitReady=false;
   checks=null;checkSequence++;$('problems-panel').hidden=true;clearPreviewHighlight();
   editor.value=state.md;editor.resetObjects();editor.setSelectionRange(state.md.length);editor.scrollTop=0;$('project-label').textContent=data.project;
@@ -316,6 +325,7 @@ async function resumeReportWorkspace(id){
  await render();await validateCurrent();
 }
 async function prepareReportWorkspace({force=false}={}){
+ if(state.markdownFile&&!await ensureAttachmentProject())return;
  await presentationWait;if(state.saving)return toast('请等待当前保存完成');
  commitSource();commitFocusedVisual();
  if(state.reportWorkspace){
@@ -395,13 +405,13 @@ async function ensureProjectForExport(){
   if(!await ReportDialogs.confirm('首次导出需要先创建独立工程并正式保存报告。现在选择工程目录吗？',{title:'先建立工程',okText:'选择工程目录'}))return false;
   await save(true);
  }
- if(!state.externalProject){
+ if(!state.externalProject&&!state.markdownFile){
   if(!await ReportDialogs.confirm('当前是升级前保存在 data/ 中的旧报告。\n需要先复制到独立工程目录，然后导出到该工程的 output/。',{title:'迁移旧报告',okText:'继续迁移'}))return false;
   const moved=await migrateProject();if(!moved)return false;
  }
  if(state.dirty){
   const decision=await modal({title:'当前文稿存在未保存修改',kicker:'导出 · 快照与正式保存分离',
-   note:'工作快照不会覆盖项目 report.md；归档文件会标记为 working-copy。',
+   note:'工作快照不会覆盖正式 Markdown；归档文件会标记为 working-copy。',
    okText:'导出当前工作快照',extraText:'先正式保存',cancelText:'取消',
    body:outer=>{const tip=document.createElement('p');tip.textContent='导出未保存文稿，还是先正式保存再导出？两种选择都不会自动覆盖原图。';outer.append(tip);},
    onOk:()=> 'working'});
@@ -443,19 +453,23 @@ async function save(force=false){
   selected=await askProjectFolder('create');if(!selected)throw Error('未选择工程目录，正式保存已取消');
   if(session!==state.session||snapshot!==state.md)throw Error('选择期间文稿已变化，请重新保存');
  }
- else if(!state.externalProject&&!state.reportWorkspace){const moved=await migrateProject();if(!moved)throw Error('尚未迁移到独立工程目录，正式保存已取消');}
- normalizeLocalImageObjects(snapshot===state.md?images:undefined);
+ else if(!state.externalProject&&!state.reportWorkspace&&!state.markdownFile){const moved=await migrateProject();if(!moved)throw Error('尚未迁移到独立工程目录，正式保存已取消');}
+ if(!state.markdownFile)normalizeLocalImageObjects(snapshot===state.md?images:undefined);
+ // Queue the file's recoverable buffer before setting saving=true. Acquire
+ // the original save lease before awaiting I/O, so repeated Ctrl+S cannot
+ // start a second commit while that draft is still being flushed.
+ const pendingDraft=state.markdownFile&&state.dirty&&state.draftSnapshot?.markdown!==state.md?queueDraft():state.draftQueue;
  state.saving=true;const release=operations.acquire({nodes:document.querySelectorAll('[data-insert]'),editing:true});
  updateDirty();
  try{
-  await state.draftQueue; // Never race a draft write against the official commit and cleanup.
+  await pendingDraft; // Never race a draft write against the official commit and cleanup.
   const md=state.md,docId=state.documentId,did=state.draftId;
   const res=await api('/api/save','POST',{markdown:md,revision:state.revision,document_id:docId,
    draft_id:did,template:state.template,render_profile:state.renderProfile,render_options:state.renderOptions,color_theme:state.colorTheme,...(selected?{selection_token:selected.selection_token}:{})});
   state.documentId=res.document_id;state.revision=res.revision;state.savedMd=md;state.draftError=false;
   state.draftId=freshID();state.draftSeq=0;state.draftQueue=Promise.resolve();state.draftSnapshot=null;history.lastKind=null;
   if(selected){state.projectPath=selected.target_path;state.externalProject=true;}
-  $('project-label').textContent=res.title;updateDirty();await refreshRecent();
+  $('project-label').textContent=state.markdownFile?'Markdown · '+state.markdownFile.split(/[\\/]/).pop():res.title;updateDirty();await refreshRecent();
   if(positionMap?.source===state.md){
    const anchor=previewViewportAnchor();
    for(const node of preview.querySelectorAll('img[src],a[href]')){const attr=node.tagName==='IMG'?'src':'href',url=new URL(node.getAttribute(attr),location.href);if(url.origin===location.origin&&url.pathname.startsWith('/assets/')){url.searchParams.set('document_id',state.documentId);url.searchParams.set('draft_id',state.draftId);node.setAttribute(attr,url.href);}}
@@ -914,6 +928,7 @@ async function groupDialog(original=null){
  }});
 }
 async function insertGroup(){
+ if(state.markdownFile&&!await ensureAttachmentProject())return;
  commitSource();commitFocusedVisual();const snapshot=state.md,session=state.session,bookmark={start:editor.selectionStart,end:editor.selectionEnd};
  const obj=await groupDialog();if(!obj)return;
  if(state.session!==session||state.md!==snapshot)return toast('文稿已变化，请重新插入组图');
@@ -2135,6 +2150,7 @@ function imageInsertionContext(){return {
 async function insertImage(file,linkedFiles=[],context=imageInsertionContext()){
  if(state.saving)return toast('正式保存中，请稍后添加图片');
  try{
+  if(state.markdownFile){if(!await ensureAttachmentProject())return;context=imageInsertionContext();}
   const args={name:file.name,base64:await fileToB64(file),document_id:context.docId,draft_id:context.draftId};
   if(file.name.toLowerCase().endsWith('.pdf')&&linkedFiles.length){
    if(linkedFiles.length!==1||(!linkedFiles[0].name.toLowerCase().endsWith('.png')))
@@ -2154,6 +2170,7 @@ async function insertImage(file,linkedFiles=[],context=imageInsertionContext()){
 }
 async function pasteNativeGraphic({fallbackFile=null,manual=false,mixed=false}={}){
  if(state.saving)return toast('正式保存过程中，请稍后粘贴图片');
+ if(state.markdownFile&&!await ensureAttachmentProject())return;
  const context=imageInsertionContext();
  try{
   if(mixed){
@@ -2466,11 +2483,13 @@ async function exportFile(){
     const purgeButton=document.createElement('button');purgeButton.type='button';purgeButton.className='btn btn-quiet';purgeButton.textContent='清空回收区';purgeButton.hidden=true;
     const batchesArea=document.createElement('div');batchesArea.className='asset-housekeeping-batches';
     actionRow.append(scanButton,trashButton,purgeButton);housekeepingBody.append(actionRow,resultArea,batchesArea);host.append(housekeeping);
+   housekeeping.hidden=!!state.markdownFile;
    let lastScan=null;
    const checked=new Set();
    function checkSafe(){
     if(state.saving||busy||assetBusy)throw Error('有操作正在进行，请稍后整理素材');
     if(state.dirty||state.md!==state.savedMd)throw Error('请先正式保存 Markdown，再扫描或整理未引用素材；工作快照不作为清理依据');
+    if(state.markdownFile)throw Error('直接编辑的 Markdown 没有工程附件回收区');
     if(state.documentId==='new'||!state.externalProject)throw Error('请先正式保存到独立工程目录');
    }
    async function assetAction(endpoint,payload){
@@ -2557,7 +2576,7 @@ async function exportFile(){
    const snapshot=state.md;
    api('/api/export-preflight','POST',exportRequest(snapshot)).then(reply=>{
     if(snapshot!==state.md||!estimate.isConnected)return;
-    estimate.textContent=`引用资源：${reply.asset_count} 个；原件合计 ${formatBytes(reply.source_bytes)}。\n可回编模式对适合的附件使用无损 Deflate；轻量预览若比原图更大则保留原图。\n导出将写入项目 output/，不会修改正式稿。`;
+    estimate.textContent=`引用资源：${reply.asset_count} 个；原件合计 ${formatBytes(reply.source_bytes)}。\n可回编模式对适合的附件使用无损 Deflate；轻量预览若比原图更大则保留原图。\n导出将写入${state.markdownFile?' Markdown 所在目录':'项目 output/'}，不会修改正式稿。`;
    }).catch(err=>{if(estimate.isConnected)estimate.textContent='导出前检查：'+err.message;});
   },onOk:async()=>{
    if(busy||assetBusy)return false;
@@ -2569,14 +2588,14 @@ async function exportFile(){
     if(exportScope==='modules'){
      if(notebookModel.source!==state.md)throw Error('文稿已变化，请重新打开导出窗口选择专题');
      const stored=await exportModules([...selectedTopics],selected);exportPreferences=selected;
-      exportToast('已写入项目 output/：'+stored.filename+' · '+stored.modules.length+' 个分册',stored);return true;
+      exportToast('已写入'+(state.markdownFile?' Markdown 所在目录':'项目 output/')+'：'+stored.filename+' · '+stored.modules.length+' 个分册',stored);return true;
     }
     const snapshot=state.md,html=await buildExport(selected);
     if(snapshot!==state.md)throw Error('文稿变化，已取消导出');
     if(lastExportStats.totalBytes>31*1024*1024&&!await ReportDialogs.confirm('导出文件约 '+formatBytes(lastExportStats.totalBytes)+'，接近 36 MiB 兼容上限。仍要导出吗？',{title:'文件较大',okText:'仍然导出'}))return false;
     const stored=await api('/api/export/store','POST',{...lastExportRequest,html});
     exportPreferences=selected;
-     exportToast(`已写入项目 output/：${stored.filename} · ${formatBytes(stored.bytes)} · 原始工程未改变`,stored);
+     exportToast(`已写入${state.markdownFile?' Markdown 所在目录':'项目 output/'}：${stored.filename} · ${formatBytes(stored.bytes)}`,stored);
     return true;
    }finally{busy=false;ok.disabled=false;cancel.disabled=false;close.disabled=false;}
   }});
@@ -2590,7 +2609,7 @@ async function exportPDF(){
   if(snapshot!==state.md)throw Error('编辑内容已改变，请重新导出');
   try{
    const stored=await api('/api/pdf/store','POST',{...lastExportRequest,html});
-    exportToast('PDF 已保存到项目 output/：'+stored.filename+'；不会提交正式报告',stored);
+    exportToast('PDF 已保存到'+(state.markdownFile?' Markdown 所在目录':'项目 output/')+'：'+stored.filename+'；不会提交正式稿',stored);
   }catch(e){
    if(window.HRSHost)throw Error('内置 PDF 生成失败：'+e.message);
    const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
@@ -2641,6 +2660,34 @@ async function importWordFile(){
   if(token)try{await api('/api/import/word/cancel','POST',{job_token:token},{'X-HRS-Project-Action':'user-action'});}catch{}
   overlay.hidden=true;cancelButton.hidden=true;cancelButton.onclick=null;release();updateHistoryButtons();
  }
+}
+async function openMarkdownFile(){
+ try{
+  if(!await askLeave())return;
+  const before={session:state.session,markdown:state.md};
+  const reply=await api('/api/markdown-file/open','POST',{}, {'X-HRS-Project-Action':'user-action'});
+  if(reply.cancelled)return;
+  if(before.session!==state.session||before.markdown!==state.md)throw Error('选择期间文稿已变化，请重新打开');
+  await load(reply.document_id);toast('直接编辑 Markdown：Ctrl+S 保存回原文件；HTML / PDF 导出到同一目录');
+ }catch(error){toast('打开 Markdown 失败：'+error.message);}
+}
+async function markdownToProject(){
+ if(!state.markdownFile)return true;
+ await presentationWait;commitSource();commitFocusedVisual();await finishDraftWrites();
+ const before={session:state.session,markdown:state.md,start:editor.selectionStart,end:editor.selectionEnd};
+ const selection=await askProjectFolder('create','new');if(!selection)return false;
+ if(before.session!==state.session||before.markdown!==state.md)throw Error('选择期间文稿已变化，请重新另存');
+ const reply=await api('/api/markdown-file/to-project','POST',{...exportRequest(state.md),
+  selection_token:selection.selection_token,color_theme:state.colorTheme,render_options:state.renderOptions}, {'X-HRS-Project-Action':'user-action'});
+ if(before.session!==state.session||before.markdown!==state.md)throw Error('已保存工程到 '+reply.project_path+'；当前编辑已变化，保留当前页，请从最近打开查看新工程');
+ await load(reply.document_id,'blank',{recover:false});editor.setSelectionRange(before.start,before.end);
+ toast('已另存为 HRS 工程；原 Markdown 文件保持不变');return true;
+}
+async function ensureAttachmentProject(){
+ if(!state.markdownFile)return true;
+ if(!await ReportDialogs.confirm('直接编辑模式不管理附件或 Word 工程状态。现在将当前内容另存为 HRS 工程后继续吗？原 Markdown 文件会保留。',
+  {title:'另存为 HRS 工程',okText:'选择工程目录'}))return false;
+ return markdownToProject();
 }
 async function importLocalFile(){
  if(importingLocalFile)return;
@@ -2851,12 +2898,15 @@ function init(){
  $('btn-undo').addEventListener('click',undo);$('btn-redo').addEventListener('click',redo);
  $('btn-save').addEventListener('click',()=>save(true).then(()=>toast('正式保存成功')).catch(e=>toast('保存失败：'+e.message)));
  $('btn-project-open').addEventListener('click',openProjectFolder);
+ $('btn-markdown-open').addEventListener('click',openMarkdownFile);
+ $('btn-markdown-project').addEventListener('click',()=>markdownToProject().catch(error=>toast('另存工程失败：'+error.message)));
  $('btn-project-migrate').addEventListener('click',()=>migrateProject().catch(e=>toast('项目迁移失败：'+e.message)));
  $('btn-new').addEventListener('click',newDocument);
  $('btn-recent').addEventListener('click',refreshRecent);
  $('btn-export').addEventListener('click',exportFile);
  $('btn-export-word').addEventListener('click',async()=>{
   await presentationWait;
+  if(state.markdownFile){try{if(!await ensureAttachmentProject())return;}catch(error){toast(error.message);return;}}
   if(state.renderProfile==='free'){try{await prepareReportWorkspace();}catch(e){toast('准备工程报告失败：'+e.message);}return;}
   if(state.saving)return toast('保存中，请稍后导出');
   commitSource();commitFocusedVisual();

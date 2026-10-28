@@ -52,7 +52,7 @@ report_workspace.js提供范围/恢复/管理选择与任务进度，report_work
 
 ## 内容真源与处理流程
 
-正式内容保存为工程中的 `report.md` 与 `assets/`。编辑器缓冲区用于本次编辑，草稿用于恢复；IR、预览和导出 HTML 都从内容真源派生，不能分别维护成另一份正文。
+正式内容保存为工程中的 `report.md` 与 `assets/`，或直接编辑模式中显式选择的原 Markdown 文件。编辑器缓冲区用于本次编辑，草稿用于恢复；IR、预览和导出 HTML 都从内容真源派生，不能分别维护成另一份正文。
 
 ```text
 Markdown 与 assets
@@ -99,6 +99,8 @@ Python 和浏览器各有适应运行环境的解析实现，以现行规范及�
 ## 本地服务、保存与文档生命周期
 
 `studio.py` 的 `StudioServer` / `Handler` 提供本机 HTTP 服务，协调工程、校验、上传、草稿、正式保存和导出相关请求。正式保存复用已有 revision 冲突检查和原子写入；自动草稿独立于正式 `report.md`。`project_workspace.py` 负责工程路径、注册与显式复制/迁移。
+
+`markdown_file.py`只适配显式选择的无附件文件位置；原文件是唯一正文，应用数据区只持有位置索引、meta、锁和保存备份。`StudioServer.source_path`区分文件来源与工程report.md，原上下文/编辑/导出链共用；HTML/PDF通过output_path选择同目录。转工程复用原目录凭据和创建过程。附件判断仍消费report_contract/object_clipboard；没有第二套Markdown解析或编号。
 
 `portable_host.py` 启动服务并选择浏览器，`portable_sessions.py` 管理窗口租约与断开超时，`portable_transport.py` 负责本地控制消息。便携版使用随包 Python 和原启动脚本。服务生命周期能力已存在，不能因尚无 Agent 写接口就另建一套服务或保存机制。
 

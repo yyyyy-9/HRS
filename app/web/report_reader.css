@@ -91,6 +91,6 @@ body.hrs-reader-mode{max-width:none;margin:0;padding:0;background:var(--hrs-bg, 
 
 /* Preserve explicit quote lines and synthesize Chinese italics consistently. */
 .paper,.reader-paper{font-synthesis:style}
-.paper blockquote p,.reader-paper blockquote p{white-space:pre-line}
+.paper blockquote p,.reader-paper blockquote p,[data-hrs-reader-root] blockquote p{white-space:pre-line}
 .paper[data-hrs-render-profile="free"] blockquote p,[data-hrs-reader-root][data-hrs-render-profile="free"] blockquote p{margin:0;line-height:1.5}
 .paper[data-hrs-render-profile="free"] blockquote p+p,[data-hrs-reader-root][data-hrs-render-profile="free"] blockquote p+p{margin-top:.7em}

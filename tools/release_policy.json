@@ -1,6 +1,6 @@
 {
   "schema": "hrs-release-policy-v1",
-  "purpose": "WORD-HYPERLINK-01: v2.0.6 to v2.0.7 native hyperlink import, matching beta badge, target-aware round trip and factual range audit.",
+  "purpose": "MD-FILE-01 / MD-QUOTE-EXPORT-01: v2.0.8 direct Markdown storage and offline quote newline repair, over the pinned v2.0.6 build input with prior accepted v2.0.7 Word adapters.",
   "allowed_application_changes": [
     "app/CHANGELOG.md",
     "app/MANIFEST.json",
@@ -13,25 +13,38 @@
     "app/docs/MODULE_CATALOG.json",
     "app/docs/MODULE_OVERVIEW.html",
     "app/docs/MODULE_OVERVIEW.md",
+    "app/docs/PROJECT_GOALS.md",
     "app/docs/SHORT_TERM_PLAN.html",
     "app/docs/USER_GUIDE.html",
     "app/docs/USER_GUIDE.md",
     "app/docs/WORD_COMPILER_HANDOFF.html",
     "app/docs/WORD_COMPILER_HANDOFF.md",
     "app/docs/WORD_IR_HANDOFF.json",
+    "app/markdown_file.py",
+    "app/project_commit.py",
     "app/release.json",
     "app/source_format_v1.md",
+    "app/studio.py",
+    "app/tools/audit_modules.py",
     "app/web/CHANGELOG_READABLE.html",
     "app/web/MODULE_OVERVIEW.html",
     "app/web/WORD_COMPILER_HANDOFF.html",
+    "app/web/app.js",
     "app/web/help.html",
     "app/web/index.html",
+    "app/web/object_clipboard.js",
+    "app/web/report_reader.css",
     "app/web/word_export.js",
     "app/web/word_import.js",
     "app/word_import.py"
   ],
-  "approved_css_changes": {},
-  "protected": "Runtime, launchers, CSS, vendors, page model, templates and all native dependency libraries remain byte-identical; only the exact listed Bridge/WPS adapter fingerprints may change.",
+  "approved_css_changes": {
+    "app/web/report_reader.css": {
+      "baseline_sha256": "463de5594dcc325c76b67c658ae2abc99e0219790394b46e5e6af7ad675588bb",
+      "sha256": "5080eac5983432a5872abf8dcb697402fb355267e9e630a3126bf217a6fd7608"
+    }
+  },
+  "protected": "Runtime, launchers, vendors, page model, templates and native libraries remain unchanged. Only the declared quote-selector CSS and prior accepted Word adapter fingerprints differ from the pinned input.",
   "approved_word_material_changes": {},
   "approved_word_contract_adapter_changes": {
     "word_support/MANIFEST.json": {

@@ -18,6 +18,7 @@ class PreviewFollow(ManualService):
         self.assertAlmostEqual(measured[0]['styles'][0]['line']/measured[0]['styles'][0]['size'],1.5,places=2)
         self.assertAlmostEqual(measured[1]['styles'][1]['margin']/measured[1]['styles'][1]['size'],.7,places=2)
         self.assertEqual(measured[2]['br'],1)
+        self.assertGreaterEqual(measured[0]['styles'][0]['height']/measured[0]['styles'][0]['line'],1.9)
         self.assertLess(measured[2]['styles'][0]['height']/measured[2]['styles'][0]['line'],2.2)
         if self.evidence:self.page.screenshot(path=str(self.evidence/'free-quote-spacing.png'))
         html=self.page.evaluate("()=>ReportStudioProgrammatic.exportHTML({sourceMode:'recompilable'})")
@@ -26,6 +27,9 @@ class PreviewFollow(ManualService):
         offline=reader.locator('main').evaluate(measure);reader.close()
         self.assertEqual([x['paragraphs'] for x in offline],[1,2,1])
         self.assertAlmostEqual(offline[0]['styles'][0]['line']/offline[0]['styles'][0]['size'],1.5,places=2)
+        # MD-QUOTE-EXPORT-01: matching line-height is insufficient: the
+        # standalone main must actually preserve the single source newline.
+        self.assertGreaterEqual(offline[0]['styles'][0]['height']/offline[0]['styles'][0]['line'],1.9)
         self.page.locator('#render-profile').select_option('engineering')
         self.page.wait_for_function("document.querySelector('#preview-content').dataset.hrsRenderProfile==='engineering'")
         self.assertNotAlmostEqual(self.page.locator('#preview-content blockquote p').first.evaluate('p=>parseFloat(getComputedStyle(p).lineHeight)/parseFloat(getComputedStyle(p).fontSize)'),1.5,places=2)

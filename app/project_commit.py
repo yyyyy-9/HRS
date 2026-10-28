@@ -36,9 +36,9 @@ def report_lock(folder):
                 fcntl.flock(handle.fileno(),fcntl.LOCK_UN)
         handle.close()
 
-def backup_report(folder):
+def backup_report(folder,source=None):
     from studio import atomic_write,digest
-    folder=Path(folder);data=(folder/'report.md').read_bytes();history=folder/'.history'
+    folder=Path(folder);data=(Path(source) if source is not None else folder/'report.md').read_bytes();history=folder/'.history'
     if is_link(history):raise ValueError('工程 .history 目录不能是链接')
     history.mkdir(exist_ok=True)
     name=datetime.now().strftime('%Y%m%d_%H%M%S_%f')+'_'+digest(data)[:8]+'.md'
@@ -46,15 +46,16 @@ def backup_report(folder):
     for path in sorted(history.glob('*.md'))[:-30]:path.unlink()
     return target
 
-def commit_report_locked(folder,data,expected):
+def commit_report_locked(folder,data,expected,*,source=None):
     """Caller holds report_lock; revision is checked again after the backup."""
     from studio import atomic_write,digest
-    folder=Path(folder);source=folder/'report.md'
+    explicit_source=source
+    folder=Path(folder);source=Path(source) if source is not None else folder/'report.md'
     if is_link(source):raise ValueError('报告正文不能是链接文件')
     raw=source.read_bytes()
     if digest(raw)!=expected:raise ValueError('STALE_SNAPSHOT：正式文稿已变化')
     if raw==data:return None
-    backup=backup_report(folder)
+    backup=backup_report(folder,source) if explicit_source is not None else backup_report(folder)
     if source.read_bytes()!=raw:raise ValueError('STALE_SNAPSHOT：备份期间正式文稿发生变化')
     atomic_write(source,data)
     return backup
