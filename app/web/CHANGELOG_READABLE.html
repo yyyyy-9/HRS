@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>更新记录 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="8a7e47407b53e9478919b43b982916c24d2581865f24331ff0497915df32a624"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>更新记录 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="43a6485092387357ae05724603a93f89231d5f6c9ac7d3cecf9cd09e539a010f"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -583,66 +583,69 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.8<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">v2.0.8 · 直接编辑 Markdown</a>
-<a class="level2" href="#section-3">v2.0.7 · Word超链接导入</a>
-<a class="level2" href="#section-4">v2.0.6</a>
-<a class="level2" href="#section-5">v2.0.5</a>
-<a class="level2" href="#section-6">v2.0.4</a>
-<a class="level2" href="#section-7">v2.0.3</a>
-<a class="level2" href="#section-8">v2.0.2</a>
-<a class="level2" href="#section-9">v2.0.1</a>
-<a class="level2" href="#section-10">v2.0.0</a>
-<a class="level2" href="#section-11">v1.1.4</a>
-<a class="level2" href="#section-12">v1.1.3</a>
-<a class="level2" href="#section-13">v1.1.2</a>
-<a class="level2" href="#section-14">v1.1.1</a></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">HRS 发行说明</h1>
-<h2 id="section-2">v2.0.8 · 直接编辑 Markdown</h2>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.8<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">v2.0.8 R2 · Markdown 换行保存修复</a>
+<a class="level2" href="#section-3">v2.0.8 · 直接编辑 Markdown</a>
+<a class="level2" href="#section-4">v2.0.7 · Word超链接导入</a>
+<a class="level2" href="#section-5">v2.0.6</a>
+<a class="level2" href="#section-6">v2.0.5</a>
+<a class="level2" href="#section-7">v2.0.4</a>
+<a class="level2" href="#section-8">v2.0.3</a>
+<a class="level2" href="#section-9">v2.0.2</a>
+<a class="level2" href="#section-10">v2.0.1</a>
+<a class="level2" href="#section-11">v2.0.0</a>
+<a class="level2" href="#section-12">v1.1.4</a>
+<a class="level2" href="#section-13">v1.1.3</a>
+<a class="level2" href="#section-14">v1.1.2</a>
+<a class="level2" href="#section-15">v1.1.1</a></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">HRS 发行说明</h1>
+<h2 id="section-2">v2.0.8 R2 · Markdown 换行保存修复</h2>
+<p>直接编辑CRLF文稿时，在网页按Enter新增的行也会按CRLF保存，原有BOM与末尾换行保留；LF稿保持LF，原本没有末尾换行的稿不强加。保存后的编辑器、光标、专题和导出源稿与实际文件一致，重复保存不会重复添加换行。</p>
+<h2 id="section-3">v2.0.8 · 直接编辑 Markdown</h2>
 <ul>
 <li>无附件的Markdown可以直接打开并Ctrl+S保存回原文件，HTML/PDF导出到旁边，不用建立工程文件夹。</li>
 <li>设置、恢复草稿和保存备份由应用保管；外部修改会阻止覆盖。需要图片或Word时可明确另存新工程，原文件保留。</li>
 <li>修复导出HTML把引用块连续两行合成一行的问题；真正分段仍有段间距。</li>
 </ul>
-<h2 id="section-3">v2.0.7 · Word超链接导入</h2>
+<h2 id="section-4">v2.0.7 · Word超链接导入</h2>
 <p>Word导入新增与导出一致的beta标记。普通网页/邮件链接和能可靠定位的文内章节、图表链接可保留；表格、题注中的链接也按同一方式处理。导入后可以在预览、离线HTML和再次导出的Word中使用。</p>
 <p>无法定位或不安全的目标不再因为“缺少保留目标映射”拒绝整篇：显示文字保留，原地址列在待确认项和新工程诊断中。相对路径不猜基准，复杂域/嵌套结构仍有明确限制。更新时使用本版配套Word组件。</p>
-<h2 id="section-4">v2.0.6</h2>
+<h2 id="section-5">v2.0.6</h2>
 <ul>
 <li>可以直接从“打开→导入Word”选择DOCX，转换为可继续编辑的HRS工程。正文、可识别标题、表格、图片/组图及受支持公式沿原桥接处理，原Word保留。</li>
 <li>导入后先查看状态和待确认项，再选择新工程目录；当前未保存稿仍有原来的保存/取消提示。原生公式工具与Word导出共用设置，不需要Node或另开浏览器。</li>
 <li>纯文字工程的空素材目录也能正确保存；登记失败时保留完整新目录。继续包含表格/题注跨公式加粗修复。</li>
 </ul>
-<h2 id="section-5">v2.0.5</h2>
+<h2 id="section-6">v2.0.5</h2>
 <ul>
 <li>表内或题注中写<code>**参数 $x$ 的说明**</code>时，加粗可以完整跨越公式，预览、阅读及导出HTML保持一致；普通与增强表共用。</li>
 <li>行内代码示例和原Markdown保持不变，数学字形仍使用TeX命令控制。手册明确整篇Word导入和快捷粘贴的当前范围。</li>
 </ul>
-<h2 id="section-6">v2.0.4</h2>
+<h2 id="section-7">v2.0.4</h2>
 <ul>
 <li>基本流程图重新支持直接拖动节点，连线与箭头跟随；位置随保存、重开和HTML/PDF/Word导出保留。</li>
 <li>改字、加减节点/连线继续使用原窗口；增加“自动布局”清除手动位置。取消不改原稿，应用可撤销。</li>
 <li>保留当前Pele核心和Mermaid源语法，复杂图仍直接改源码。恢复的是原基本流程图的拖动范围，不将复杂图强转为简图。</li>
 </ul>
-<h2 id="section-7">v2.0.3</h2>
+<h2 id="section-8">v2.0.3</h2>
 <ul>
 <li>流程图继续使用Mermaid语法，内部改用更轻量的完整Pele渲染器；中文、多行节点、图题及编号沿用原稿。</li>
 <li>切换主题颜色时复用图表布局；图内公式使用原MathJax，导出HTML/PDF/Word保留颜色及字形。</li>
 <li>预览、图形编辑和阅读包使用同一核心；复杂图仍可直接编辑源码。布局与旧引擎略有不同，兼容差异见手册，原稿不会自动改写。</li>
 </ul>
-<h2 id="section-8">v2.0.2</h2>
+<h2 id="section-9">v2.0.2</h2>
 <ul>
 <li>编辑标题文字时，自动章节号始终保留；快速改字再撤销也会及时恢复预览。</li>
 <li>已有普通Mermaid流程图可以直接补图题，无需手工改成对象源码。</li>
 <li>聚焦自由专题时使用独立目录和章节/图表/公式编号，切回全部恢复全文编号；原图表引用仍可跨专题定位。</li>
 <li>Windows中的文件、文件夹路径链接可单击交给系统打开，编辑器保留当前文稿。</li>
 </ul>
-<h2 id="section-9">v2.0.1</h2>
+<h2 id="section-10">v2.0.1</h2>
 <ul>
 <li>在查找框等输入框中撤销时，不再误撤销文稿；源码和表格窗口保留各自的撤销体验。</li>
 <li>已有项目支持./assets和安全图片子目录，预览、保存和HTML恢复保持一致；独立Markdown图片保存后照常成为编号对象。</li>
 <li>反复开关表格编辑窗口后，旧控件及键盘监听可正常释放。</li>
 <li>说明HRS与DocFlow各自携带的Bridge版本，以及匹配组件的核对方式。</li>
 </ul>
-<h2 id="section-10">v2.0.0</h2>
+<h2 id="section-11">v2.0.0</h2>
 <ul>
 <li>统一文档编号：工程章节/图表固定编号，自由笔记可选；新增两模式均可选的公式编号。Markdown/增强表、普通/对象Mermaid和全部块公式共用序列，行内数学不编号。</li>
 <li>移除按插入类型区分的编号/不编号公式、流程图入口。ID与显示数字分离；旧源码仍读取，不批量重写。普通Markdown表的工程表号将因此变化。</li>
@@ -650,24 +653,24 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <li>Word公式支持原生SEQ/REF；关闭编号仍保留“该公式”定位。新页面模型绑定document-v2编号策略和render_options，配套Bridge0.3.0，旧Word组件需一同更新。</li>
 <li>显式引用匿名表格/块公式/流程图时，沿原事务补稳定身份并插入引用，可一次撤销；普通编辑与只读导出不主动改源。</li>
 </ul>
-<h2 id="section-11">v1.1.4</h2>
+<h2 id="section-12">v1.1.4</h2>
 <ul>
 <li>可以从Word/WPS一次复制正文、图片和普通／合并表格，再在源码编辑区Ctrl+V。正文去掉Word排版，图表成为现有可编辑对象，整段可以一次撤销。</li>
 <li>修复含行首Tab的文字粘贴时报“Markdown块无法可靠定位”；不再把Word整段内容误插成一张预览大图。</li>
 <li>图片不能完整取得或遇到尚不支持的嵌套表／表内图片时明确提示，保留当前稿件。</li>
 </ul>
-<h2 id="section-12">v1.1.3</h2>
+<h2 id="section-13">v1.1.3</h2>
 <ul>
 <li>修正Windows分发检查中的规范文档文件名编码问题，旧帮助地址继续可用。</li>
 <li>hrstudio安装名、hrs命令与原有文稿功能保持。</li>
 </ul>
-<h2 id="section-13">v1.1.2</h2>
+<h2 id="section-14">v1.1.2</h2>
 <ul>
 <li>标准安装分发名简化为hrstudio，启动继续使用hrs。</li>
 <li>同一公开版本用于Python和Conda发行，并准备conda-forge的v1配方。</li>
 <li>浏览器便携形式与标准安装继续使用同一应用核心，文稿、渲染和Word规则保持。</li>
 </ul>
-<h2 id="section-14">v1.1.1</h2>
+<h2 id="section-15">v1.1.1</h2>
 <ul>
 <li>本地Markdown编辑、阅读与分屏预览。</li>
 <li>自由笔记与工程报告、专题查看、章节和图表编号。</li>

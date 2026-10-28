@@ -5,6 +5,45 @@ from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'app'))
 
 class MarkdownFileContract(unittest.TestCase):
+    def test_eol_expansion_limit_rejects_before_committing(self):
+        from markdown_file import MarkdownFiles
+        from studio import digest
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);source=root/'large.md';original=b'# T\r\n';source.write_bytes(original)
+            files=MarkdownFiles(root/'data');identity=files.register(source)
+            with patch('markdown_file.MAX_MARKDOWN_BYTES',100):
+                with self.assertRaisesRegex(ValueError,'按原换行格式'):
+                    files.save(identity,'a\n'*40,digest(original))
+            self.assertEqual(source.read_bytes(),original)
+            self.assertFalse((files.folder(identity)/'.history').exists())
+
+    def test_file_commit_uses_original_eol_and_preserves_existing_terminal_newline(self):
+        # MD-FILE-EOL-01: API callers and native Enter can supply LF even
+        # though the selected file's existing lines use CRLF.
+        from markdown_file import MarkdownFiles
+        from studio import digest
+        cases=[
+            (b'\xef\xbb\xbf', '\r\n', True),
+            (b'', '\n', True),
+            (b'', '\r\n', False),
+            (b'', '\r', True),
+            (b'\xef\xbb\xbf', '\n', False),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);files=MarkdownFiles(root/'data')
+            for number,(bom,eol,terminal) in enumerate(cases):
+                with self.subTest(eol=repr(eol),terminal=terminal,bom=bool(bom)):
+                    source=root/(str(number)+'.md')
+                    original=bom+('# 中文😀'+eol+eol+'直接编辑原文。'+(eol if terminal else '')).encode('utf8')
+                    source.write_bytes(original);identity=files.register(source)
+                    edited=original.decode('utf-8-sig')+'\nUI_SAVE_MARKER'
+                    expected=bom+(edited.replace('\r\n','\n').replace('\r','\n').replace('\n',eol)+(eol if terminal else '')).encode('utf8')
+                    actual=files.save(identity,edited,digest(original))
+                    self.assertEqual(actual,expected);self.assertEqual(source.read_bytes(),expected)
+                    repeated=files.save(identity,actual.decode('utf-8-sig'),digest(actual))
+                    self.assertEqual(repeated,actual)
+                    self.assertEqual(len(list((files.folder(identity)/'.history').glob('*.md'))),1)
+
     def test_source_stays_single_and_bom_crlf_backup_conflict_are_preserved(self):
         from markdown_file import MarkdownFiles
         from studio import digest

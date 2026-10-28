@@ -1,14 +1,14 @@
 {
   "version": "2.0.8",
-  "package_revision": "R1",
-  "stage": "v2.0.8 R1 app",
-  "generated_utc": "2026-10-28T13:06:37.159670+00:00",
+  "package_revision": "R2",
+  "stage": "v2.0.8 R2 app",
+  "generated_utc": "2026-10-28T14:28:04.424261+00:00",
   "file_count_without_manifest": 170,
   "files": [
     {
       "path": "CHANGELOG.md",
-      "bytes": 9086,
-      "sha256": "b0ee08757809e54a90d03605243fa727107477123c7b4c869ac7225ce673aaa4"
+      "bytes": 9799,
+      "sha256": "ce21365134f98d97f60c0a28cf5003e9be35899e911aebaf14fac1a089a78a53"
     },
     {
       "path": "COPYRIGHT",
@@ -97,23 +97,23 @@
     },
     {
       "path": "docs/CHANGELOG_READABLE.html",
-      "bytes": 101400,
-      "sha256": "632cb1170d64395fd74f1240e5086e03db01d727cdfb83d11b24f0257d628eaf"
+      "bytes": 101843,
+      "sha256": "0c87a1166645421572f7708293950013568dfa7c66c707c3dc50bf72e62dc3d4"
     },
     {
       "path": "docs/CHANGELOG_READABLE.md",
-      "bytes": 6105,
-      "sha256": "8a7e47407b53e9478919b43b982916c24d2581865f24331ff0497915df32a624"
+      "bytes": 6439,
+      "sha256": "43a6485092387357ae05724603a93f89231d5f6c9ac7d3cecf9cd09e539a010f"
     },
     {
       "path": "docs/CURRENT_STATUS.html",
-      "bytes": 101330,
-      "sha256": "e1d0258b1adc46f2454f225beb3fcdfcf5fc4d3be08f19f436339e346bd89f7e"
+      "bytes": 101504,
+      "sha256": "335fbdda9db11eb12ca67acd93536c049f8178312e5445af668a3897ea3c3ef0"
     },
     {
       "path": "docs/CURRENT_STATUS.md",
-      "bytes": 6951,
-      "sha256": "54f2604fa0f4c91498861c1361614455b774173c187daf4bb4c49a19a2ad63bd"
+      "bytes": 7125,
+      "sha256": "f5dec7b3fd9b0322ee4cf7d99f99d89e956d5bb882422f99c5ded6caf606827c"
     },
     {
       "path": "docs/DOC_MAINTENANCE.md",
@@ -152,18 +152,18 @@
     },
     {
       "path": "docs/MODULE_CATALOG.json",
-      "bytes": 60821,
-      "sha256": "8afee8e77f6fe0981b44c51be3c41c1f7a6d7835a366cfdafb45597f7cf4f4a0"
+      "bytes": 60875,
+      "sha256": "c01c0219fd3c46b32d333e315f6e55397cacc03b2c0eeee05c88287cabedfa10"
     },
     {
       "path": "docs/MODULE_OVERVIEW.html",
-      "bytes": 117561,
-      "sha256": "23552603294b418cc255881c4e979a288690695e8d19760c377a5fc2b60e10ef"
+      "bytes": 117872,
+      "sha256": "7b501077c553cf7343989b1b321cc8181bbac78cea1d66f0711f706efb6000f0"
     },
     {
       "path": "docs/MODULE_OVERVIEW.md",
-      "bytes": 19971,
-      "sha256": "0adb77514868ae1838fdfad9c5a5b63e367d2992b4a79e7533c2e3a4070dd938"
+      "bytes": 20276,
+      "sha256": "bd5418e95c176de61c621d08c45898e53cdc67b06d07035774f643ab9ea47ebd"
     },
     {
       "path": "docs/PROJECT_GOALS.md",
@@ -187,13 +187,13 @@
     },
     {
       "path": "docs/USER_GUIDE.html",
-      "bytes": 411817,
-      "sha256": "3d281ad42ad32a1cf4c195061c1d1c96f6f0c941e1f9acd5d28d88b68253fcb7"
+      "bytes": 412085,
+      "sha256": "996360995e32b9ec2b9d23aa9785014d2873c690a2d1c9954e525ebd5a2812ff"
     },
     {
       "path": "docs/USER_GUIDE.md",
-      "bytes": 61353,
-      "sha256": "883cc2b5be64b15f8cd6f5468bbf74e854033b3c2da20732f73746d9170d863e"
+      "bytes": 61621,
+      "sha256": "51b77a62bb762bdedd3d00db87d723cea88b4dd871615ed275be58028af54ebe"
     },
     {
       "path": "docs/USER_GUIDE_START_HERE.md",
@@ -287,8 +287,8 @@
     },
     {
       "path": "markdown_file.py",
-      "bytes": 3971,
-      "sha256": "9208fe81b4fab13f00b779e9bca1a3e663a0e38818615cb36c28dab9a76e9f41"
+      "bytes": 4808,
+      "sha256": "cb7635309b37e7ed9d08be57359085d1f4d4fe780f58bf538b06340dbef5cd9d"
     },
     {
       "path": "markdown_import.py",
@@ -373,7 +373,7 @@
     {
       "path": "release.json",
       "bytes": 53,
-      "sha256": "43f3cc4ba6d71206b15046c2bb6c802793d302d786a7e146d8e0fe316b66277c"
+      "sha256": "98bba9cd962695535c398a44a0c6b6545172a0cf4edb9657425c03c5b8dd55fa"
     },
     {
       "path": "release_info.py",
@@ -397,13 +397,13 @@
     },
     {
       "path": "source_format_v1.md",
-      "bytes": 46035,
-      "sha256": "c2fc575fe0c7c5b19f9fa770b543e24dc8000a35340c138ec4af1599c65d1a2d"
+      "bytes": 46672,
+      "sha256": "af50888bd32c5afc635ab464140030db7161a24d378c87c3143c3a045b07f7d9"
     },
     {
       "path": "studio.py",
-      "bytes": 124145,
-      "sha256": "349238f950311b5f19f2b57ee45ad64108ebd0d7f7b006665c8b11ae4effcf7f"
+      "bytes": 124219,
+      "sha256": "9cf5b2f61d52918f9a996ba15ea11fdec7403b3bee266867feeeb0c96af9490c"
     },
     {
       "path": "svg_prolog.py",
@@ -412,8 +412,8 @@
     },
     {
       "path": "tools/audit_modules.py",
-      "bytes": 32267,
-      "sha256": "76976e8bdb1cfb7452abaf9c0501647c38b280930eba9e2ff9684cde09fc40a7"
+      "bytes": 32312,
+      "sha256": "aae0bc5ff13fd4b32893b1baecd9111976c5bbe40a0452b32c0ea1b5160724c2"
     },
     {
       "path": "tools/build_readable_docs.js",
@@ -447,13 +447,13 @@
     },
     {
       "path": "web/CHANGELOG_READABLE.html",
-      "bytes": 101404,
-      "sha256": "1b60dfac2ad0aba63e94f77fb20f7f216ec30e2517f53283fc14a1fb2be8aba3"
+      "bytes": 101847,
+      "sha256": "036c81f327c8a69dcf8b3a575b4aa6d6ee4a5f76c4a3630c13592d737884a39c"
     },
     {
       "path": "web/MODULE_OVERVIEW.html",
-      "bytes": 117581,
-      "sha256": "eb7b2e140b2e0de735de99a3a9c9cc92cd196bd6e9826ff0a85cc7470630ce0e"
+      "bytes": 117892,
+      "sha256": "d701af14dc7c3692a8f6aa1f53a0af2191d7e99e304ce06129ad49e5370ab565"
     },
     {
       "path": "web/WORD_COMPILER_HANDOFF.html",
@@ -477,8 +477,8 @@
     },
     {
       "path": "web/app.js",
-      "bytes": 242649,
-      "sha256": "846744199de19c42b30650b1212937e579f8a3d678fa4c5b8898e5705cf86414"
+      "bytes": 243954,
+      "sha256": "78212ae47948fdb389aac8de37673f2a80ae7c36a80b6a213de1f228bbfcf635"
     },
     {
       "path": "web/app.webmanifest",
@@ -562,8 +562,8 @@
     },
     {
       "path": "web/help.html",
-      "bytes": 411811,
-      "sha256": "a540073ff0d0fe36dc8ebe63bbdb129ac8af0b86e8127dcddd84cf6d96333645"
+      "bytes": 412079,
+      "sha256": "dd2ce38221a7d10d2ed071f3654cc8c4511f563b8bf8b908b6acbd1bcaa192b3"
     },
     {
       "path": "web/index.html",

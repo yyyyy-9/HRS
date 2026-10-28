@@ -1,6 +1,6 @@
 {
   "catalog_format": "hrs-module-catalog-v1",
-  "app_baseline": "2.0.8 R1",
+  "app_baseline": "2.0.8 R2",
   "scope": "source tree only; no external report files are opened",
   "caveat": "This is an interface index, not a Python import dependency graph or a DOCX compiler.",
   "items": [
@@ -12,14 +12,15 @@
       "entrypoints": [
         "MarkdownFiles",
         "require_text_only",
-        "needs_project"
+        "needs_project",
+        "encode_saved_text"
       ],
       "input": "native selected file and original IR/revision",
-      "output": "registered file identity and guarded native commit",
+      "output": "registered file identity, canonical newline bytes and guarded native commit",
       "side_effects": "explicit save or project conversion; shared atomic commit",
       "word_pipeline_role": "not-semantic",
-      "bytes": 3971,
-      "sha256": "9208fe81b4fab13f00b779e9bca1a3e663a0e38818615cb36c28dab9a76e9f41",
+      "bytes": 4808,
+      "sha256": "cb7635309b37e7ed9d08be57359085d1f4d4fe780f58bf538b06340dbef5cd9d",
       "review_flags": []
     },
     {
@@ -776,8 +777,8 @@
       "output": "JSON API / binary resources",
       "side_effects": "reads/writes projects and drafts",
       "word_pipeline_role": "do-not-import",
-      "bytes": 124145,
-      "sha256": "349238f950311b5f19f2b57ee45ad64108ebd0d7f7b006665c8b11ae4effcf7f",
+      "bytes": 124219,
+      "sha256": "9cf5b2f61d52918f9a996ba15ea11fdec7403b3bee266867feeeb0c96af9490c",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -1061,8 +1062,8 @@
       "output": "visual preview and UI events",
       "side_effects": "modifies editor state via explicit action",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 242649,
-      "sha256": "846744199de19c42b30650b1212937e579f8a3d678fa4c5b8898e5705cf86414",
+      "bytes": 243954,
+      "sha256": "78212ae47948fdb389aac8de37673f2a80ae7c36a80b6a213de1f228bbfcf635",
       "review_flags": [
         "large-monolithic-module"
       ]

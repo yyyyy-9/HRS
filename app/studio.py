@@ -1657,11 +1657,13 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError as exc:
                 if str(exc).startswith(('STALE_SNAPSHOT','WRITE_BUSY')):return self.fail(str(exc),409)
                 raise
+            text=raw.decode('utf-8-sig')
             self._store_meta(p,doc_id,text,template,theme,req.get('render_profile',read_profile(p)),req.get('render_options',read_options(p)),req.get('color_theme',read_color_theme(p)))
             if req.get('draft_id'):
                 self._clear_draft(req['draft_id'])
             return self.resp({'ok':True,'document_id':doc_id,'revision':digest(raw),'saved':raw!=old,
-                'title':document_title(text),'theme':theme,'markdown_file':str(self.server.source_path(doc_id))})
+                'title':document_title(text),'theme':theme,'markdown_file':str(self.server.source_path(doc_id)),
+                'markdown':text})
         assets=self._retain_draft_assets(req,p,self._asset_preflight(req,ir['assets'],p))
         raw=text.encode('utf-8')
         if p is None:

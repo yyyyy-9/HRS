@@ -103,6 +103,12 @@ function updateHistoryButtons(){operations.setDisabled($('btn-undo'),history.ind
 function resetHistory(){history.items=[snapshot()];history.index=0;history.lastKind=null;history.lastAt=0;updateHistoryButtons();}
 function recordHistory(kind){
  const value=snapshot(),now=Date.now();
+ if(kind==='saved-newlines'){
+  // Disk serialization changes only newline spelling/terminal newline. Keep
+  // the current edit snapshot canonical without inserting an invisible undo
+  // step or discarding an existing redo branch.
+  history.items[history.index]=value;history.lastKind=null;return;
+ }
  if(history.index<history.items.length-1)history.items.splice(history.index+1);
  const merge=(kind==='typing'||kind.startsWith('visual-typing:'))&&history.lastKind===kind&&now-history.lastAt<550&&history.index>0;
  if(merge)history.items[history.index]=value;
@@ -439,6 +445,21 @@ function normalizeLocalImageObjects(images=localImageObjectEdits()){
   editor.setSelectionRange(moved(selection.start),moved(selection.end));changed(images.markdown,'normalize-images',true);
  }
 }
+function acceptSavedMarkdown(canonical){
+ const before=SourceBlocks.normalized(state.md),after=SourceBlocks.normalized(canonical);
+ if(after.text!==before.text&&after.text!==before.text+'\n')throw Error('正式保存返回的正文与当前文稿不一致');
+ const remap=position=>{
+  let lo=0,hi=before.text.length;
+  while(lo<hi){const mid=(lo+hi)>>>1;if(before.sourceOffset(mid)<position)lo=mid+1;else hi=mid;}
+  return after.sourceOffset(lo);
+ };
+ const start=remap(editor.selectionStart),end=remap(editor.selectionEnd),top=editor.scrollTop,left=editor.scrollLeft;
+ sourceProjection.set(null);editor.value=canonical;editor.setSelectionRange(start,end);
+ if(topicFocus)pendingTopicPosition=start;
+ changed(canonical,'saved-newlines',true);
+ clearTimeout(debounceRender);clearTimeout(debounceDraft);
+ editor.scrollTop=top;editor.scrollLeft=left;
+}
 async function save(force=false){
  await presentationWait;
  commitSource();
@@ -466,7 +487,9 @@ async function save(force=false){
   const md=state.md,docId=state.documentId,did=state.draftId;
   const res=await api('/api/save','POST',{markdown:md,revision:state.revision,document_id:docId,
    draft_id:did,template:state.template,render_profile:state.renderProfile,render_options:state.renderOptions,color_theme:state.colorTheme,...(selected?{selection_token:selected.selection_token}:{})});
-  state.documentId=res.document_id;state.revision=res.revision;state.savedMd=md;state.draftError=false;
+  const canonical=state.markdownFile&&typeof res.markdown==='string'?res.markdown:md;
+  state.documentId=res.document_id;state.revision=res.revision;state.savedMd=canonical;state.draftError=false;
+  if(canonical!==state.md)acceptSavedMarkdown(canonical);
   state.draftId=freshID();state.draftSeq=0;state.draftQueue=Promise.resolve();state.draftSnapshot=null;history.lastKind=null;
   if(selected){state.projectPath=selected.target_path;state.externalProject=true;}
   $('project-label').textContent=state.markdownFile?'Markdown · '+state.markdownFile.split(/[\\/]/).pop():res.title;updateDirty();await refreshRecent();

@@ -5,6 +5,72 @@ from unittest.mock import patch
 from browser_support import ManualService,source,value
 
 class MarkdownFiles(ManualService):
+    def test_native_enter_save_normalizes_crlf_and_reconciles_buffer_caret_and_archive(self):
+        # MD-FILE-EOL-01: do not replace the buffer with pre-normalized text.
+        # Press Enter exactly as a person does, then inspect bytes and buffer.
+        original=b'\xef\xbb\xbf'+'# 中文😀\r\n\r\n直接编辑原文。\r\n'.encode('utf8')
+        text=self.open_file(original)
+        self.page.locator('#markdown').evaluate('e=>{e.sourceEditor.setSelectionRange(e.sourceEditor.value.length);e.sourceEditor.focus()}')
+        self.page.keyboard.press('Enter');self.page.keyboard.insert_text('UI_SAVE_MARKER')
+        typed=value(self.page);self.assertIn('\nUI_SAVE_MARKER',typed)
+        expected=text+'\r\nUI_SAVE_MARKER\r\n'
+        with self.page.expect_response(lambda r:r.url.endswith('/api/save')) as pending:
+            self.page.keyboard.press('Control+s')
+        self.assertTrue(pending.value.ok,pending.value.text())
+        self.page.wait_for_function("document.querySelector('#save-indicator').classList.contains('saved')")
+        self.assertEqual(self.original.read_bytes(),b'\xef\xbb\xbf'+expected.encode('utf8'))
+        self.assertEqual(value(self.page),expected)
+        end=len(expected[:-2].encode('utf-16-le'))//2
+        self.assertEqual(self.page.locator('#markdown').evaluate('e=>e.sourceEditor.selectionStart'),end)
+        identity=next(iter(self.server.markdown_files.mapping))
+        self.assertEqual(self.server.pending_drafts(identity),[])
+        self.page.keyboard.press('Control+z');self.assertNotIn('UI_SAVE_MARKER',value(self.page))
+        self.page.keyboard.press('Control+y');self.assertEqual(value(self.page),expected)
+        with self.page.expect_response(lambda r:r.url.endswith('/api/save')) as second:
+            self.page.keyboard.press('Control+s')
+        self.assertFalse(second.value.json()['saved'])
+        self.page.wait_for_function("!document.querySelector('#app').inert&&document.querySelector('#save-indicator').classList.contains('saved')")
+        self.assertEqual(self.original.read_bytes(),b'\xef\xbb\xbf'+expected.encode('utf8'))
+        exported=self.document.export()
+        import re
+        payload=json.loads(re.search(r'<script type="application/json" id="report-source">(.*?)</script>',exported,re.S)[1])
+        self.assertEqual(payload['markdown'],expected)
+        self.page.evaluate('id=>ReportStudioProgrammatic.open(id)',identity)
+        self.assertEqual(value(self.page),expected)
+
+    def test_native_enter_in_scoped_topic_preserves_topic_and_utf16_caret(self):
+        # Keep the tab outside the Enter boundary: CodeMirror intentionally
+        # trims whitespace at that boundary, independently of file saving.
+        # Earlier mixed LF lines also move the focused heading's UTF-16
+        # offset when saved; the selected topic must survive that rebase.
+        text='# First\r\n\r\n保留\t原文。\n\n# Second\n\n中文😀说明\r\n'
+        self.open_file(b'\xef\xbb\xbf'+text.encode('utf8'))
+        key=self.page.locator('#topic-select option').filter(has_text='Second').get_attribute('value')
+        self.page.locator('#topic-select').select_option(key)
+        self.page.wait_for_function("document.querySelectorAll('#preview-content h1').length===1&&document.querySelector('#preview-content h1').textContent.includes('Second')")
+        start=len(text[:text.index('说明')].encode('utf-16-le'))//2
+        self.page.locator('#markdown').evaluate('(e,p)=>{e.sourceEditor.setSelectionRange(p);e.sourceEditor.focus()}',start)
+        self.page.keyboard.press('Enter');self.page.keyboard.insert_text('续行')
+        self.page.locator('#btn-save').click()
+        self.page.wait_for_function("!document.querySelector('#app').inert&&document.querySelector('#save-indicator').classList.contains('saved')")
+        expected='# First\r\n\r\n保留\t原文。\r\n\r\n# Second\r\n\r\n中文😀\r\n续行说明\r\n'
+        self.assertEqual(value(self.page),expected)
+        self.assertEqual(self.original.read_bytes(),b'\xef\xbb\xbf'+expected.encode('utf8'))
+        end=len(expected[:expected.index('说明')].encode('utf-16-le'))//2
+        self.assertEqual(self.page.locator('#markdown').evaluate('e=>e.sourceEditor.selectionStart'),end)
+        self.assertIn('Second',self.page.locator('#topic-select option:checked').inner_text())
+        self.assertEqual(self.page.locator('#preview-content h1').count(),1)
+        self.assertNotIn('First',self.page.locator('.cm-content').inner_text())
+
+    def test_lf_file_without_terminal_newline_does_not_gain_one(self):
+        text=self.open_file('# LF\n\n原文😀'.encode('utf8'))
+        self.page.locator('#markdown').evaluate('e=>{e.sourceEditor.setSelectionRange(e.sourceEditor.value.length);e.sourceEditor.focus()}')
+        self.page.keyboard.press('Enter');self.page.keyboard.insert_text('LF_MARKER')
+        self.page.keyboard.press('Control+s')
+        self.page.wait_for_function("!document.querySelector('#app').inert&&document.querySelector('#save-indicator').classList.contains('saved')")
+        expected=text+'\nLF_MARKER'
+        self.assertEqual(value(self.page),expected);self.assertEqual(self.original.read_bytes(),expected.encode('utf8'))
+
     def open_file(self,raw=b'# File\r\n\r\nText\r\n'):
         self.notes=self.folder/self._testMethodName/'user notes';self.notes.mkdir()
         self.original=self.notes/'中文对照.md';self.original.write_bytes(raw)

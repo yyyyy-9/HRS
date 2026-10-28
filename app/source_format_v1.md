@@ -317,6 +317,8 @@ IR 是结构基础，不是完整 Word 排版 IR；完整行内/列表 AST、模
 
 ## 本机单篇 Markdown 导入
 
+直接文件的`/api/save`在同一markdown_file适配中按原文件第一个换行符统一CRLF/LF/CR（没有既有换行时LF），保留BOM及非空正文的原有末尾换行；原来无末尾换行时不强加。规范化后的字节仍受原大小/revision/锁/备份/原子写保护。成功响应中的`markdown`是实际落盘正文（不含文件BOM），`revision`是完整原始字节SHA；GUI同步缓冲/已保存快照/UTF-16选区和当前撤销快照，再继续导出或编辑。调用方不能将请求中的混合换行继续当作已保存源。工程保存及显式block plan/apply的字节范围契约不变。
+
 “直接编辑Markdown”另提供无附件文件的存储适配：`POST /api/markdown-file/open`只接受空对象及同源`X-HRS-Project-Action: user-action`，路径由原生选择器取得；返回注册document_id。`/api/doc`的可选markdown_file字段标识原文件路径，project_path仅是内部设置位置，不能当作正文路径。随后草稿、revision与`/api/save`共用原接口，保存原文件，BOM/CRLF保留；HTML/PDF写原文件同目录。配置/索引/备份不写入源目录；资源、Word及工程状态操作须先显式转工程。`/api/markdown-file/check`只消费原IR判断资源依赖，`to-project`绑定document_id/revision/draft及create/new目录凭据，只创建新工程，不覆盖原文件。A0/plan/apply的显式源路径与快照契约保持，GUI登记不扩展为任意路径HTTP写入。
 
 本机“导入Markdown/HTML”从系统文件选择窗口取得MD的真实来源；HTTP请求不得指定任意源路径。markdown_import仅适配既有report_contract与object_clipboard资源/范围改写，整批准备成功后经原draft-import进入草稿。只改写真实图片目的路径；代码、普通链接、其余文字/数值/公式不推断改写。来源目录及其子目录可确定的图片一次处理，缺失/越界集中失败，原件只读。该入口不改变归档Schema、正式对象语法、普通粘贴或Word契约。

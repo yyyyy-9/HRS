@@ -102,6 +102,8 @@ Python 和浏览器各有适应运行环境的解析实现，以现行规范及�
 
 `markdown_file.py`只适配显式选择的无附件文件位置；原文件是唯一正文，应用数据区只持有位置索引、meta、锁和保存备份。`StudioServer.source_path`区分文件来源与工程report.md，原上下文/编辑/导出链共用；HTML/PDF通过output_path选择同目录。转工程复用原目录凭据和创建过程。附件判断仍消费report_contract/object_clipboard；没有第二套Markdown解析或编号。
 
+直接文件保存的换行序列化只由markdown_file.encode_saved_text持有，网页Enter与API请求共用。保存回复携带实际正文；app复用SourceBlocks的UTF-16换行映射同步当前缓冲/光标/历史与专题，不复制一套文件格式规则，不改原CodeMirror运行负载。
+
 `portable_host.py` 启动服务并选择浏览器，`portable_sessions.py` 管理窗口租约与断开超时，`portable_transport.py` 负责本地控制消息。便携版使用随包 Python 和原启动脚本。服务生命周期能力已存在，不能因尚无 Agent 写接口就另建一套服务或保存机制。
 
 帮助页由现有静态路由提供：`/web/` 是前端资源，`/docs/` 是限定类型的只读文档，另有三份明确公开的根文档。文档路由不允许写入、路径越界或读取程序文件。它不等于 Agent HTTP RPC。

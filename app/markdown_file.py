@@ -4,15 +4,17 @@ The selected file is the only source. Preferences, locks and backups live in
 application data; HTTP callers use registered IDs, never arbitrary paths.
 """
 from pathlib import Path
-import json,uuid
+import json,re,uuid
 from project_workspace import SAFE_ID,is_link
 from report_contract import analyze
 from object_clipboard import local_urls
 from project_commit import report_lock,commit_report_locked
 
+MAX_MARKDOWN_BYTES=10*1024*1024
+
 
 def needs_project(text):
-    if not isinstance(text,str) or len(text.encode('utf8'))>10*1024*1024:
+    if not isinstance(text,str) or len(text.encode('utf8'))>MAX_MARKDOWN_BYTES:
         raise ValueError('Markdown 必须为不超过 10 MiB 的 UTF-8 文本')
     ir=analyze(text)
     return bool(ir['assets'] or local_urls(ir))
@@ -23,13 +25,28 @@ def require_text_only(text):
         raise ValueError('文稿包含图片等附件，请使用“导入 Markdown”或先另存为 HRS 工程')
 
 
+def encode_saved_text(text,original):
+    """One file-save policy, shared by browser/API callers through save()."""
+    match=re.search(rb'\r\n|\r|\n',original)
+    newline=match[0].decode('ascii') if match else '\n'
+    # Bulk string replacements avoid a Python callback/allocation per line
+    # when saving a large document with many line boundaries.
+    canonical=text.replace('\r\n','\n').replace('\r','\n')
+    if newline!='\n':canonical=canonical.replace('\n',newline)
+    if canonical and original.endswith((b'\r',b'\n')) and not canonical.endswith(('\r','\n')):
+        canonical+=newline
+    raw=(b'\xef\xbb\xbf' if original.startswith(b'\xef\xbb\xbf') else b'')+canonical.encode('utf8')
+    if len(raw)>MAX_MARKDOWN_BYTES:raise ValueError('按原换行格式保存后 Markdown 超过 10 MiB；原文件未修改')
+    return raw
+
+
 def _source(path):
     path=Path(path)
     if not path.is_absolute() or path.suffix.lower() not in ('.md','.markdown'):
         raise ValueError('请选择 Markdown 文件（.md / .markdown）')
     if any(is_link(p) for p in (path,*path.parents)) or not path.is_file():
         raise ValueError('Markdown 文件不存在、已移动或包含链接路径')
-    if path.stat().st_size>10*1024*1024:raise ValueError('Markdown 超过 10 MiB')
+    if path.stat().st_size>MAX_MARKDOWN_BYTES:raise ValueError('Markdown 超过 10 MiB')
     return path.resolve(strict=True)
 
 
@@ -80,8 +97,8 @@ class MarkdownFiles:
         with report_lock(folder):
             source=self.source(identity)
             original=source.read_bytes()
-            # Preserve BOM and existing source newlines. The editor's full
-            # buffer retains CRLF; no roundtrip through a new document model.
-            raw=(b'\xef\xbb\xbf' if original.startswith(b'\xef\xbb\xbf') else b'')+text.encode('utf8')
+            # Native Enter supplies LF. Serialize all line boundaries using
+            # the selected file's convention, including its terminal newline.
+            raw=encode_saved_text(text,original)
             commit_report_locked(folder,raw,expected,source=source)
         return raw

@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用手册 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="883cc2b5be64b15f8cd6f5468bbf74e854033b3c2da20732f73746d9170d863e"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用手册 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="51b77a62bb762bdedd3d00db87d723cea88b4dd871615ed275be58028af54ebe"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -652,7 +652,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <p>查找框、文件名等原生输入框获得焦点时，Ctrl+Z／Ctrl+Y处理该输入框的编辑；回到源码区后继续撤销文稿。表格编辑窗口中的撤销仍属于本次表格会话，取消不改原稿，应用后整张表作为一笔文稿修改。</p>
 <p>软件运行在本机。桌面版自带渲染内核；浏览器版优先使用Chrome，找不到时回退Edge。普通便携版无需另外安装Python、Node或Office，自带基础Word组件，原生公式按需配置转换器。</p>
 <h2 id="section-3">直接编辑已有 Markdown</h2>
-<p>从“打开 → 直接编辑 Markdown…”选择无图片等附件的 UTF-8 <code>.md</code> / <code>.markdown</code> 文件。Ctrl+S 更新原位置、原文件名；HTML/PDF输出到该文件所在目录，不新建工程文件夹或 <code>output/</code>。标题、列表、表格、公式、脚注和流程图仍使用同一编辑器；原有BOM和CRLF保留。显示设置、恢复草稿及最多30份保存备份保管在应用数据区的 <code>.markdown-files/</code>，不会在源文件旁写 <code>meta.json</code> 或另一份正文。</p>
+<p>从“打开 → 直接编辑 Markdown…”选择无图片等附件的 UTF-8 <code>.md</code> / <code>.markdown</code> 文件。Ctrl+S 更新原位置、原文件名；HTML/PDF输出到该文件所在目录，不新建工程文件夹或 <code>output/</code>。标题、列表、表格、公式、脚注和流程图仍使用同一编辑器。保存沿原文件的换行方式统一新增行，BOM保留；非空稿件原有末尾换行会保留，原本没有时不强加。若原文件已混用换行，则按第一个换行符收口；无既有换行时使用LF。保存后的编辑器、光标与导出源稿同步到实际文件。显示设置、恢复草稿及最多30份保存备份保管在应用数据区的 <code>.markdown-files/</code>，不会在源文件旁写 <code>meta.json</code> 或另一份正文。</p>
 <p>源文件被其他程序修改时会拒绝覆盖，并保留当前恢复草稿。需要新增图片或导出Word时，先提示“另存为 HRS 工程”；选择位置后将当前修改写入新工程，再继续原操作，原Markdown保留。也可主动使用“保存 ▾ → 另存为 HRS 工程…”。取消转换不插入附件、不改原文件。已有相对图片的稿件继续使用“导入 Markdown / HTML…”，整批收集图片后正式保存。</p>
 <p>引用块中的连续两行（如 <code>&gt; 第一行</code>、<code>&gt; 第二行</code>）在预览、阅读和导出的HTML中保留换行；中间空白引用行表示真正分段。自由模式用1.5倍行距与0.7em段距区分两者。代码示例和Markdown原文保持不变。</p>
 <h2 id="section-4">Windows桌面运行</h2>
