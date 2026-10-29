@@ -5,11 +5,13 @@ from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'app'))
 
 class MarkdownFileContract(unittest.TestCase):
+    # Resolve TEMP once so identity checks and failure-injection mocks agree
+    # with the canonical paths used by the registry on Windows (including 8.3).
     def test_eol_expansion_limit_rejects_before_committing(self):
         from markdown_file import MarkdownFiles
         from studio import digest
         with tempfile.TemporaryDirectory() as tmp:
-            root=Path(tmp);source=root/'large.md';original=b'# T\r\n';source.write_bytes(original)
+            root=Path(tmp).resolve();source=root/'large.md';original=b'# T\r\n';source.write_bytes(original)
             files=MarkdownFiles(root/'data');identity=files.register(source)
             with patch('markdown_file.MAX_MARKDOWN_BYTES',100):
                 with self.assertRaisesRegex(ValueError,'按原换行格式'):
@@ -30,7 +32,7 @@ class MarkdownFileContract(unittest.TestCase):
             (b'\xef\xbb\xbf', '\n', False),
         ]
         with tempfile.TemporaryDirectory() as tmp:
-            root=Path(tmp);files=MarkdownFiles(root/'data')
+            root=Path(tmp).resolve();files=MarkdownFiles(root/'data')
             for number,(bom,eol,terminal) in enumerate(cases):
                 with self.subTest(eol=repr(eol),terminal=terminal,bom=bool(bom)):
                     source=root/(str(number)+'.md')
@@ -48,12 +50,11 @@ class MarkdownFileContract(unittest.TestCase):
         from markdown_file import MarkdownFiles
         from studio import digest
         with tempfile.TemporaryDirectory() as tmp:
-            root=Path(tmp);user=root/'notes';user.mkdir();workspace=root/'data';workspace.mkdir()
+            root=Path(tmp).resolve();user=root/'notes';user.mkdir();workspace=root/'data';workspace.mkdir()
             source=user/'中文😀.md';original=b'\xef\xbb\xbf'+('# 标题\r\n\r\n中文😀\r\n').encode('utf8');source.write_bytes(original)
             files=MarkdownFiles(workspace);identity=files.register(source)
             self.assertEqual(files.register(source),identity)
-            # Windows TEMP may use an 8.3 alias; the registry stores its canonical path.
-            self.assertEqual(files.source(identity),source.resolve())
+            self.assertEqual(files.source(identity),source)
             self.assertEqual(list(user.iterdir()),[source])
             storage=files.folder(identity)
             self.assertFalse((storage/'report.md').exists())
@@ -85,7 +86,7 @@ class MarkdownFileContract(unittest.TestCase):
     def test_invalid_source_and_symlink_never_register(self):
         from markdown_file import MarkdownFiles
         with tempfile.TemporaryDirectory() as tmp:
-            root=Path(tmp);files=MarkdownFiles(root/'data');source=root/'test.docx';source.write_bytes(b'not md')
+            root=Path(tmp).resolve();files=MarkdownFiles(root/'data');source=root/'test.docx';source.write_bytes(b'not md')
             with self.assertRaises(ValueError):files.register(source)
             source=root/'bad.md';source.write_bytes(b'\xff')
             with self.assertRaises(ValueError):files.register(source)
