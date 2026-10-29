@@ -1,14 +1,14 @@
 {
-  "version": "2.0.8",
-  "package_revision": "R2",
-  "stage": "v2.0.8 R2 app",
-  "generated_utc": "2026-10-28T14:28:04.424261+00:00",
+  "version": "2.0.9",
+  "package_revision": "R1",
+  "stage": "v2.0.9 R1 app",
+  "generated_utc": "2026-10-29T05:37:56.797313+00:00",
   "file_count_without_manifest": 170,
   "files": [
     {
       "path": "CHANGELOG.md",
-      "bytes": 9799,
-      "sha256": "ce21365134f98d97f60c0a28cf5003e9be35899e911aebaf14fac1a089a78a53"
+      "bytes": 10154,
+      "sha256": "724f33b8248663ba52bb957e5b73e936064db5df4d0aef80c1dd2337a4b347b3"
     },
     {
       "path": "COPYRIGHT",
@@ -97,18 +97,18 @@
     },
     {
       "path": "docs/CHANGELOG_READABLE.html",
-      "bytes": 101843,
-      "sha256": "0c87a1166645421572f7708293950013568dfa7c66c707c3dc50bf72e62dc3d4"
+      "bytes": 102471,
+      "sha256": "53c96f9790489893678d4ff6d301eabfeecaad1fc37cfb220c485821d1a7ac45"
     },
     {
       "path": "docs/CHANGELOG_READABLE.md",
-      "bytes": 6439,
-      "sha256": "43a6485092387357ae05724603a93f89231d5f6c9ac7d3cecf9cd09e539a010f"
+      "bytes": 6935,
+      "sha256": "f89f219ea614d9a4b27744e99aae5233e5a4d6d477946e7ddaca15dfd727a716"
     },
     {
       "path": "docs/CURRENT_STATUS.html",
       "bytes": 101504,
-      "sha256": "335fbdda9db11eb12ca67acd93536c049f8178312e5445af668a3897ea3c3ef0"
+      "sha256": "a0d14b6865b477555beffe0801aac926b33df16beb43390cd9e2928d1a2d9459"
     },
     {
       "path": "docs/CURRENT_STATUS.md",
@@ -143,7 +143,7 @@
     {
       "path": "docs/LONG_TERM_ROADMAP.html",
       "bytes": 105673,
-      "sha256": "ed43d87573bce983f668774e30ba5dfdc254652ffd0212a5fe46c8be43666880"
+      "sha256": "8f61167d09f876fb5f96a25940be2c7127d04f42647dbf61ed14e73cd8e86436"
     },
     {
       "path": "docs/LONG_TERM_ROADMAP.md",
@@ -153,12 +153,12 @@
     {
       "path": "docs/MODULE_CATALOG.json",
       "bytes": 60875,
-      "sha256": "c01c0219fd3c46b32d333e315f6e55397cacc03b2c0eeee05c88287cabedfa10"
+      "sha256": "9cbe6bf26181fed4a4cd9f060ac04741862522bacd88b31a56a1d10d528eba9b"
     },
     {
       "path": "docs/MODULE_OVERVIEW.html",
       "bytes": 117872,
-      "sha256": "7b501077c553cf7343989b1b321cc8181bbac78cea1d66f0711f706efb6000f0"
+      "sha256": "b342ad3731ab978f72f3da4cc9ddf5c83b6e5a90c56dc5c24b17a3968f04fbf1"
     },
     {
       "path": "docs/MODULE_OVERVIEW.md",
@@ -173,7 +173,7 @@
     {
       "path": "docs/SHORT_TERM_PLAN.html",
       "bytes": 94697,
-      "sha256": "1f274b8e39bb26a5b38569b81f848d57731adfb4641b2dc113ff37b8a9e1dbe1"
+      "sha256": "6fce978cb09308207a0d6fc4c370b354ac73b7daf52e7e44805d9ee51271b53d"
     },
     {
       "path": "docs/SHORT_TERM_PLAN.md",
@@ -188,7 +188,7 @@
     {
       "path": "docs/USER_GUIDE.html",
       "bytes": 412085,
-      "sha256": "996360995e32b9ec2b9d23aa9785014d2873c690a2d1c9954e525ebd5a2812ff"
+      "sha256": "53390c9a1dd34a1e6d299ab349c2938e5d0ba1a1a5a3d028b2b6029d04242f89"
     },
     {
       "path": "docs/USER_GUIDE.md",
@@ -203,7 +203,7 @@
     {
       "path": "docs/WORD_COMPILER_HANDOFF.html",
       "bytes": 116648,
-      "sha256": "a950280fb97aa59bd62e138a5548d4069033402e1a2d5ba6721227bbe5a8b325"
+      "sha256": "e3bcedc7585c0e3fac65dfc27e40f0dd66258b72c4789bed6b3ad792f95a40f9"
     },
     {
       "path": "docs/WORD_COMPILER_HANDOFF.md",
@@ -373,7 +373,7 @@
     {
       "path": "release.json",
       "bytes": 53,
-      "sha256": "98bba9cd962695535c398a44a0c6b6545172a0cf4edb9657425c03c5b8dd55fa"
+      "sha256": "eb7f3b1bd0849cf9e32bc49ab35e076839800dbf76ba880fcb0ff0f1b722c827"
     },
     {
       "path": "release_info.py",
@@ -447,18 +447,18 @@
     },
     {
       "path": "web/CHANGELOG_READABLE.html",
-      "bytes": 101847,
-      "sha256": "036c81f327c8a69dcf8b3a575b4aa6d6ee4a5f76c4a3630c13592d737884a39c"
+      "bytes": 102475,
+      "sha256": "fda740068c80275ac5fe7635c3f2cfe208ed45da18503333d9e0c62d7d6c5729"
     },
     {
       "path": "web/MODULE_OVERVIEW.html",
       "bytes": 117892,
-      "sha256": "d701af14dc7c3692a8f6aa1f53a0af2191d7e99e304ce06129ad49e5370ab565"
+      "sha256": "1ca91bc02562b7939976e08afb7adbd3f7449b317bec0006de4e3d2955917c5e"
     },
     {
       "path": "web/WORD_COMPILER_HANDOFF.html",
       "bytes": 116658,
-      "sha256": "ef4ead2fcec485fed5f7f0c38e6f8625356862d1b79fdf0063591b74f02e5cca"
+      "sha256": "2abffdf618f2f0a01eb3199296b8add3f6f0ee4e0236c89fa404cc1dfc7b521c"
     },
     {
       "path": "web/app-icon.ico",
@@ -563,7 +563,7 @@
     {
       "path": "web/help.html",
       "bytes": 412079,
-      "sha256": "dd2ce38221a7d10d2ed071f3654cc8c4511f563b8bf8b908b6acbd1bcaa192b3"
+      "sha256": "ebc27db73ef9540c178e2d517c5079273ad17206c95d457be1f484c34876c35d"
     },
     {
       "path": "web/index.html",
