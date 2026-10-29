@@ -52,7 +52,8 @@ class MarkdownFileContract(unittest.TestCase):
             source=user/'中文😀.md';original=b'\xef\xbb\xbf'+('# 标题\r\n\r\n中文😀\r\n').encode('utf8');source.write_bytes(original)
             files=MarkdownFiles(workspace);identity=files.register(source)
             self.assertEqual(files.register(source),identity)
-            self.assertEqual(files.source(identity),source)
+            # Windows TEMP may use an 8.3 alias; the registry stores its canonical path.
+        self.assertEqual(files.source(identity),source.resolve())
             self.assertEqual(list(user.iterdir()),[source])
             storage=files.folder(identity)
             self.assertFalse((storage/'report.md').exists())
