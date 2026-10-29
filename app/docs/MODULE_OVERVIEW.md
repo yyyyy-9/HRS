@@ -89,7 +89,7 @@ Python 和浏览器各有适应运行环境的解析实现，以现行规范及�
 | `web/pipe_tables.js`、`web/report_tables.js`、`web/table_editor.js` | GFM/增强表模型、粘贴与逻辑网格操作、临时表格编辑窗口 |
 | `web/report_layout.js` | 组图围栏解析、验证与序列化 |
 | `web/list_styles.js`、`web/report_equations.js`、`web/table_content.js` | 列表显示样式、块公式、表格单元格文本/数学分段 |
-| `web/mermaid_renderer.js`、`web/vendor/pele/` | 本地完整Pele渲染Mermaid源文，缓存布局、统一主题及MathJax公式；预览、编辑窗口、阅读包共用，HTML/PDF/Word使用固化主题的独立SVG |
+| `web/mermaid_renderer.js`、`web/vendor/pele/` | 本地完整Pele渲染Mermaid源文，缓存布局、统一主题及MathJax公式；预览、编辑窗口、阅读包共用，HTML使用可随阅读主题显示的独立SVG，PDF/Word固定最终配色 |
 | `web/diagram.js`、`web/diagram_layout.js` | 既有基本流程图模型与源码保真的位置注释；对完整引擎生成的SVG应用位置并连接拖动事件，连线/箭头随节点更新，预览和输出共用；不是第二个渲染器，Flow子集不决定完整渲染范围 |
 | `web/inline_formula.js`、`web/code_highlight.js`、`web/dialogs.js` | 行内公式插入、基础高亮和共用确认窗口 |
 | `web/design_tokens.css`、`web/surface_components.css`、其他现有 CSS | 共享样式与编辑/打印/阅读布局 |
@@ -122,7 +122,7 @@ Python 和浏览器各有适应运行环境的解析实现，以现行规范及�
 
 `web/app.js` 组织现有渲染和导出流程；`web/export_rendition.js` 处理输出画质，`web/export_archive.js` 构造/读取可回编归档及 SHA-256 校验。导出的单文件 HTML 可以是纯阅读版或可回编版；只有有效可回编归档才能恢复完整源文和必要原件。
 
-`web/report_reader_core.js` 与对象目录经 `tools/build_reader_bundle.js` 生成 `web/report_reader.js`，提供目录、搜索、对象导航、复制/折叠、图片放大。报告目录覆盖H1—H6，锚点在原导出链生成；预览与导出深层标题字号由各自既有CSS按正文基准控制。它增强已渲染 DOM，不修改 Markdown，也不生成 Word 语义。`reading_pack.py` / `web/reading_pack.js` 是独立的只读 ZIP/目录阅读功能，不自动合并当前工程。
+`web/report_reader_core.js` 与对象目录、生成的product_settings及color_theme经 `tools/build_reader_bundle.js` 生成 `web/report_reader.js`，提供目录、搜索、对象导航、复制/折叠、图片放大和离线配色。color_theme按同一目录封装带选择器的主题CSS，阅读器只切换显示属性；选择按文稿快照存于本地浏览器，不改归档源稿。SVG使用原主题映射和几何，不需要在HTML中附带图形排版引擎。报告目录覆盖H1—H6，锚点在原导出链生成；预览与导出深层标题字号由各自既有CSS按正文基准控制。它增强已渲染 DOM，不修改 Markdown，也不生成 Word 语义。`reading_pack.py` / `web/reading_pack.js` 是独立的只读 ZIP/目录阅读功能，不自动合并当前工程。
 
 ## 帮助构建、模块索引与验证入口
 
@@ -136,21 +136,21 @@ python tools/maintain_docs.py --check
 
 `docs/MODULE_CATALOG.json` 是 `audit_modules.py` 生成的逐模块用途、入口、输入/输出、状态影响及哈希索引；本页提供总览，不复制那些指纹。索引不是可随意导入的通用 API，浏览器 IIFE 和 Windows 平台模块仍有运行条件。
 
-`tools/build_readable_docs.js` 使用随包 Marked、Reader 和共用样式，由七份 Markdown 生成十一份帮助 HTML；正文只在 Markdown 维护。Python-only 文档检查可在便携包中运行；Node 用于开发构建及确定性重建检查。源码根 `tools/run_checks.py` 组织现有专项/回归，测试与开发发布工具仅在源码包提供，普通使用不需要安装它们。
+`tools/build_readable_docs.js` 使用随包 Marked、Reader 和共用样式，由七份 Markdown 生成十一份帮助 HTML；正文只在 Markdown 维护。Python-only 文档检查可在便携包中运行；Node 用于源资源生成检查。源码根 `tools/run_checks.py` 组织产品专项和回归，普通使用不需要测试依赖。
 
 ## 程序接口与独立下游
 
-编辑器 Agent 提供 A0 读取，没有受控写入。正式版显式 programmatic 上下文提供原浏览器薄入口，html_cli.py 以私有快照/临时服务调用同一渲染和归档链，导出或恢复到新路径并返回 JSON；桥接的 HTML 命令委托它。可选 Playwright 依赖与本机浏览器条件见 README，普通编辑器上下文保持。独立桥接已有块创建/替换候选和单份 HTML 调用，正式提交及批处理按[短期计划](SHORT_TERM_PLAN.md)从具体 Issue 推进。
+编辑器 Agent 提供 A0 只读查询；块修改通过已有plan/apply先审查差异，再按源快照和资源约束显式提交。programmatic上下文提供原浏览器薄入口，html_cli.py以私有快照/临时服务调用同一渲染和归档链，导出或恢复到新路径并返回JSON；桥接的HTML命令委托它。可选Playwright依赖与本机浏览器条件见README，普通编辑器上下文保持。批量与独立下游的后续工作按[短期计划](SHORT_TERM_PLAN.md)推进。
 
 Word/WPS 编译与逆向识别由独立项目负责，独立桥接试用包消费本项目接口并接入 WPS 模板/Scanner。可用数据、命令和已知限制见[Word/WPS 下游数据接口](WORD_COMPILER_HANDOFF.md)；机器交接索引为 `docs/WORD_IR_HANDOFF.json`。编辑器自身不实现 DOCX/OMML 编译，不承诺任意排版往返。
 
 实际完成度和验证边界见[当前状态](CURRENT_STATUS.md)；长期方向见[长期路线](LONG_TERM_ROADMAP.md)。
 
-## 开发测试与发行工具
+## 产品测试
 
 源码tools/test_catalog.py持有功能归属、具名用例与保留分组别名，run_checks生成去重计划并持有结果分类，Source/Full共用；run_python_tests仅执行明确选择并隔离所需运行时。tests/browser_support复用实际StudioServer，逐用例隔离context/工程/草稿，清理失败现场，不把模拟API当真实服务。纯测试依赖不进入普通运行包。
 
-build_release从显式SHA绑定的现行便携输入构建源码/运行包，消费同一App清单且不写源；verify_release独立读取实际ZIP、清单和release_policy，检查保护范围及历史，不导入生产者自证。Word组件与模板仍由原项目提供，测试/发布工具不复制转换语义。使用与授权边界见维护规则及源码README_TESTS。
+产品测试入口与所需环境见源码README_TESTS。测试程序不参与实际文稿转换。
 
 ## 混合粘贴的数学适配
 

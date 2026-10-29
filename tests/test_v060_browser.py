@@ -2,7 +2,7 @@
 
 Manual/save/task cases are selected separately; this class checks palette and presentation.
 """
-import json,os,sys,tempfile,unittest
+import json,os,struct,sys,tempfile,unittest,zlib
 from pathlib import Path
 from browser_support import ManualService
 from browser_support import source,value,select
@@ -19,6 +19,95 @@ class ThemeFeedback(ManualService):
  def open_html(self,html,name='review.html',context=None):
   path=self.project.parent/name;path.write_bytes(html.encode('utf8'))
   page=(context or self.browser).new_page();page.goto(path.as_uri());page.wait_for_selector('[data-hrs-reader-ready="1"]');return page
+
+ def test_09_offline_theme_switch_preserves_geometry_source_and_assets(self):
+  """HTML-THEME-01: real file:// export, six palettes, one SVG/image and unchanged archive."""
+  def chunk(kind,data):return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
+  image=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',4,2,8,6,0,0,0))+chunk(b'IDAT',zlib.compress((b'\0'+b'\x20\x80\x40\xff'*4)*2))+chunk(b'IEND',b'')
+  (self.project/'assets/offline-theme.png').write_bytes(image)
+  text=table_source()+r'''
+## 离线配色
+
+**正文与 $x$**，说明[^theme]。
+
+![原始图片](assets/offline-theme.png)
+
+```mermaid
+flowchart LR
+ A[开始] --> B[结果]
+```
+
+$$\boldsymbol{x}=1$$
+
+[^theme]: 配色不改变来源。
+'''
+  source(self.page,text)
+  self.page.locator('#color-theme').select_option('celadon')
+  self.page.wait_for_function("document.documentElement.dataset.colorTheme==='celadon'")
+  html=self.export()
+  if self.evidence:(self.evidence/'offline-theme.html').write_bytes(html.encode('utf8'))
+  reader=self.open_html(html,'offline-theme.html')
+  self.assertEqual(reader.locator('.hrs-reader-theme-select').count(),1)
+  choices=json.loads((Path(__file__).resolve().parents[1]/'app/product_settings.json').read_text('utf8'))['color_themes']['choices']
+  self.assertEqual(reader.locator('.hrs-reader-theme-select option').evaluate_all('xs=>xs.map(x=>({id:x.value,label:x.textContent}))'),[{'id':c['id'],'label':c['label']} for c in choices])
+  original=reader.locator('#report-source').text_content()
+  geometry=reader.locator('svg.pele').evaluate('e=>({viewBox:e.getAttribute("viewBox"),nodes:e.innerHTML})')
+  saved_image=reader.locator('main img').first.get_attribute('src')
+  reader.evaluate('''()=>{window.originalThemeNodes=[document.querySelector('svg.pele'),document.querySelector('main img'),document.querySelector('.markdown-math svg')]}''')
+  requests=[];reader.on('request',lambda req:requests.append(req.url) if req.url.startswith(('http:','https:')) else None)
+  colors=set()
+  for choice in choices:
+   reader.locator('.hrs-reader-theme-select').select_option(choice['id'])
+   self.assertEqual(reader.locator('html').get_attribute('data-hrs-color-theme'),choice['id'])
+   colors.add(reader.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--hrs-brand').trim()"))
+   self.assertEqual(reader.locator('svg.pele').evaluate("e=>getComputedStyle(e).getPropertyValue('--pele-accent').trim()"),reader.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--hrs-brand').trim()"))
+   self.assertEqual(reader.locator('.markdown-math svg').first.evaluate('e=>getComputedStyle(e).color'),reader.locator('.hrs-reader-main').evaluate('e=>getComputedStyle(e).color'))
+   self.assertEqual(reader.locator('.hrs-reader-main').evaluate('e=>getComputedStyle(e).backgroundColor'),reader.evaluate("()=>{const e=document.createElement('i');e.style.background='var(--hrs-paper)';document.body.append(e);const c=getComputedStyle(e).backgroundColor;e.remove();return c}"))
+   self.assertEqual(reader.locator('svg.pele').evaluate('e=>({viewBox:e.getAttribute("viewBox"),nodes:e.innerHTML})'),geometry)
+   self.assertTrue(reader.evaluate('''()=>originalThemeNodes.every((node,i)=>node===[document.querySelector('svg.pele'),document.querySelector('main img'),document.querySelector('.markdown-math svg')][i])'''))
+   self.assertEqual(reader.locator('#report-source').text_content(),original)
+   self.assertEqual(reader.locator('main img').first.get_attribute('src'),saved_image)
+  self.assertEqual(len(colors),6);self.assertEqual(requests,[])
+  self.assertTrue(reader.evaluate("typeof pele==='undefined'&&typeof MathJax==='undefined'"))
+  self.assertEqual(value(self.page),text)
+  reader.reload();reader.wait_for_selector('.hrs-reader-theme-select')
+  self.assertEqual(reader.locator('.hrs-reader-theme-select').input_value(),choices[-1]['id'])
+  if self.evidence:reader.screenshot(path=str(self.evidence/'offline-theme-warm.png'),full_page=True)
+  reader.evaluate("()=>{const key=Object.keys(localStorage).find(key=>key.startsWith('hrs-reader-theme-v1:'));localStorage.setItem(key,'unknown-palette')}")
+  reader.reload();reader.wait_for_selector('.hrs-reader-theme-select')
+  self.assertEqual(reader.locator('.hrs-reader-theme-select').input_value(),'celadon')
+  reader.close()
+  restored=self.page.evaluate('''async html=>{const doc=new DOMParser().parseFromString(html,'text/html');return ReportExportArchive.readArchive(JSON.parse(doc.querySelector('#report-source').textContent),doc)}''',html)
+  self.assertEqual(restored['markdown'],text)
+  self.assertEqual(restored['colorTheme'],'celadon')
+  self.assertIn('offline-theme.png',restored['assets'])
+
+ def test_10_offline_print_noscript_and_unavailable_storage(self):
+  """HTML-THEME-01: default palette survives blocked storage/JS, print paper stays white."""
+  source(self.page,'# 离线阅读\n\n## 正文\n\n两种模式共用正文。\n')
+  self.page.locator('#color-theme').select_option('violet')
+  self.page.wait_for_function("document.documentElement.dataset.colorTheme==='violet'")
+  for profile in ('free','engineering'):
+   self.page.locator('#render-profile').select_option(profile)
+   self.page.wait_for_function('p=>document.body.dataset.renderProfile===p',arg=profile)
+   html=self.page.evaluate("()=>ReportStudioProgrammatic.exportHTML({sourceMode:'reading'})")
+   with self.browser.new_context() as context:
+    context.add_init_script("Object.defineProperty(window,'localStorage',{get(){throw Error('storage unavailable')}})")
+    reader=self.open_html(html,'reading-'+profile+'.html',context)
+    self.assertEqual(reader.locator('.hrs-reader-theme-select').input_value(),'violet')
+    reader.locator('.hrs-reader-theme-select').select_option('celadon')
+    self.assertEqual(reader.locator('html').get_attribute('data-hrs-color-theme'),'celadon')
+    reader.emulate_media(media='print')
+    self.assertEqual(reader.locator('.hrs-reader-main').evaluate('e=>getComputedStyle(e).backgroundColor'),'rgb(255, 255, 255)')
+    self.assertEqual(reader.locator('body').evaluate('e=>getComputedStyle(e).backgroundColor'),'rgb(255, 255, 255)')
+    self.assertFalse(reader.locator('.hrs-reader-theme-select').is_visible())
+   path=self.project.parent/('noscript-'+profile+'.html');path.write_text(html,encoding='utf8')
+   with self.browser.new_context(java_script_enabled=False) as context:
+    reader=context.new_page();reader.goto(path.as_uri())
+    self.assertEqual(reader.locator('main h1').inner_text(),'离线阅读')
+    self.assertEqual(reader.locator('html').get_attribute('data-hrs-color-theme'),'violet')
+    self.assertEqual(reader.locator('.hrs-reader-theme-select').count(),0)
+    self.assertEqual(reader.locator('#report-source').evaluate('e=>JSON.parse(e.textContent).snapshot'),{'kind':'reading-only'})
 
  def test_05_palette_six_colors_and_export_identity(self):
   self.assertEqual(self.page.locator('#color-theme').count(),1,'A usable palette selector is missing')
@@ -99,6 +188,7 @@ class ThemeFeedback(ManualService):
   help_page=self.browser.new_page();help_page.goto(f'http://127.0.0.1:{self.server.server_port}/web/help.html')
   self.assertEqual(help_page.locator('.docs-shell .docs-nav').count(),1)
   self.assertEqual(help_page.locator('.docs-paper').count(),1)
+  self.assertEqual(help_page.locator('.hrs-reader-theme-select').count(),0)
   self.assertEqual(help_page.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--hrs-brand').trim()"),'#344dc3')
   help_page.close()
 

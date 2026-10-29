@@ -116,12 +116,56 @@ class WordImport(ManualService):
         self.assertEqual(value(self.page),before);self.assertFalse((self.destination/'来源已变不可导入').exists())
         self.assertFalse(self.server.word_import.jobs)
 
-    def test_unsupported_nested_table_keeps_current_project(self):
-        doc=Document();cell=doc.add_table(rows=1,cols=1).cell(0,0);cell.add_table(rows=1,cols=1);doc.save(self.input)
-        before=value(self.page)
-        self.page.locator('#menu-open>summary').click();self.page.locator('#btn-import-word').click();self.page.locator('#modal-ok').click()
-        self.page.wait_for_function("document.querySelector('#toast').textContent.includes('导入失败')",timeout=90000)
-        self.assertEqual(value(self.page),before);self.assertFalse(self.server.word_import.jobs)
+    def test_nested_table_imports_without_reading_source_in_the_host(self):
+        """WORD-IMPORT-OPEN-01: nested content is editable; all Word I/O uses the worker Python."""
+        doc=Document();doc.add_paragraph('嵌套表试验',style='Title');cell=doc.add_table(rows=1,cols=1).cell(0,0)
+        cell.text='外层 12.34';cell.add_table(rows=1,cols=1).cell(0,0).text='内层 98.76';doc.save(self.input)
+        self.original=self.input.read_bytes();before=value(self.page)
+        original_read=Path.read_bytes
+        def host_read(path):
+            if path.suffix.lower()=='.docx':raise AssertionError('Host must not read Word bytes')
+            return original_read(path)
+        with patch('word_import.selected_source',side_effect=AssertionError('Host must not read the Word')),patch.object(Path,'read_bytes',host_read):
+            self.read_word();self.assertEqual(value(self.page),before)
+            job=next(iter(self.server.word_import.jobs.values()));folder=Path(job['temporary'].name)
+            self.assertFalse(folder.resolve().is_relative_to(Path(self.server.workspace).resolve()))
+            self.assertEqual(Path(json.loads(job['request'].read_text('utf8'))['frozen']).name,'input.docx')
+            self.assertIn('待确认',self.page.locator('#word-import-summary').inner_text())
+            self.save_import('嵌套表正常导入')
+        target=self.destination/'嵌套表正常导入';md=value(self.page)
+        self.assertIn('外层 12.34',md);self.assertIn('内层 98.76',md)
+        model=studio.analyze_report_contract(md,assets=target/'assets')
+        self.assertEqual(len([b for b in model['blocks'] if b['type']=='table']),2)
+        self.assertEqual((target/'output/word-import-source.docx').read_bytes(),self.original)
+        self.assertFalse(self.server.word_import.jobs)
+
+    @unittest.skipUnless(os.name=='nt','Windows file sharing semantics')
+    def test_temporary_file_lock_shows_saved_project_and_deferred_cleanup(self):
+        """WORD-IMPORT-ACCESS-01: actual UI must not show failure after successful save."""
+        from test_word_export import held_word_file
+        self.read_word();job=next(iter(self.server.word_import.jobs.values()));folder=Path(job['temporary'].name)
+        with held_word_file(Path(json.loads(job['request'].read_text('utf8'))['frozen'])):
+            self.save_import('临时占用仍保存成功')
+            self.assertIn('Word 已导入',self.page.locator('#toast').inner_text())
+            self.assertIn('延后清理',self.page.locator('#toast').inner_text());self.assertTrue(folder.exists())
+        self.server.word_import.close();self.assertFalse(folder.exists())
+        target=self.destination/'临时占用仍保存成功'
+        self.assertEqual((target/'output/word-import-source.docx').read_bytes(),self.original)
+        self.assertIn('12.34 nm',value(self.page));self.assertEqual(self.input.read_bytes(),self.original)
+
+    def test_lists_controls_and_cached_fields_import_from_actual_dialog(self):
+        """Ordinary Word is no longer refused for field/control/list content."""
+        doc=Document();p=doc.add_paragraph('控件内文字 12.34 nm。');body=p._p.getparent();body.remove(p._p)
+        wrapper=OxmlElement('w:sdt');content=OxmlElement('w:sdtContent');content.append(p._p);wrapper.append(content);body.insert(0,wrapper)
+        doc.add_paragraph('自动列表第一项',style='List Number');doc.add_paragraph('自动列表第二项',style='List Number')
+        p=doc.add_paragraph('日期：');field=OxmlElement('w:fldSimple');field.set(qn('w:instr'),' DATE ')
+        r=OxmlElement('w:r');t=OxmlElement('w:t');t.text='2026-10-29';r.append(t);field.append(r);p._p.append(field);doc.save(self.input)
+        self.original=self.input.read_bytes();self.read_word();self.save_import('普通Word兼容导入')
+        md=value(self.page)
+        for text in ('控件内文字 12.34 nm。','1. 自动列表第一项','2. 自动列表第二项','2026-10-29'):self.assertIn(text,md)
+        self.assertEqual(self.page.locator('#render-profile').input_value(),'free')
+        target=self.destination/'普通Word兼容导入';receipt=json.loads((target/'word-import.json').read_text('utf8'))
+        self.assertEqual(receipt['status'],'NEEDS_REVIEW');self.assertEqual(self.input.read_bytes(),self.original)
 
     def test_needs_review_keeps_unconfirmed_prose_and_lists_it(self):
         text='这是被误用标题样式的一段完整正文，需要保留全部文字而不能强制认作章节。'*6
@@ -138,9 +182,11 @@ class WordImport(ManualService):
     def test_missing_formula_tool_and_runtime_leave_original_unchanged(self):
         before=value(self.page)
         with patch.object(self.server.word_export,'pandoc',return_value=None):
-            self.page.locator('#menu-open>summary').click();self.page.locator('#btn-import-word').click();self.page.locator('#modal-ok').click()
-            self.page.wait_for_function("document.querySelector('#toast').textContent.includes('导入失败')",timeout=30000)
-        self.assertIn('Pandoc',self.page.locator('#toast').inner_text());self.assertEqual(value(self.page),before)
+            self.read_word()
+            self.assertIn('待确认',self.page.locator('#word-import-summary').inner_text())
+            self.assertIn('原公式保留在源 Word',self.page.locator('#word-import-diagnostics').inner_text())
+            self.page.locator('#modal-cancel').click()
+        self.assertEqual(value(self.page),before)
         with patch.object(self.server.word_export,'runtime',return_value=None):
             self.page.locator('#menu-open>summary').click();self.page.locator('#btn-import-word').click();self.page.locator('#modal-ok').click()
             self.assertTrue(self.page.locator('#modal-layer').is_visible())

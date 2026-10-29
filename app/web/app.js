@@ -2312,7 +2312,7 @@ async function buildExportCurrent(preferences,exportSource=state.md){
  }
  requireSame();
  const clone=exportView.article.cloneNode(true);
- ReportMermaid.freezeTheme(clone);
+ ReportMermaid.freezeTheme(clone,{liveTheme:true});
  // Archive state always comes from Markdown. Optional free-reader state is
  // separate and bound to this source snapshot and original task position.
  clone.querySelectorAll('input[type="checkbox"]').forEach(input=>{input.disabled=true;});
@@ -2389,7 +2389,8 @@ async function buildExportCurrent(preferences,exportSource=state.md){
  // Single canonical visual tokens/components for editor, standalone HTML and help.
  const loadCSS=async path=>{const response=await fetch(path,{cache:'no-store'});if(!response.ok)throw Error('无法读取共享离线样式：'+path);return response.text();};
  const css=await loadCSS('/web/print.css');
- const colorCSS=await loadCSS(ReportTheme.path(state.colorTheme));
+ const palettes=await Promise.all(ReportSettings.color_themes.choices.map(async({id})=>[id,await loadCSS(ReportTheme.path(id))]));
+ const colorCSS=ReportTheme.offlineStyles(Object.fromEntries(palettes));
  const designCSS=await loadCSS('/web/design_tokens.css');
  const surfaceCSS=await loadCSS('/web/surface_components.css');
  const readerStyle=await fetch('/web/report_reader.css',{cache:'no-store'});
@@ -2402,7 +2403,7 @@ async function buildExportCurrent(preferences,exportSource=state.md){
  const payload=await archive.buildArchive({md:freeze.exportSource,assetRecords:assets,domRefs,opts:options,
   template:state.template,theme:state.theme,renderProfile:state.renderProfile,renderOptions:state.renderOptions,colorTheme:state.colorTheme,savedMd:state.savedMd,projectRevision:state.revision});
  const source=archive.safeJson(payload),pdfData=Object.keys(pdfOriginals).length?'<script type="application/json" id="hrs-pdf-originals">'+archive.safeJson(pdfOriginals)+'</script>':'';
- const html='<!doctype html>\n<!-- HRS render-profile: '+state.renderProfile+' -->\n<html lang="zh-CN" data-hrs-render-profile="'+state.renderProfile+'" data-hrs-color-theme="'+state.colorTheme+'"><head><meta charset="utf-8"><meta name="hrs-render-profile" content="'+state.renderProfile+'"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+escapeHTML(title)+'</title><style>'+colorCSS+'\n'+css+'\n'+readerCSS+'\n'+designCSS+'\n'+surfaceCSS+'</style></head>\n<body class="theme-'+escapeHTML(state.theme)+' hrs-profile-'+state.renderProfile+'" data-render-profile="'+state.renderProfile+'"><main data-hrs-reader-root="1" data-hrs-render-profile="'+state.renderProfile+'" data-hrs-task-snapshot="'+preflight.markdown_sha256+'" data-hrs-show-object-numbers="'+(clone.dataset.hrsShowObjectNumbers||'1')+'" data-hrs-show-equation-numbers="'+(clone.dataset.hrsShowEquationNumbers||'0')+'">'+clone.innerHTML+'</main><footer class="report-footer"></footer><script type="application/json" id="report-source">'+source+'</script>'+pdfData+'<script id="hrs-reader-runtime">'+readerJS+'</script></body></html>';
+ const html='<!doctype html>\n<!-- HRS render-profile: '+state.renderProfile+' -->\n<html lang="zh-CN" data-hrs-offline-themes="1" data-hrs-render-profile="'+state.renderProfile+'" data-hrs-color-theme="'+state.colorTheme+'"><head><meta charset="utf-8"><meta name="hrs-render-profile" content="'+state.renderProfile+'"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+escapeHTML(title)+'</title><style>'+colorCSS+'\n'+css+'\n'+readerCSS+'\n'+designCSS+'\n'+surfaceCSS+'</style></head>\n<body class="theme-'+escapeHTML(state.theme)+' hrs-profile-'+state.renderProfile+'" data-render-profile="'+state.renderProfile+'"><main data-hrs-reader-root="1" data-hrs-render-profile="'+state.renderProfile+'" data-hrs-task-snapshot="'+preflight.markdown_sha256+'" data-hrs-show-object-numbers="'+(clone.dataset.hrsShowObjectNumbers||'1')+'" data-hrs-show-equation-numbers="'+(clone.dataset.hrsShowEquationNumbers||'0')+'">'+clone.innerHTML+'</main><footer class="report-footer"></footer><script type="application/json" id="report-source">'+source+'</script>'+pdfData+'<script id="hrs-reader-runtime">'+readerJS+'</script></body></html>';
  const totalBytes=new TextEncoder().encode(html).byteLength;
  if(totalBytes>archive.MAX_HTML)throw Error('导出 HTML 超过 36 MiB 兼容上限。请改用纯阅读或较低图像质量，完整工程可单独备份');
  requireSame();
@@ -2673,11 +2674,12 @@ async function importWordFile(){
   if(state.session!==snapshot.session||state.md!==snapshot.markdown)throw Error('当前文稿已变化，Word 导入已取消');
   overlay.hidden=false;progress.textContent='正在保存并打开新的 HRS 工程…';
   const imported=await api('/api/import/word/finish','POST',{job_token:token,selection_token:target.selection_token},{'X-HRS-Project-Action':'user-action'});
+  const cleanupNote=imported.cleanup_pending?' 临时文件暂时无法移除，已延后清理。':'';
   token=null;overlay.hidden=true;
   await refreshRecent();
-  if(!await askLeave()){toast('Word 已导入并保存到 '+imported.project_path+'；当前文稿保持，可从最近打开。');return;}
+  if(!await askLeave()){toast('Word 已导入并保存到 '+imported.project_path+'；当前文稿保持，可从最近打开。'+cleanupNote);return;}
   await load(imported.document_id,'engineering',{recover:false});
-  toast(imported.receipt.status==='NEEDS_REVIEW'?`Word 已导入；${imported.receipt.recognition.unresolved} 项结构待确认，原文和诊断已保留。`:'Word 已导入并保存为新工程；原 Word 文件保持不变。');
+  toast((imported.receipt.status==='NEEDS_REVIEW'?`Word 已导入；${imported.receipt.recognition.unresolved} 项结构待确认，原文和诊断已保留。`:'Word 已导入并保存为新工程；原 Word 文件保持不变。')+cleanupNote);
  }catch(error){toast('Word 导入失败：'+error.message);}
  finally{
   if(token)try{await api('/api/import/word/cancel','POST',{job_token:token},{'X-HRS-Project-Action':'user-action'});}catch{}

@@ -399,8 +399,16 @@
       "resolved": "HTTP(S), mailto, absolute file URI; unique confirmed heading/object bookmarks map to existing HRS IDs",
       "unresolved": "Visible text plus original target/anchor/doc_location diagnostics; NEEDS_REVIEW; no guessed active target",
       "round_trip": "Internal native anchors and external relationship targets are semantic fingerprint data",
-      "not_supported": "HYPERLINK/complex fields and nested links remain subject to existing import limits"
-    }
+      "not_supported": "Complex fields retain cached display text with review; no guessed active target or live field update"
+    },
+    "import_mode": "editable (HRS); CLI default roundtrip, --mode editable is explicit",
+    "local_differences": "Keep readable content and placeholder/reference at original position, NEEDS_REVIEW; original saved to output/word-import-source.docx",
+    "source_reader": "Same selected conversion Python reads/freezes/fingerprints/copies Word; receipt and file manifest have one writer. Host only reads text metadata and registers the project.",
+    "optional_mapping": "Usable automatic provenance restores source; absent/invalid/inapplicable mapping imports current Word contents as new identities",
+    "default_external_profile": "free",
+    "workspace": "Owned system-Temp session with short input.docx; original selected name stays in the receipt. New-project destination remains explicit.",
+    "cleanup": "Best effort after delivery; cleanup_pending is separate from content status. Owned stopped sessions retry on next import/server close; persistent locks may leave system-Temp files.",
+    "error_details": "Optional details with stable stage, errno, winerror and path. Genuine I/O errors stay failures; cleanup cannot replace the primary error."
   },
   "desktop_host": {
     "core": "same App and existing CLI/IR/preflight/save/Word chain",

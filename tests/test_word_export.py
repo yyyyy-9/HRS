@@ -1,5 +1,7 @@
 """Word UI adapter boundaries; the existing converter is exercised by the UI suite."""
 from pathlib import Path
+from contextlib import contextmanager,redirect_stdout
+import io,time
 import json,os,sys,tempfile,threading,unittest,urllib.request,urllib.error,zipfile
 from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[1]
@@ -7,6 +9,20 @@ sys.path.insert(0,str(ROOT/'app'))
 from studio import StudioServer,Handler,digest
 from word_export import WordExport,check_template,runtime_paths
 from word_import import selected_source
+
+
+@contextmanager
+def held_word_file(path,allow_read=True):
+    """Real Windows sharing; neither mode grants deletion to another handle."""
+    import ctypes
+    from ctypes import wintypes
+    kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+    kernel.CreateFileW.argtypes=[wintypes.LPCWSTR,wintypes.DWORD,wintypes.DWORD,wintypes.LPVOID,wintypes.DWORD,wintypes.DWORD,wintypes.HANDLE]
+    kernel.CreateFileW.restype=wintypes.HANDLE;kernel.CloseHandle.argtypes=[wintypes.HANDLE]
+    handle=kernel.CreateFileW(str(path),0x80000000,3 if allow_read else 0,None,3,0x80,None)
+    if handle==ctypes.c_void_p(-1).value:raise ctypes.WinError(ctypes.get_last_error())
+    try:yield
+    finally:kernel.CloseHandle(handle)
 
 
 class WordBoundaries(unittest.TestCase):
@@ -112,6 +128,75 @@ class WordBoundaries(unittest.TestCase):
         self.assertTrue((target/'assets').is_dir());self.assertTrue((target/'output').is_dir())
         self.assertEqual((target/'report.md').read_bytes(),self.raw)
         with self.assertRaisesRegex(ValueError,'拒绝覆盖'):copy_project_tree(self.project,target)
+
+    def staged_import(self):
+        """Only conversion is pre-staged; actual source recheck/copy/registration run."""
+        from unittest.mock import Mock
+        temporary=tempfile.TemporaryDirectory(prefix='hrs-import-access-',dir=self.root)
+        self.addCleanup(temporary.cleanup);folder=Path(temporary.name);word=self.root/'chosen.docx'
+        with zipfile.ZipFile(word,'w') as archive:
+            archive.writestr('[Content_Types].xml','<x/>');archive.writestr('word/document.xml','<x/>')
+        frozen=folder/'input.docx';frozen.write_bytes(word.read_bytes())
+        project=folder/'project';(project/'assets').mkdir(parents=True);(project/'output').mkdir()
+        (project/'report.md').write_bytes(b'# Imported\n');(project/'output/word-import-source.docx').write_bytes(word.read_bytes())
+        request=folder/'request.json';request.write_text(json.dumps({'source':str(word)}),encoding='utf8')
+        owner=Mock();owner.is_alive.return_value=False
+        importer=self.server.word_import;token='access-test'
+        importer.jobs[token]={'at':time.monotonic(),'state':'ready','source':word,'sha256':digest(word.read_bytes()),
+            'mapping_sha256':None,'temporary':temporary,'request':request,'runtime':{'python':Path(sys.executable),'root':ROOT},
+            'files':{p.relative_to(project).as_posix():digest(p.read_bytes()) for p in project.rglob('*') if p.is_file()},
+            'receipt':{'status':'COMPLETE'},'expiry':Mock(),'thread':owner,'process':None,
+            'cancelled':threading.Event(),'wake':threading.Event()}
+        return importer,token,folder,project,self.root/'imported'
+
+    @unittest.skipUnless(os.name=='nt','Windows file sharing semantics')
+    def test_locked_temporary_does_not_turn_a_saved_import_into_failure(self):
+        """WORD-IMPORT-ACCESS-01: successful commit survives denied temp deletion."""
+        importer,token,folder,project,target=self.staged_import()
+        with held_word_file(folder/'input.docx'):
+            result=importer.commit(token,target,lambda path:'imported-id')
+            self.assertEqual(result['document_id'],'imported-id')
+            self.assertTrue(result['cleanup_pending']);self.assertTrue(folder.exists())
+        importer.close();self.assertFalse(folder.exists())
+        self.assertEqual((target/'report.md').read_bytes(),b'# Imported\n')
+        self.assertEqual((self.project/'report.md').read_bytes(),self.raw)
+
+    def test_import_commit_never_reads_or_copies_word_in_the_host(self):
+        """Source/project fingerprints and project copy belong to the same conversion Python."""
+        importer,token,folder,project,target=self.staged_import()
+        original=Path.read_bytes
+        def read(path):
+            if path.suffix.lower()=='.docx':raise AssertionError('Host must not read Word bytes')
+            return original(path)
+        with patch('word_import.Path.read_bytes',read),patch('word_import.copy_project_tree',side_effect=AssertionError('Host must not copy project')):
+            result=importer.commit(token,target,lambda path:'imported-id')
+        self.assertEqual(result['document_id'],'imported-id');self.assertFalse(folder.exists())
+        self.assertEqual((target/'output/word-import-source.docx').read_bytes(),(self.root/'chosen.docx').read_bytes())
+
+    def test_changed_staged_project_still_refuses_commit_without_overwriting(self):
+        importer,token,folder,project,target=self.staged_import();(project/'report.md').write_bytes(b'# Changed\n')
+        with self.assertRaisesRegex(RuntimeError,'暂存内容已变化'):importer.commit(token,target,lambda path:'id')
+        self.assertFalse(target.exists());self.assertEqual((self.project/'report.md').read_bytes(),self.raw)
+
+    @unittest.skipUnless(os.name=='nt','Windows file sharing semantics')
+    def test_worker_read_denial_reports_source_stage_and_original_error(self):
+        import word_import
+        importer,token,folder,project,target=self.staged_import();wire=io.StringIO()
+        with held_word_file(self.root/'chosen.docx',allow_read=False),redirect_stdout(wire):word_import.worker(folder/'request.json')
+        reply=json.loads(wire.getvalue());self.assertFalse(reply['ok'])
+        self.assertEqual(reply['details']['stage'],'source_read');self.assertEqual(reply['details']['errno'],13)
+        self.assertIn('读取所选Word',reply['error']);self.assertEqual((self.project/'report.md').read_bytes(),self.raw)
+
+    @unittest.skipUnless(os.name=='nt','Windows file sharing semantics')
+    def test_worker_write_denial_identifies_snapshot_not_source(self):
+        import word_import
+        importer,token,folder,project,target=self.staged_import();request=folder/'request.json'
+        request.write_text(json.dumps({'source':str(self.root/'chosen.docx'),'frozen':str(folder/'input.docx')}),encoding='utf8')
+        wire=io.StringIO()
+        with held_word_file(folder/'input.docx',allow_read=False),redirect_stdout(wire):word_import.worker(request)
+        reply=json.loads(wire.getvalue());self.assertFalse(reply['ok'])
+        self.assertEqual(reply['details']['stage'],'snapshot_write');self.assertEqual(reply['details']['errno'],13)
+        self.assertIn('写入导入快照',reply['error']);self.assertTrue((self.root/'chosen.docx').is_file())
 
 
 if __name__=='__main__':unittest.main()

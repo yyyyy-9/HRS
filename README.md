@@ -25,6 +25,7 @@ hrs
 
 - 自由笔记与工程报告：章节/图表编号、目录、引用、脚注、表格、图片、完整Mermaid、LaTeX公式与内置全文搜索。
 - Markdown和相对图片导入、对象复制、草稿恢复、专题聚焦、可回编HTML与分册阅读。
+- 导出HTML内置六套主题，离线阅读时可切换配色，打印使用白色纸面。
 - 无附件Markdown可直接打开，Ctrl+S保存回原文件，HTML/PDF写同目录；需要附件时明确另存为HRS工程。
 - 明确检查后导出Word；复用对应Bridge/WPS组件和准备好的封面模板，保留原生公式/脚注/题注及引用。原生公式需按提示选择Pandoc。
 - 只读接口、完整预检和快照绑定的plan/apply。程序没有模型API客户端，不执行文稿中的任意代码。
@@ -55,4 +56,4 @@ HRS契约/Node/生成门禁需要Node；浏览器测试另外需要`requirements
 
 见根[LICENSE](LICENSE)、[版权声明](COPYRIGHT)、[许可范围](app/LICENSING.md)与[第三方清单](app/RIGHTS.json)。依赖保留各自许可；使用HRS处理的用户文稿和图片仍由其权利人决定授权。问题可通过[Issues](https://github.com/yyyyy-9/HRS/issues)提交，请使用可公开的最小示例。
 
-2.0采用文档级章节/图表/公式编号，原生Markdown与结构对象共用序列；Word/WPS混合粘贴的受支持数学转为可编辑LaTeX。迁移差异和格式边界见[更新记录](app/docs/CHANGELOG_READABLE.md)及手册。
+原生Markdown与结构对象共用文档级章节/图表/公式编号；Word/WPS混合粘贴的受支持数学转为可编辑LaTeX。迁移差异和格式边界见[更新记录](app/docs/CHANGELOG_READABLE.md)及手册。

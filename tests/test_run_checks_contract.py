@@ -29,7 +29,9 @@ class CheckResults(unittest.TestCase):
             self.assertIn('Native Word checks require',result.stderr)
             self.assertFalse(output.exists())
             desktop=subprocess.run([sys.executable,'-X','utf8','-B',str(ROOT/'tools/run_checks.py'),'--groups','desktop_runtime','--evidence',str(output)],cwd=ROOT,env={k:v for k,v in env.items() if not k.startswith('HRS_DESKTOP_') and k!='HRS_ELECTRON'},capture_output=True,text=True,encoding='utf8')
-            self.assertEqual(desktop.returncode,2,desktop.stderr);self.assertIn('Desktop integration requires',desktop.stderr)
+            from test_catalog import FEATURES
+            self.assertEqual(desktop.returncode,2,desktop.stderr)
+            self.assertIn('Desktop integration requires' if 'desktop_runtime' in FEATURES else 'Unknown test groups',desktop.stderr)
             self.assertFalse(output.exists())
 
     def test_native_word_integration_is_explicit_in_the_same_catalog(self):
@@ -49,8 +51,13 @@ class CheckResults(unittest.TestCase):
         self.assertEqual(native['selectors'],['UnifiedNumbering.test_03_mathml_mixed_paste_preserves_inline_math_and_table','UnifiedNumbering.test_04_word_formula_numbers_and_reference_policy','UnifiedNumbering.test_07_plain_markdown_figures_and_tables_use_native_word_numbers'])
         self.assertTrue(next(t for t in selected if t['id']=='test_report_workspace_word_browser')['explicit_selection_required'])
         self.assertTrue(next(t for t in selected if t['id']=='test_word_import_browser')['explicit_selection_required'])
-        desktop=select_tests(ROOT,['desktop_runtime']);self.assertEqual([t['id'] for t in desktop],['test_desktop_runtime'])
-        self.assertTrue(desktop[0]['explicit_selection_required'])
+        from test_catalog import FEATURES
+        if 'desktop_runtime' in FEATURES:
+            desktop=select_tests(ROOT,['desktop_runtime']);self.assertEqual([t['id'] for t in desktop],['test_desktop_runtime'])
+            self.assertTrue(desktop[0]['explicit_selection_required'])
+        else:
+            with self.assertRaisesRegex(ValueError,'Unknown test groups'):
+                select_tests(ROOT,['desktop_runtime'])
 
     def test_multiple_selectors_for_one_feature_are_unioned_once(self):
         from test_catalog import FEATURES,select_tests

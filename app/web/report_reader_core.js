@@ -40,6 +40,24 @@ function makeButton(doc,label,className,title){
  if(title)btn.title=title;return btn;
 }
 function docElement(doc,tag,className){const el=doc.createElement(tag);if(className)el.className=className;return el;}
+function installThemePicker(doc,article,tools){
+ if(doc.documentElement.dataset.hrsOfflineThemes!=='1'||!root.ReportTheme||!root.ReportSettings)return;
+ const theme=root.ReportTheme,initial=theme.normalize(doc.documentElement.dataset.hrsColorTheme);
+ const key='hrs-reader-theme-v1:'+(root.location?.pathname||'')+':'+(article.dataset.hrsTaskSnapshot||'');
+ let selected=initial;
+ try{const saved=root.localStorage.getItem(key);if(saved!==null)selected=theme.normalize(saved);}catch{/* Reading preferences are optional. */}
+ const label=docElement(doc,'label','hrs-reader-theme-control'),caption=docElement(doc,'span');caption.textContent='配色';
+ const select=docElement(doc,'select','hrs-reader-theme-select');select.setAttribute('aria-label','阅读配色');
+ for(const choice of root.ReportSettings.color_themes.choices){
+  const option=doc.createElement('option');option.value=choice.id;option.textContent=choice.label;select.append(option);
+ }
+ select.value=theme.applyOffline(doc,selected);
+ select.addEventListener('change',()=>{
+  try{select.value=theme.applyOffline(doc,select.value);}catch{select.value=doc.documentElement.dataset.hrsColorTheme;return;}
+  try{root.localStorage.setItem(key,select.value);}catch{/* Storage restrictions never block reading. */}
+ });
+ label.append(caption,select);tools.prepend(label);
+}
 function installCodeCards(doc,article){
  for(const pre of article.querySelectorAll('pre')){
   const code=pre.querySelector('code');if(!code||pre.closest('.hrs-code-panel,.docs-code,.hrs-table-source'))continue;
@@ -261,6 +279,7 @@ function mount(doc=root.document){
  const result=docElement(doc,'span','hrs-reader-result');result.setAttribute('role','status');result.setAttribute('aria-live','polite');
  const back=makeButton(doc,'↑ 返回顶部','hrs-reader-top','返回报告顶部');
  tools.append(search,result,back);
+ if(!originalDocs)installThemePicker(doc,article,tools);
  if(originalDocs){const actions=sidebar.querySelector('.docs-actions');if(actions)actions.after(tools);else sidebar.prepend(tools);}
  else sidebar.insertBefore(tools,nav);
  const outline=headingOutline(article),seen=new Set();

@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用手册 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="51b77a62bb762bdedd3d00db87d723cea88b4dd871615ed275be58028af54ebe"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用手册 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="73abd1d67a1cb7c98bf1d2d87b4f7b63ff210f5eb7422196488d69608df2819b"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -222,6 +222,10 @@ body.hrs-reader-mode{max-width:none;margin:0;padding:0;background:var(--hrs-bg, 
 .hrs-reader-sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--hrs-editor, #f7f9fc);border-right:1px solid var(--hrs-line, #dce5f1);padding:22px 14px 30px;z-index:4}
 .hrs-reader-brand{font-size:17px;font-weight:750;color:var(--hrs-ink, #203b62);padding:3px 10px}
 .hrs-reader-subtitle{color:var(--hrs-muted, #72839c);font-size:11px;line-height:1.5;margin:2px 10px 18px}
+.hrs-reader-theme-control{display:flex;grid-column:1/-1;align-items:center;gap:8px;margin:0 0 9px;color:var(--hrs-muted);font-size:12px}
+.hrs-reader-theme-select{flex:1;min-width:0;max-width:100%;padding:6px 8px;border:1px solid var(--hrs-line);border-radius:6px;background:var(--hrs-paper);color:var(--hrs-ink);font:inherit;cursor:pointer}
+.hrs-reader-theme-select:focus-visible{outline:2px solid var(--hrs-brand);outline-offset:2px}
+html[data-hrs-offline-themes="1"] .hrs-reader-main,html[data-hrs-offline-themes="1"] body:not(.hrs-reader-mode){background:var(--hrs-paper,#fff)}
 .hrs-reader-tools{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 16px;padding:0 7px;align-items:center}
 .hrs-reader-search{width:100%;padding:8px 11px;min-width:0;border:1px solid var(--hrs-line, #d2ddeb);border-radius:8px;background:#fff;color:var(--hrs-ink, #263c5b);font-size:12px}
 .hrs-reader-search:focus{outline:2px solid var(--hrs-line, #9db8ef);outline-offset:1px}
@@ -251,6 +255,8 @@ body.hrs-reader-mode{max-width:none;margin:0;padding:0;background:var(--hrs-bg, 
 .docs-nav .hrs-reader-tools{margin:10px 6px 14px}
 @media(max-width:850px){.hrs-reader-layout{display:block}.hrs-reader-sidebar{position:relative;height:auto;max-height:230px;overflow-y:auto;border-right:0;border-bottom:1px solid var(--hrs-line, #dce5f1)}.hrs-reader-main{width:calc(100% - 20px);margin:10px auto 24px;padding:27px 17px}.hrs-reader-tools{margin:5px 0}}
 @media print{
+ html[data-hrs-offline-themes="1"]{--hrs-paper:#fff!important}
+ .hrs-reader-main{background:#fff!important}
  body.hrs-reader-mode{max-width:none!important;margin:0!important;padding:0!important;background:#fff!important}
  .hrs-reader-layout{display:block!important;min-height:0!important}
  .hrs-reader-sidebar,.hrs-reader-tools,.hrs-reader-lightbox,.hrs-reader-top,.hrs-code-fold,.hrs-code-copy,.copy-snippet{display:none!important}
@@ -583,7 +589,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.0.10<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">先看这一页：五分钟完成第一份报告</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.2.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">先看这一页：五分钟完成第一份报告</a>
 <a class="level2" href="#section-3">直接编辑已有 Markdown</a>
 <a class="level2" href="#section-4">Windows桌面运行</a>
 <a class="level2" href="#section-5">章节、图表与公式编号</a>
@@ -672,24 +678,28 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 </ol>
 <p>模板选择作为本机该工程的偏好保存，不写入 Markdown。“设为默认模板”会按现有模板契约检查后，将副本保管到软件 data 中的 word-templates/；原模板移动后仍可使用，新工程优先选它。已有工程保留自己的模板偏好。“使用程序原始模板”只让本次选择回到软件自带母模板，不删除自选默认模板。自由笔记请求 Word 时同样执行工程规则：自动编号、代码和摘要依照现行母模板，未支持的复杂 HTML、嵌套脚注或脚注图片等明确提示，不能静默删除后导出。</p>
 <p>完整便携版已经包含基础 Word 组件，打开窗口即可使用，不需要三合一 Full、Node、Playwright 或第二个浏览器。它使用 HRS 自带 Python 和当前页面的既有解析／图形能力；模板编译仍由原 Bridge／WPS 核心执行。三合一 Full 内运行也会自动识别配套代码和已有依赖。“更换组件…”只用于重新指定同版组件或 Full，日常不必操作。</p>
-<p>本版HRS便携包携带Bridge 0.3.1的匹配快照；本地独立Bridge 0.4.3由DocFlow权威源码构建，增加相同的超链接适配。两套组合保持各自身份及扫描基线，兼容性由页面模型摘要、协议与组件清单核对，不以Bridge版本号大小判断。DocFlow固定HRS子模块和既有任务不自动更新；已有冻结任务继续用原程序。</p>
+<p>本版HRS便携包携带Bridge 0.3.3的匹配快照；本地独立Bridge 0.4.5由DocFlow权威源码构建，增加相同的兼容导入适配。两套组合保持各自身份及扫描基线，兼容性由页面模型摘要、协议与组件清单核对，不以Bridge版本号大小判断。DocFlow固定HRS子模块和既有任务不自动更新；已有冻结任务继续用原程序。</p>
 <p>已有项目图片可使用 <code>assets/a.png</code>、<code>./assets/a.png</code> 或 <code>assets/sub/a.png</code>。预览、检查、保存与HTML恢复遵守相同路径规则。正式保存时，独立一行的Markdown图片按原规则成为可编辑、可编号的图片对象；行内图片和HTML图片保留原展示方式。子目录中的图片不会被素材整理自动删除。路径含空格、中文或特殊编码等不在工程路径规则中的本地原图，仍通过“导入Markdown”按资源导入流程处理，原件保留。</p>
 <p><strong>公式支持按需配置。</strong> 不含公式的报告可直接导出；代码块里的公式写法仍是代码。含公式且尚未配置时，会明确提示。在“公式支持（可选）”中选择已有 pandoc.exe，或将可选公式包解压到程序目录，形成 word_formula/pandoc.exe；重新生成即可。已有 Full 时可选择其中 environment/pandoc/pandoc.exe，不需要复制整套环境。公式输出仍是可编辑原生 OMML，未支持公式明确报错。beta 标记及既有 HTML／PDF 操作保持。</p>
 <h2 id="section-7">导入 Word（beta）</h2>
+<p>导入工作副本放在系统临时目录，使用短名input.docx；显示名称仍是所选Word原名。内容读取、冻结、暂存文件清单、来源复核和工程复制使用同一转换Python，回执和文件清单由该进程一次生成，宿主只读取文字诊断并登记工程。</p>
+<p>工程已生成/保存之后，临时目录清理失败不会改成导入失败。仍被占用的自有临时目录进入本次服务的延后清理队列，下次导入或退出时再尝试；持续占用时可能暂留系统Temp。真正的读取、写入、校验或保存失败仍保留原错误，提示具体阶段和路径，保护原件及当前稿；不通过整链重试掩盖问题。</p>
 <ol>
-<li>点 <strong>「打开 ▾ → 导入 Word…」</strong>。完整便携版已包含匹配组件；其他安装形式可在窗口选择现有<code>word_support</code>或配套Full。含原生公式时选择已有Pandoc，和Word导出共用设置。</li>
+<li>点 <strong>「打开 ▾ → 导入 Word…」</strong>。完整便携版已包含匹配组件；其他安装形式可在窗口选择现有<code>word_support</code>或配套Full。如需将原生公式转成可编辑公式，选择已有Pandoc，和Word导出共用设置；未配置时保留公式位置和源Word，标待确认。</li>
 <li>点 <strong>「选择 Word 并读取…」</strong>，选择一份<code>.docx</code>。旧<code>.doc</code>先在WPS／Word中另存DOCX。读取期间显示状态，可取消；程序不会修改原Word或当前HRS稿。</li>
-<li>在 <strong>「核对 Word 导入结果」</strong> 查看转换状态和诊断。可识别的文字、标题、表格、图片/组图及公式进入HRS源格式。结构疑点显示“待确认”，相应原文保留，仍可保存为新工程；不能表达的对象或域会明确报错。</li>
-<li>点 <strong>「保存为新工程…」</strong>，确认项目名称并选择父目录。保存<code>report.md</code>、<code>assets/</code>、<code>word-import.json</code>，外来Word另有<code>word-recognition.json</code>；已有目录不覆盖。随后按原有提示处理当前文稿，再打开新工程。此时取消切换会保留当前稿，新工程可从最近打开进入。</li>
+<li>在 <strong>「核对 Word 导入结果」</strong> 查看转换状态和诊断。普通Word导入使用可编辑模式：正文、样式/直接自动列表、内容控件、脚注、可识别图表和公式进入同一HRS源格式。普通域保留保存的显示结果；嵌套表及单元格图片移为相邻对象，原位置保留引用；浮动图转正文图，受支持位图的裁切/旋转固化为预览。局部不能转换项在原位置提示待确认，源Word保存在output/word-import-source.docx，不因局部差异拒绝整篇。普通外来稿默认自由模式；工程输出仍按工程规则检查。</li>
+<li>点 <strong>「保存为新工程…」</strong>，确认名称及父目录。保存report.md、assets/、导入诊断JSON和output/word-import-source.docx；已有目录不覆盖。随后决定是否切换到新工程，取消切换仍可从最近打开找到新工程。</li>
 </ol>
-<p>原生Word超链接（w:hyperlink）保留显示文字、加粗等强调及可确认目标。HTTP/HTTPS、邮件和绝对file地址沿原链接入口处理；指向已确认章节、图表或其题注的唯一书签映射到HRS稳定身份，预览、HTML和再次导出Word继续可定位。未知/重复书签、危险或相对地址保留文字与原目标记录，标为NEEDS_REVIEW，不激活不可靠链接；不猜新的路径基准。HYPERLINK等复杂域、嵌套链接仍按原受限导入边界处理。</p>
-<p>导入识别的是内容和受支持结构，不会原样复制Word的所有字体、分页、封面或任意浮动布局；嵌套表、无法可靠表达的原生域、含图复杂单元格等沿Bridge规则明确拒绝。自身由HRS导出的Word须保留相邻同名<code>.docx.hrs-bridge.json</code>，用于受限回编和未变源稿精确恢复；源映射缺失或不可靠修改不会被旧快照覆盖。来源或映射在导入期间变化时拒绝提交。普通便携版复用原Python、Word组件及当前页面，不要求Node、Playwright或另起浏览器。</p>
+<p>原生Word超链接（w:hyperlink）保留显示文字、加粗等强调及可确认目标。HTTP/HTTPS、邮件和绝对file地址沿原链接入口处理；指向已确认章节、图表或其题注的唯一书签映射到HRS稳定身份，预览、HTML和再次导出Word继续可定位。未知/重复书签、危险或相对地址保留文字与原目标记录，标为NEEDS_REVIEW，不激活不可靠链接；不猜新的路径基准。复杂域按保存的显示文字保留并列出待确认，不自动更新域；无法确认的嵌套链接仅保留文字及源Word。</p>
+<p>自身导出件的可用同名.docx.hrs-bridge.json仍用于精确恢复；自动映射缺失、损坏或不适用于当前内容时，普通导入按当前Word建立新身份并说明差异，不恢复旧文字覆盖当前编辑。CLI显式from-docx --mode roundtrip及显式来源映射继续核对原身份；--mode editable与HRS菜单使用兼容导入。不能读取的文件/损坏包、资源上限、来源变化、取消和目标已存在仍明确失败；原件和当前稿不改写。 普通便携版复用现有Python、Word组件及当前页面，不要求Node、Playwright或另起浏览器。</p>
 <h2 id="section-8">选择渲染与输出模式</h2>
 <p>工具栏“文档检查”左侧可选择“自由笔记”或“工程报告”。自由笔记保留安全HTML等显示能力，适合HTML/PDF阅读；工程报告自动为H2及以下章节编号，H1题名不编号，目录同步。选择只影响显示/输出，源文不添加数字；已保存工程的选择保存在meta.json，新文档随正式保存建立配置。旧工程没有配置时保持自由显示。</p>
 <p>工程模式不启用任意HTML排版；不能直接用于工程输出的HTML会显示源码，并可在文档检查中查看提醒。Word由独立Bridge提供，任何模式都按工程模板规则预检；没有转换映射的内容会明确报错，不会悄悄丢弃。正式图、组图、表、公式及引用继续使用原语法。</p>
 <p>新建工程报告的摘要提示是 <code>&gt; 摘要：…</code>，位于题名之后、第一章之前。没有摘要时删除整块。不要再添加“## 摘要”来表达这一角色；旧文稿中的该标题仍是正常章节，不会自动改写。代码围栏只是代码文字，不会执行。</p>
 <h2 id="section-9">选择配色与辨认导出件</h2>
 <p>顶部配色框提供默认蓝、青瓷轻雾、暮山黛紫、石墨天青、藏青云母、暖纸赭石。配色影响界面、阅读包和导出HTML，不改变自由／工程模式或正文。工程、草稿和可回编HTML保存配色，恢复后可以继续使用；缺少配置的旧稿默认蓝色。帮助始终保留原蓝色布局。</p>
+<p>导出的HTML在左侧“配色”中切换同样六套主题，默认采用导出时的配色。正文纸面、目录、表格及使用主题颜色的图形共同显示；原始照片、截图与显式指定的文字颜色保留。主题已包含在单文件内，离线可用。浏览器允许本地存储时会记住这份文稿的阅读选择；选择不修改HTML文件中的归档源稿，恢复到HRS时仍使用原工程保存的配色。整篇、纯阅读、可回编和专题分册均适用；旧HTML需要重新导出才能获得此控件。</p>
+<p>打印和PDF使用白色纸面。禁用JavaScript时按导出时的默认主题显示正文、图片和公式；本地存储被禁用时仍可切换，但关闭后不记住选择。</p>
 <p>导出件内保存自由／工程标识，使离开编辑器的阅读器继续按同一规则呈现。界面导出的默认文件名使用“笔记／报告”前缀；程序明确指定的输出路径保持原样。Word继续由Bridge按母模板工程规则输出，不迁移自由HTML布局。</p>
 <h2 id="section-10">继续、整理或独立保存临时稿</h2>
 <p>Word准备窗口按时间列出临时稿，并显示占用和来源是否已经变化；超过一页点“加载更多”。“查看归档和回收站”可继续归档稿或恢复回收稿。归档/回收保留恢复草稿及附件，不会清理原台账。来源变化只作提示，临时稿不会被自动更新。</p>
@@ -697,7 +707,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <p>准备附件较多的报告时，屏幕显示验证/复制/核对阶段及复制进度，可点取消并等服务完成清理。已交付成功的工程不会因迟到的取消请求被删除。其他窗口可继续备份草稿。</p>
 <h2 id="section-11">操作折叠对象与 HTML 源码</h2>
 <p>从Word或WPS复制包含正文、图片和普通／合并表格的区域后，在源码编辑区按Ctrl+V：文字保留内容和数字，去掉字体、颜色等Word排版；图片成为正常图片对象，表格成为可编辑的增强表格，按复制顺序插入。图表题注先留空，不猜测附近文字的用途。整段粘贴可以一次撤销／重做；附件先进入当前草稿，正式保存后进入工程assets/。粘贴到普通代码围栏内仍按文字处理。</p>
-<p>Windows本机剪贴板还会读取Word实际携带的图片，避免插入整段内容的预览大图或保留失效临时路径。能可靠对应时优先保留RTF中的原图片数据。缺图、格式不支持或粘贴期间源稿／选区变化时，整段不插入并提示原因。嵌套表格、表内普通图片及无法取得完整数学的嵌入对象暂不在此快捷入口内；不自动下载外部图片。此入口用于快速摘录。整篇DOCX转为HRS工程使用配套Bridge的from-docx入口，复用原扫描/识别和受限回编；当前编辑器导入菜单仍是Markdown／HTML，尚未接入整篇Word选择。</p>
+<p>Windows本机剪贴板还会读取Word实际携带的图片，避免插入整段内容的预览大图或保留失效临时路径。能可靠对应时优先保留RTF中的原图片数据。缺图、格式不支持或粘贴期间源稿／选区变化时，整段不插入并提示原因。嵌套表格、表内普通图片及无法取得完整数学的嵌入对象暂不在此快捷入口内；不自动下载外部图片。此入口用于快速摘录。整篇DOCX使用“打开→导入Word”，由配套Bridge/WPS生成可编辑工程；与快速剪贴板入口分别验证，不把粘贴限制套到整篇导入。</p>
 <p>左侧折叠卡片单击后选中完整源块；右键可复制源码、剪切或删除，也可用 Ctrl+C、Ctrl+X、Delete／Backspace。剪切和删除进入原撤销记录，可用 Ctrl+Z 撤销。原来的“编辑／展开”按钮继续使用。</p>
 <p>复制的是完整对象源码及其引用附件。粘贴时生成新 ID，组图和同一片段内的引用同步映射；片段外引用保持原文，不能找到时由文档检查报告。附件先放目标草稿，未保存的新工程也能预览，首次保存后进入 assets/。同一工程内剪切移动尽量保留原 ID，发生冲突时另分配。撤销、重做和恢复草稿保留附件；删除对象不会立即删除共享资源。完整多行原始 HTML（如 div、details、table）也可折叠；行内 span、sub、sup 保持行内，HTML 围栏继续按代码折叠。</p>
 <h2 id="section-12">图片对象、目录与配色</h2>
@@ -969,7 +979,7 @@ exportgraphics(fig, &quot;result.pdf&quot;, ContentType=&quot;vector&quot;);
   B --&gt;|否| D[检查]
 </code></pre>
 <p>节点中可使用 <code>&lt;br/&gt;</code> 换行，例如 <code>A[&quot;PLD100L&lt;br/&gt;0.5 nm&quot;]</code>。每张图放在独立的 <code>mermaid</code> 围栏中，不能在同一个围栏连续声明多个独立的 <code>flowchart</code>。</p>
-<p>图内可使用<code>$$...$$</code>公式标签，复用本地MathJax，包括<code>\boldsymbol</code>；图题、编号和引用仍由HRS管理。配色随HRS主题，纯颜色切换不重新计算布局；导出前固化颜色和字体，保持独立HTML、PDF和Word图片。源码的LR/TB方向固定，窄窗口不自动改方向。Pele兼容目标为Mermaid12.1，布局外观与原引擎不同；不支持任意HTML标签或JavaScript回调，Mermaid的theme/themeVariables不覆盖HRS主题。无法解析时显示错误并保留原稿，导出不使用旧图代替新源码。</p>
+<p>图内可使用<code>$$...$$</code>公式标签，复用本地MathJax，包括<code>\boldsymbol</code>；图题、编号和引用仍由HRS管理。配色随既有主题映射，纯颜色切换不重新计算布局；HTML保留一份SVG和主题颜色变量，PDF/Word使用最终配色的图形。源码的LR/TB方向固定，窄窗口不自动改方向。Pele兼容目标为Mermaid12.1，布局外观与原引擎不同；不支持任意HTML标签或JavaScript回调，Mermaid的theme/themeVariables不覆盖HRS主题。无法解析时显示错误并保留原稿，导出不使用旧图代替新源码。</p>
 <p>双击图形打开编辑窗口。基本流程图可直接拖动右侧节点，连线和箭头跟随；单击节点后可改字、换形状，也可增加或删除节点和连线。点击“应用”后才修改文稿，可撤销／重做；取消不改原稿。手动位置随文稿保存，重开、预览和HTML/PDF/Word图片保持一致；“自动布局”清除手动位置，恢复按源码方向排列。</p>
 <p>可视化编辑支持<code>flowchart/graph LR/RL/TB/TD/BT</code>、矩形／圆角／菱形节点、<code>--&gt;</code>和<code>-.-&gt;</code>连线及<code>|文字|</code>边标签。节点ID沿用字母或下划线开头的ASCII名称，最多90节点、100连线。位置使用原<code>%% pos ID X Y</code>注释，不改节点ID、图题或编号；仅拖动不重写其余源码。子图、时序图等超出此编辑范围的结构仍完整预览，请直接改源码，不会自动简化。普通Mermaid和带ID图形都进入图号并支持Word输出；需要题名可在原图形窗口填写。HTML/PDF使用已生成SVG，离线阅读不需携带渲染库，回编恢复原Markdown。</p>
 <h2 id="section-43">发布前整理图片素材</h2>
@@ -1146,6 +1156,179 @@ exportgraphics(fig, &quot;result.pdf&quot;, ContentType=&quot;vector&quot;);
 <p>在源码区Ctrl+V含文字、图表和公式的片段，公式转换为可编辑LaTeX，正文和表格内数学保留原位置。独立公式建立块身份；外部独立括号式号在能明确对应时去掉，数学表达式中的数字不删除。整段仍可一次撤销/重做。</p>
 <p>本机已验证WPS原生OMML以及旧公式编辑器KSEE3的Equation Native/MTEF3分式。OMML和标准MathML需要使用现有“公式支持”配置Pandoc及同版Word组件；旧KSEE3读取本身使用标准库。MTEF3支持常见字符、分式、上下标、根式、括号和矩阵的明确子集；MathType MTEF5、自定义字符/未知模板明确拒绝，不能保证所有第三方公式都可转换。已识别为数学对象但数学数据缺失、损坏或版本不支持时，保留原稿并说明原因。若复制源只提供普通位图而没有可识别数学信息，则按普通图片接收，不推测图片中的公式；表内的这类图片仍按表内普通图片拒绝，不能保证自动变为可编辑公式。Microsoft Word的原生复制需另按实际剪贴板格式验证，不能以WPS结果代替。</p>
 </article><div class="docs-bottom">HTML Report Studio · 来自项目 Markdown · 离线 Marked</div></main></div><script id="hrs-reader-runtime">/* Generated by tools/build_reader_bundle.js; DO NOT edit. */
+/* Generated by tools/build_settings.js from product_settings.json; DO NOT edit. */
+(function(root){
+'use strict';
+const data={
+  "schema": "hrs-product-settings-v1",
+  "render_profiles": {
+    "default": "free",
+    "choices": [
+      {
+        "id": "free",
+        "label": "自由笔记"
+      },
+      {
+        "id": "engineering",
+        "label": "工程报告"
+      }
+    ]
+  },
+  "render_options": {
+    "show_object_numbers": {
+      "label": "图表编号",
+      "default": true,
+      "new_free": false
+    },
+    "show_heading_numbers": {
+      "label": "章节编号",
+      "default": false,
+      "new_free": false
+    },
+    "show_equation_numbers": {
+      "label": "公式编号",
+      "default": false,
+      "new_free": false
+    },
+    "preserve_blank_lines": {
+      "label": "保留连续空行",
+      "default": false,
+      "new_free": true
+    }
+  },
+  "color_themes": {
+    "default": "blue",
+    "choices": [
+      {
+        "id": "blue",
+        "label": "默认蓝",
+        "stylesheet": "theme.css"
+      },
+      {
+        "id": "celadon",
+        "label": "青瓷轻雾",
+        "stylesheet": "theme-celadon.css"
+      },
+      {
+        "id": "violet",
+        "label": "暮山黛紫",
+        "stylesheet": "theme-violet.css"
+      },
+      {
+        "id": "azure",
+        "label": "石墨天青",
+        "stylesheet": "theme-azure.css"
+      },
+      {
+        "id": "navy",
+        "label": "藏青云母",
+        "stylesheet": "theme-navy.css"
+      },
+      {
+        "id": "warm",
+        "label": "暖纸赭石",
+        "stylesheet": "theme-warm.css"
+      }
+    ]
+  },
+  "highlights": {
+    "default": "yellow",
+    "choices": [
+      {
+        "id": "yellow",
+        "label": "黄色",
+        "color": "#fff1a8"
+      },
+      {
+        "id": "orange",
+        "label": "橙色",
+        "color": "#ffe0b2"
+      },
+      {
+        "id": "red",
+        "label": "红色",
+        "color": "#ffd7d7",
+        "marker": "🔴"
+      },
+      {
+        "id": "pink",
+        "label": "粉色",
+        "color": "#fbd5e8"
+      },
+      {
+        "id": "purple",
+        "label": "紫色",
+        "color": "#e7d7fa"
+      },
+      {
+        "id": "blue",
+        "label": "蓝色",
+        "color": "#d9eaff",
+        "marker": "🔵"
+      },
+      {
+        "id": "cyan",
+        "label": "青色",
+        "color": "#c9f2f3"
+      },
+      {
+        "id": "green",
+        "label": "绿色",
+        "color": "#d8f3dc",
+        "marker": "🟢"
+      }
+    ]
+  }
+};
+function freeze(value){if(value&&typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);}return value;}
+root.ReportSettings=freeze(data);if(typeof module!=='undefined'&&module.exports)module.exports=root.ReportSettings;
+})(typeof window!=='undefined'?window:globalThis);
+
+/* Color is independent of render profile, document template and source text. */
+(function(root){
+'use strict';
+const settings=root.ReportSettings||(typeof module!=='undefined'&&module.exports?require('./product_settings.js'):null);
+if(!settings)return;
+const choices=settings.color_themes.choices,names=choices.map(item=>item.id),labels=choices.map(item=>item.label),DEFAULT=settings.color_themes.default;
+function normalize(value){if(value==null||value==='default')return DEFAULT;if(!names.includes(value))throw Error('未知配色主题');return value;}
+function fromURL(search){const q=new URLSearchParams(search);if(!q.has('theme'))return null;try{return normalize(q.get('theme'));}catch{return DEFAULT;}}
+function path(value){return '/web/'+choices.find(item=>item.id===normalize(value)).stylesheet;}
+function offlineStyles(styles){
+ return choices.map(({id})=>{
+  const css=styles[id];
+  if(typeof css!=='string'||!/:root\s*\{/.test(css))throw Error('离线配色样式缺失：'+id);
+  return css.replace(/:root(?=\s*\{)/g,':root[data-hrs-color-theme="'+id+'"]');
+ }).join('\n');
+}
+function applyOffline(doc,value){
+ const name=normalize(value);doc.documentElement.dataset.hrsColorTheme=name;return name;
+}
+const pending=new WeakMap(),LOAD_TIMEOUT_MS=8000;
+async function apply(doc,value,{timeout=LOAD_TIMEOUT_MS}={}){
+ const name=normalize(value),link=doc.getElementById('hrs-theme-link');
+ if(!link)throw Error('配色样式入口缺失');
+ const href=path(name);
+ pending.get(doc)?.cancel();
+ if(link.getAttribute('href')!==href){
+  // Keep the last working stylesheet until the new sheet actually loads.
+  // Every request owns its handlers; a lost load event cannot hold UI leases forever.
+  const candidate=link.cloneNode(false);candidate.removeAttribute('id');candidate.media='not all';candidate.href=href;
+  let timer,cancel,committed=false;
+  const ready=new Promise((resolve,reject)=>{
+   cancel=()=>reject(Error('配色切换已被新的操作替代'));
+   candidate.onload=resolve;candidate.onerror=()=>reject(Error('配色文件无法加载：'+name));
+   timer=setTimeout(()=>reject(Error('配色加载超时，已保留原主题')),timeout);
+  });
+  const task={cancel};pending.set(doc,task);doc.head.append(candidate);
+  try{await ready;if(pending.get(doc)!==task)throw Error('配色切换已过期');candidate.media=link.media;candidate.id=link.id;link.replaceWith(candidate);committed=true;}
+  finally{clearTimeout(timer);candidate.onload=null;candidate.onerror=null;if(!committed)candidate.remove();if(pending.get(doc)===task)pending.delete(doc);}
+ }
+ doc.documentElement.dataset.colorTheme=name;return name;
+}
+const api={names,labels,normalize,fromURL,path,apply,offlineStyles,applyOffline};root.ReportTheme=api;
+if(typeof module!=='undefined'&&module.exports)module.exports=api;
+})(typeof window!=='undefined'?window:globalThis);
+
 /* Generated from asset_paths.json by tools/build_settings.js; DO NOT edit. */
 (function(root){const data={
   "schema": "hrs-asset-paths-v1",
@@ -1484,6 +1667,24 @@ function makeButton(doc,label,className,title){
  if(title)btn.title=title;return btn;
 }
 function docElement(doc,tag,className){const el=doc.createElement(tag);if(className)el.className=className;return el;}
+function installThemePicker(doc,article,tools){
+ if(doc.documentElement.dataset.hrsOfflineThemes!=='1'||!root.ReportTheme||!root.ReportSettings)return;
+ const theme=root.ReportTheme,initial=theme.normalize(doc.documentElement.dataset.hrsColorTheme);
+ const key='hrs-reader-theme-v1:'+(root.location?.pathname||'')+':'+(article.dataset.hrsTaskSnapshot||'');
+ let selected=initial;
+ try{const saved=root.localStorage.getItem(key);if(saved!==null)selected=theme.normalize(saved);}catch{/* Reading preferences are optional. */}
+ const label=docElement(doc,'label','hrs-reader-theme-control'),caption=docElement(doc,'span');caption.textContent='配色';
+ const select=docElement(doc,'select','hrs-reader-theme-select');select.setAttribute('aria-label','阅读配色');
+ for(const choice of root.ReportSettings.color_themes.choices){
+  const option=doc.createElement('option');option.value=choice.id;option.textContent=choice.label;select.append(option);
+ }
+ select.value=theme.applyOffline(doc,selected);
+ select.addEventListener('change',()=>{
+  try{select.value=theme.applyOffline(doc,select.value);}catch{select.value=doc.documentElement.dataset.hrsColorTheme;return;}
+  try{root.localStorage.setItem(key,select.value);}catch{/* Storage restrictions never block reading. */}
+ });
+ label.append(caption,select);tools.prepend(label);
+}
 function installCodeCards(doc,article){
  for(const pre of article.querySelectorAll('pre')){
   const code=pre.querySelector('code');if(!code||pre.closest('.hrs-code-panel,.docs-code,.hrs-table-source'))continue;
@@ -1705,6 +1906,7 @@ function mount(doc=root.document){
  const result=docElement(doc,'span','hrs-reader-result');result.setAttribute('role','status');result.setAttribute('aria-live','polite');
  const back=makeButton(doc,'↑ 返回顶部','hrs-reader-top','返回报告顶部');
  tools.append(search,result,back);
+ if(!originalDocs)installThemePicker(doc,article,tools);
  if(originalDocs){const actions=sidebar.querySelector('.docs-actions');if(actions)actions.after(tools);else sidebar.prepend(tools);}
  else sidebar.insertBefore(tools,nav);
  const outline=headingOutline(article),seen=new Set();

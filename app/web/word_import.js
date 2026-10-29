@@ -20,11 +20,11 @@ function serialize(items){
 async function configure({api,modal,context}){
  const post=(action)=>api('/api/word/'+action,'POST',context,headers);
  let options=await post('options'),picking=false,status,buttons=[];
- const sync=()=>{status.textContent=(options.available?'Word 组件已就绪。':'请选择当前匹配的 Word 组件。')+(options.formula_available?' 原生公式转换已就绪。':' 含原生公式时需配置 Pandoc。');};
+ const sync=()=>{status.textContent=(options.available?'Word 组件已就绪。':'请选择当前匹配的 Word 组件。')+(options.formula_available?' 原生公式转换已就绪。':' 配置 Pandoc 后可将原生公式转为可编辑公式。');};
  return betaModal(modal,{title:'导入 Word',kicker:'导入 · 新建 HRS 工程',note:'读取 .docx 的内容和可识别结构，原文件不变。',okText:'选择 Word 并读取…',
   body:outer=>{
-   outer.append(element('p','将正文、可识别标题、表格、图片及受支持公式转为 report.md 和 assets/。原排版不原样保留；不能表达的结构会明确提示。','modal-help'));
-   outer.append(element('p','先查看导入结果，再选择新工程目录。取消或失败不会替换当前文稿。自身导出的 Word 请保留同名 .hrs-bridge.json 来源映射。','modal-help'));
+   outer.append(element('p','将正文、列表、可识别标题、表格、图片、脚注及受支持公式导入可编辑工程。局部不支持项会保留位置、提示待确认，源 Word 随工程保存。','modal-help'));
+   outer.append(element('p','先查看结果，再保存到新工程。普通 Word 默认作为自由笔记；自身导出的 Word 有可用来源映射时恢复原稿，映射缺失或不适用时按当前内容导入。取消或失败不会替换当前文稿。','modal-help'));
    const row=element('div',null,'word-export-actions');
    for(const [label,action,id] of [['选择 Word 组件…','pick-runtime','word-import-runtime'],['选择 Pandoc…','pick-formula','word-import-formula']]){
     const button=element('button',label,'btn btn-quiet');button.id=id;button.type='button';buttons.push(button);row.append(button);
@@ -70,12 +70,13 @@ async function review({modal,result}){
   body:outer=>{
    const summary=element('p',`${result.filename} · ${receipt.status==='NEEDS_REVIEW'?'已生成可编辑稿，待确认 '+unresolved+' 项':'结构转换完成'}。原文件保持不变。`,'modal-help');summary.id='word-import-summary';outer.append(summary);
    const destination=item=>[item.target,(item.anchor||item.doc_location)?'#'+(item.anchor||item.doc_location):''].filter(Boolean).join(' · ');
-   const details=[...(result.review||[]).map(item=>`${item.block}：${item.text}（${(item.evidence||[]).join('、')}）${destination(item)?' · 原目标：'+destination(item):''}`),...(receipt.diagnostics||[]).map(item=>[item.block||item.line,item.code,item.message,destination(item)].filter(Boolean).join(' · '))];
+   const reviewed=new Set((result.review||[]).flatMap(item=>(item.evidence||[]).map(code=>(item.block||'')+'|'+code)));
+   const details=[...(result.review||[]).map(item=>`${item.block||'导入'}：${item.text}（${(item.evidence||[]).join('、')}）${destination(item)?' · 原目标：'+destination(item):''}`),...(receipt.diagnostics||[]).filter(item=>item.code!=='WORD_STRUCTURE_REVIEW_RETAINED'&&!reviewed.has((item.block||'')+'|'+item.code)).map(item=>[item.block||item.line,item.code,item.message,destination(item)].filter(Boolean).join(' · '))];
    const host=element('div');host.id='word-import-diagnostics';
    const list=element('ul');for(const text of details.slice(0,100))list.append(element('li',text));host.append(list);
    if(!details.length)host.append(element('p','没有额外诊断。'));
    if(details.length>100)host.append(element('p',`共 ${details.length} 条，完整条目随工程保存到 word-recognition.json / word-import.json。`));
-   outer.append(host,element('p','待确认文字按原桥接规则保留，不算已确认标题。导入诊断和来源摘要随新工程保存；本次不调用模型。','modal-help'));
+   outer.append(host,element('p','待确认项不阻止保存。未确认标题保留正文；局部版式调整及未转换对象可对照 output/word-import-source.docx。完整诊断随工程保存，本次不调用模型。','modal-help'));
   },onOk:()=>true});
 }
 root.ReportWordImport={configure,read,review};

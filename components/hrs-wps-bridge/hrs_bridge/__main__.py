@@ -44,6 +44,7 @@ def main(argv=None):
         if name=='from-docx':
             p.add_argument('--provenance',type=Path)
             p.add_argument('--structure-map',type=Path,help='Source-bound, explicit external Word group decisions')
+            p.add_argument('--mode',choices=['roundtrip','editable'],default='roundtrip',help='Editable keeps local unsupported content for review; roundtrip verifies source identities')
     args=parser.parse_args(argv)
     try:
         if args.hrs_root is None or args.wps_root is None:
@@ -91,7 +92,7 @@ def main(argv=None):
             result=convert(rt,args.source,args.out,template=args.template,accept_numbered_headings=args.accept_numbered_headings,options={'notes_mode':args.notes_mode,'preserve_emphasis':not args.strip_body_emphasis})
         else:
             from .docx_import import convert
-            result=convert(rt,args.source,args.out,provenance=args.provenance,structure_map=args.structure_map)
+            result=convert(rt,args.source,args.out,provenance=args.provenance,structure_map=args.structure_map,import_mode=args.mode)
         print(json.dumps(result,ensure_ascii=False,indent=2))
         if result.get('status') in ('NEEDS_REVIEW','PARTIAL') and result.get('ok'):return 2
         return 0 if result.get('ok') else 1

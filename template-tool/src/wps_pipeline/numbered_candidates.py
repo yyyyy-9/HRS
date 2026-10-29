@@ -19,6 +19,29 @@ SENTENCE=re.compile(r'[。；;！？!?]\s*$')
 CN='一二三四五六七八九十百'
 
 
+CAPTION_ORDINAL=r'\d+(?:[.．\-－–—]\d+)*'
+CAPTION_PREFIX=re.compile(r'^\s*(?P<label>[图表])\s*(?P<number>'+CAPTION_ORDINAL+r')(?P<separator>[.．、:：]?[^\S\r\n]*)')
+CAPTION_REFERENCE=re.compile(r'(?<![子附])(?P<label>[图表])\s*(?P<number>'+CAPTION_ORDINAL+r')(?!\d|[.．\-－–—]\d)')
+
+
+def caption_number_key(value):
+    """Compare a complete source ordinal, never a shortened chapter prefix."""
+    return value.translate(str.maketrans('．－–—','.---'))
+
+
+def caption_prefix(text):
+    """Lexical span only; role + physical association must authorize its use.
+
+    Consume the contiguous old ordinal (including arbitrary chapter depth),
+    then its separator. A space followed by a technical number starts title
+    text: 图2 1.5 mm间隙 consumes 图2 only. Subfigure marks stay in the title.
+    """
+    m=CAPTION_PREFIX.match(text)
+    if m is None:return None
+    return dict(label=m['label'],number=m['number'],number_key=caption_number_key(m['number']),
+                span=[0,m.end()],number_span=list(m.span('number')),prefix=m[0],content=text[m.end():])
+
+
 def numeric_expression(text):
     """Inspect the complete leading numeric token BEFORE trying a heading span.
 

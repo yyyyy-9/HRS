@@ -7,6 +7,16 @@ const choices=settings.color_themes.choices,names=choices.map(item=>item.id),lab
 function normalize(value){if(value==null||value==='default')return DEFAULT;if(!names.includes(value))throw Error('未知配色主题');return value;}
 function fromURL(search){const q=new URLSearchParams(search);if(!q.has('theme'))return null;try{return normalize(q.get('theme'));}catch{return DEFAULT;}}
 function path(value){return '/web/'+choices.find(item=>item.id===normalize(value)).stylesheet;}
+function offlineStyles(styles){
+ return choices.map(({id})=>{
+  const css=styles[id];
+  if(typeof css!=='string'||!/:root\s*\{/.test(css))throw Error('离线配色样式缺失：'+id);
+  return css.replace(/:root(?=\s*\{)/g,':root[data-hrs-color-theme="'+id+'"]');
+ }).join('\n');
+}
+function applyOffline(doc,value){
+ const name=normalize(value);doc.documentElement.dataset.hrsColorTheme=name;return name;
+}
 const pending=new WeakMap(),LOAD_TIMEOUT_MS=8000;
 async function apply(doc,value,{timeout=LOAD_TIMEOUT_MS}={}){
  const name=normalize(value),link=doc.getElementById('hrs-theme-link');
@@ -29,6 +39,6 @@ async function apply(doc,value,{timeout=LOAD_TIMEOUT_MS}={}){
  }
  doc.documentElement.dataset.colorTheme=name;return name;
 }
-const api={names,labels,normalize,fromURL,path,apply};root.ReportTheme=api;
+const api={names,labels,normalize,fromURL,path,apply,offlineStyles,applyOffline};root.ReportTheme=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

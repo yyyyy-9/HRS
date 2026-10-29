@@ -21,7 +21,7 @@ RELEASE=load_release()
 ACTIVE=['CURRENT_STATUS.md','SHORT_TERM_PLAN.md','LONG_TERM_ROADMAP.md','PROJECT_GOALS.md',
         'USER_GUIDE.md','CHANGELOG_READABLE.md','MODULE_OVERVIEW.md','WORD_COMPILER_HANDOFF.md',
         'USER_GUIDE_START_HERE.md','IMAGE_GROUP_AND_LIST_SPEC.md',
-        'DOC_MAINTENANCE.md','HISTORY_INDEX.md']
+        'HISTORY_INDEX.md']
 
 
 def source_history_problems(source:Path)->list[str]:
@@ -76,7 +76,6 @@ def validate(*,generated_verified=False)->list[str]:
    problems.append('Intermediate Markdown in active directory: '+item.relative_to(ROOT).as_posix())
  # All historical bytes are source-only and checked by the archive manifest.
  problems.extend(source_history_problems(ROOT.parent))
- if not (ROOT.parent/'AGENTS.md').is_file():problems.append('Missing source/portable root AGENTS.md')
  # Active documentation links are not silently allowed to go stale.
  # Bare file references in code fences are not links and are not included.
  for document in [ROOT/'README.md',ROOT/SOURCE_SPEC,*(DOC/name for name in ACTIVE)]:

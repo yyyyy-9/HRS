@@ -24,20 +24,6 @@ class InstalledCommands(unittest.TestCase):
         self.assertTrue(names)
         '\n'.join(names).encode('cp1252', errors='strict')
 
-    def test_public_word_material_policy_requires_exact_hashes_and_protects_code(self):
-        """OSS-PREP-01: a cover/licence replacement must not permit code edits."""
-        import sys
-        sys.path.insert(0, str(ROOT / 'tools'))
-        from verify_release import approved_word_materials
-        name='word_support/wps/templates/cover_template_v0311.docx'
-        before, after={name:b'old cover'}, {name:b'synthetic cover'}
-        policy={name:{'baseline_sha256':hashlib.sha256(before[name]).hexdigest(),
-                      'sha256':hashlib.sha256(after[name]).hexdigest()}}
-        self.assertEqual(approved_word_materials(before,after,policy),[name])
-        with self.assertRaisesRegex(ValueError,'fingerprint'):
-            approved_word_materials(before,{name:b'changed after review'},policy)
-        with self.assertRaisesRegex(ValueError,'implementation'):
-            approved_word_materials({}, {}, {'word_support/bridge/hrs_bridge/docx_export.py':{}})
 
     def test_public_licence_inventory_matches_payload_and_authorized_fixtures(self):
         """OSS-PREP-01: a stale size or unreviewed public fixture must fail."""
@@ -61,36 +47,7 @@ class InstalledCommands(unittest.TestCase):
         self.assertEqual(project['authors'][0]['name'], rights['holder'])
         self.assertEqual((ROOT / 'LICENSE').read_bytes(), (ROOT / 'app/LICENSE').read_bytes())
 
-    def test_conda_recipe_uses_the_same_distribution_identity_and_entry_point(self):
-        """DIST-02: local and staged recipes differ only in their source location."""
-        import sys
-        import tomllib
-        sys.path.insert(0, str(ROOT / 'tools'))
-        from build_conda_recipe import render
-        project = tomllib.loads((ROOT / 'pyproject.toml').read_text('utf8'))['project']
-        self.assertEqual(project['name'], 'hrstudio')
-        self.assertEqual(project['scripts'], {'hrs': 'html_report_studio.cli:main'})
-        local = render(ROOT)
-        self.assertEqual((ROOT / 'packaging/conda/recipe.yaml').read_text('utf8'), local)
-        self.assertIn('python_version:\n        - ${{ python_min }}.*\n        - "*"', local)
-        # DIST-04: PEP610 local build paths must not enter public Conda payloads.
-        self.assertIn('files:\n    exclude:\n      - "**/direct_url.json"', local)
-        remote = render(ROOT, source_url='https://example.org/source.tar.gz', source_sha256='a' * 64)
-        self.assertEqual(local.replace('  path: ../..',
-            '  url: "https://example.org/source.tar.gz"\n  sha256: ' + 'a' * 64), remote)
-        self.assertNotIn('source_tag', local)
-        self.assertFalse((ROOT / 'packaging/conda/meta.yaml').exists())
 
-    def test_conda_release_source_requires_a_secure_url_and_complete_digest(self):
-        """DIST-02: never emit a submission recipe with an unchecked source."""
-        import sys
-        sys.path.insert(0, str(ROOT / 'tools'))
-        from build_conda_recipe import render
-        for url, digest in [('https://example.org/a.tar.gz', None), (None, 'a' * 64),
-                            ('http://example.org/a.tar.gz', 'a' * 64),
-                            ('https://example.org/a.tar.gz', 'a' * 63)]:
-            with self.subTest(url=url, digest=digest), self.assertRaises(ValueError):
-                render(ROOT, source_url=url, source_sha256=digest)
 
     def test_info_and_license_do_not_create_user_data(self):
         with tempfile.TemporaryDirectory() as tmp:

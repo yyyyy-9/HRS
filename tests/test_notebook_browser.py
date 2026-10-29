@@ -92,6 +92,15 @@ class NotebookViews(unittest.TestCase):
                 files=[archive.read(name).decode('utf8') for name in archive.namelist()]
             restored=[]
             for html in files:
+                self.assertIn('data-hrs-offline-themes="1"',html)
+                self.assertIn(':root[data-hrs-color-theme="warm"]',html)
+                path=Path(folder)/('theme-module-'+str(len(restored))+'.html');path.write_text(html,encoding='utf8')
+                reader=browser.new_page()
+                try:
+                    reader.goto(path.as_uri());reader.wait_for_selector('.hrs-reader-theme-select')
+                    reader.locator('.hrs-reader-theme-select').select_option('violet')
+                    self.assertEqual(reader.locator('html').get_attribute('data-hrs-color-theme'),'violet')
+                finally:reader.close()
                 restored.append(page.evaluate('''async html=>{const d=new DOMParser().parseFromString(html,'text/html');return ReportExportArchive.readArchive(JSON.parse(d.querySelector('#report-source').textContent),d)}''',html))
             self.assertEqual(set(restored[0]['assets']),{'a.png'})
             self.assertEqual(set(restored[1]['assets']),{'b.png'})

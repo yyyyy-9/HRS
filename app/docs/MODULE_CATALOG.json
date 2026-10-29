@@ -1,6 +1,6 @@
 {
   "catalog_format": "hrs-module-catalog-v1",
-  "app_baseline": "2.0.10 R1",
+  "app_baseline": "2.2.0 R1",
   "scope": "source tree only; no external report files are opened",
   "caveat": "This is an interface index, not a Python import dependency graph or a DOCX compiler.",
   "items": [
@@ -344,19 +344,21 @@
       "id": "color_theme",
       "path": "web/color_theme.js",
       "layer": "presentation-configuration",
-      "responsibility": "independent palettes and bounded transactional stylesheet loading with previous-theme rollback",
+      "responsibility": "shared palette normalization, scoped offline CSS and bounded live stylesheet loading with rollback",
       "entrypoints": [
         "normalize",
         "fromURL",
         "path",
-        "apply"
+        "apply",
+        "offlineStyles",
+        "applyOffline"
       ],
-      "input": "explicit UI/URL or restored palette",
-      "output": "palette stylesheet and root setting",
+      "input": "explicit UI/URL, restored palette or offline choice",
+      "output": "palette CSS and display setting",
       "side_effects": "presentation only",
       "word_pipeline_role": "not-semantic",
-      "bytes": 2424,
-      "sha256": "bbb4ead25433f1f752fd10a76ffa459c0c36c6bcf952db9980fda3ef52e17054",
+      "bytes": 2859,
+      "sha256": "c24d3c91784984429dfe6c9d7efa848312424a7d81f6f013fbde4ad7df05f874",
       "review_flags": []
     },
     {
@@ -777,8 +779,8 @@
       "output": "JSON API / binary resources",
       "side_effects": "reads/writes projects and drafts",
       "word_pipeline_role": "do-not-import",
-      "bytes": 124219,
-      "sha256": "9cf5b2f61d52918f9a996ba15ea11fdec7403b3bee266867feeeb0c96af9490c",
+      "bytes": 124286,
+      "sha256": "5d0e549a0f59ec77190179e13005ede84aa44362ccff6271e64ccc1952e999f6",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -839,7 +841,7 @@
       "id": "word_import",
       "path": "word_import.py",
       "layer": "word-import-adapter",
-      "responsibility": "frozen DOCX and isolated existing Bridge with bounded page serializer channel, safe new-project commit and cancellation",
+      "responsibility": "same-Python DOCX read/freeze/inventory/copy, single-writer receipts, editable existing Bridge, bounded serializers and separately deferred owned-session cleanup",
       "entrypoints": [
         "WordImport",
         "selected_source",
@@ -849,8 +851,8 @@
       "output": "new HRS project, source receipt and recognition diagnostics",
       "side_effects": "never overwrites original/current; explicit new destination only",
       "word_pipeline_role": "delegates",
-      "bytes": 15846,
-      "sha256": "17d5196ff4f102f04ca65961cbe0edacd75d1f9470b52b0c335303aed5ff5528",
+      "bytes": 22199,
+      "sha256": "8397dff1b87077d6a7ca2945e7d3046c9827c72fa927d9168522100b43b3ac28",
       "review_flags": []
     },
     {
@@ -867,8 +869,8 @@
       "output": "explicit native import requests",
       "side_effects": "no parser or model client",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 6570,
-      "sha256": "0de0a120678cbb3ac022ecbcd12879919891ad0b327456c27eb98879124d2a1a",
+      "bytes": 6981,
+      "sha256": "bc5a54e21f5ceaf1d925571330900b4ef46dc778288aa3fbad26f8e297745e71",
       "review_flags": []
     },
     {
@@ -1062,8 +1064,8 @@
       "output": "visual preview and UI events",
       "side_effects": "modifies editor state via explicit action",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 243954,
-      "sha256": "78212ae47948fdb389aac8de37673f2a80ae7c36a80b6a213de1f228bbfcf635",
+      "bytes": 244266,
+      "sha256": "dd37810ad623c68ab828b4e9ca67e5eb294826a8d0a85a5a6cb76c516746b2ff",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -1382,8 +1384,8 @@
       "output": "safe standalone SVG with frozen export colors",
       "side_effects": "temporary DOM and bounded render cache",
       "word_pipeline_role": "needs-vector-rendition",
-      "bytes": 8223,
-      "sha256": "5a45bb1d6e6b799097781269b898ba2985b796c6d1d589022121637392080a5f",
+      "bytes": 8252,
+      "sha256": "009fb69ebf16ba0eae5a97a534187759c84b77520004b0edc97998a4c34df95b",
       "review_flags": []
     },
     {
@@ -1491,8 +1493,8 @@
       "output": "offline reader navigation and copy/fold",
       "side_effects": "DOM-only",
       "word_pipeline_role": "exclude",
-      "bytes": 32324,
-      "sha256": "cba96af8bb053376d36f60328092805cc45e8177c9c356cb517476d13fae7b21",
+      "bytes": 33713,
+      "sha256": "cae5706cecb3282ceecd7ea755b29b0b673505086b3448451da5782799447bb4",
       "review_flags": []
     },
     {
@@ -1505,8 +1507,8 @@
       "output": "standalone browser reader JS",
       "side_effects": "writes bundled app reader only with --write",
       "word_pipeline_role": "exclude",
-      "bytes": 1069,
-      "sha256": "779c26a252a36e166d3fd201bbddfe743a35ad8d106a78303d1b3b382a5692e4",
+      "bytes": 1108,
+      "sha256": "eadead2bcf5148504f7ba36327cf8dedfa191ce16158ce912075bde8de9dea46",
       "review_flags": []
     },
     {
@@ -1524,8 +1526,8 @@
       "output": "navigation, copy and zoom controls",
       "side_effects": "DOM only: never mutates source JSON or Markdown",
       "word_pipeline_role": "exclude",
-      "bytes": 49265,
-      "sha256": "144e3ee2de81669c83ce3497796f2f7e62d35a9f2ebe044ecfb820e9b79b04d8",
+      "bytes": 56337,
+      "sha256": "302c3ad5d40c53a881a3d1e22d89abc3a01e738157d7e549634e8e2fb260dbc7",
       "review_flags": []
     },
     {
@@ -1538,8 +1540,8 @@
       "output": "responsive and print styles",
       "side_effects": "CSS only",
       "word_pipeline_role": "not-semantic",
-      "bytes": 9972,
-      "sha256": "5080eac5983432a5872abf8dcb697402fb355267e9e630a3126bf217a6fd7608",
+      "bytes": 10667,
+      "sha256": "1f5e0e4e4fb3ac0557cba6c7427c23b35875c18f6258f993465cc24dc169e259",
       "review_flags": []
     },
     {

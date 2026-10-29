@@ -21,9 +21,9 @@ function theme(svg,live){
  }
  svg.style.setProperty('--pele-font',fontFamily);
 }
-function freezeTheme(container){
- if(container.matches?.('svg.pele'))theme(container,false);
- container.querySelectorAll('svg.pele').forEach(svg=>theme(svg,false));
+function freezeTheme(container,{liveTheme=false}={}){
+ if(container.matches?.('svg.pele'))theme(container,liveTheme);
+ container.querySelectorAll('svg.pele').forEach(svg=>theme(svg,liveTheme));
 }
 function localResources(model){
  const bitmap=value=>/^data:image\/(?:png|jpeg|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(value);

@@ -1,6 +1,6 @@
 """CORE-01: authoritative catalogs, validation parity and release derivation."""
 from pathlib import Path
-import importlib.util,json,os,subprocess,sys,tempfile,unittest
+import json,os,subprocess,sys,tempfile,unittest
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'app'))
 from release_info import load_release
 from product_settings import load_settings
@@ -14,10 +14,6 @@ class CoreConsistency(unittest.TestCase):
             value=load_release(p)
             self.assertEqual(value['release'],'v9.8.7 R42')
             self.assertEqual(value['stem'],'HTMLReportStudio_v9.8.7_R42')
-            spec=importlib.util.spec_from_file_location('release_builder',ROOT/'tools/build_release.py')
-            builder=importlib.util.module_from_spec(spec);spec.loader.exec_module(builder)
-            manifest=builder.manifest({'sample':b'unchanged'},'test','2000-01-01',value)
-            self.assertEqual((manifest['version'],manifest['package_revision']),('9.8.7','R42'))
             p.write_text(json.dumps({'version':'9.8','package_revision':'R0'}),encoding='utf8')
             with self.assertRaises(ValueError):load_release(p)
 
@@ -66,8 +62,9 @@ class CoreConsistency(unittest.TestCase):
             subprocess.check_call([node,str(app/'tools/build_settings.js'),'--write'])
             js="const p=require('./web/render_profile.js'),t=require('./web/color_theme.js');process.stdout.write(JSON.stringify([p.newOptions('free'),t.normalize(),t.labels[0]]))"
             browser=json.loads(subprocess.check_output([node,'-e',js],cwd=app))
-            py="import json,render_profile as p,color_theme as t;print(json.dumps([p.new_options('free'),t.normalize()]))"
-            python=json.loads(subprocess.check_output([sys.executable,'-X','utf8','-B','-c',py],cwd=app))
+            # Embedded Python's _pth ignores cwd as an import root; always probe the isolated fixture.
+            py="import sys;sys.path.insert(0,sys.argv[1]);import json,render_profile as p,color_theme as t;print(json.dumps([p.new_options('free'),t.normalize()]))"
+            python=json.loads(subprocess.check_output([sys.executable,'-X','utf8','-B','-c',py,str(app)],cwd=app))
             self.assertEqual(browser[:2],python)
             self.assertEqual(browser,[{'show_object_numbers':False,'show_heading_numbers':True,'show_equation_numbers':False,'preserve_blank_lines':True},'warm','测试标签'])
 

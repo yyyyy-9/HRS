@@ -34,6 +34,9 @@ def analyze(reader, decisions=None):
     for i,b in enumerate(top):
         ident=b['block_id'];r=rows[ident]
         if ident in overrides:continue
+        if reader.editable and b.get('numbering_effective',{}).get('num_id') not in (None,'0') and b.get('outline_level_raw') not in range(6):
+            r.update(role='list_item',level=(b['numbering_effective'].get('ilvl') or 0)+1,status='auto_rule')
+            r['evidence'].append('word_effective_native_list');continue
         if (b.get('style_name') or '').casefold()=='title':
             r.update(role='document_title',level=None,status='auto_rule');continue
         outline=b.get('outline_level_raw')
@@ -47,6 +50,9 @@ def analyze(reader, decisions=None):
         target=rows[r['relates_to']];kind='figure' if r['role']=='figure_caption' else 'table'
         descriptor=target.get('figure_layout',{})
         if r['relates_to'] in captions:
+            if reader.editable:
+                r.update(status='review',relates_to=None)
+                r['evidence'].append('multiple_caption_candidates_retained');continue
             raise BridgeError('MULTIPLE_CAPTIONS_FOR_OBJECT: current HRS object mapping requires one caption; source remains unchanged')
         captions[r['relates_to']]={'block':ident,'kind':kind,'labels':descriptor.get('labels')}
         consumed.add(ident)

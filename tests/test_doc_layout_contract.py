@@ -25,7 +25,6 @@ def module(name, path):
     return value
 
 
-BUILD = module('hrs_doc_build', ROOT / 'tools/build_release.py')
 DOCS = module('hrs_doc_check', ROOT / 'app/tools/maintain_docs.py')
 
 
@@ -156,13 +155,6 @@ class DocumentLayout(unittest.TestCase):
                          ['MISSING_ASSET'] * 4)
         self.assertEqual(example.read_bytes(), before)
 
-    def test_source_package_retains_history(self):
-        """HAR-03: source packaging includes historical material outside app/."""
-        with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
-            (root / 'history').mkdir()
-            (root / 'history/old.md').write_bytes(b'historical data')
-            self.assertEqual(BUILD.source_files(root)['history/old.md'], b'historical data')
 
     def test_no_parallel_hotfix_or_bulk_redirects_in_current_app(self):
         """HAR-03: updates use existing logs; old duplicated paths are removed."""

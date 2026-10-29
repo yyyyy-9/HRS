@@ -223,6 +223,8 @@ IR 为 `type:image-group`、`data.schema:report-image-group-v1`，包含 `id/cap
 
 浏览器唯一对象规则源为 `web/object_catalog.js`，编辑器源码摘要、预览、引用选择及离线目录复用它；Reader 从它和 `report_reader_core.js` 构建。Python 独立提供同一语义 IR，以共享样例交叉验证。已有离线 HTML 内嵌当时 Reader，安装新程序不自动更新；可信旧 HTML 可导入后重新导出。旧浏览器兼容代码不代表目标 Chrome/Edge 实机验收通过。
 
+新导出HTML可声明`data-hrs-offline-themes="1"`并嵌入同一product_settings目录的六套配色；`data-hrs-color-theme`为当前阅读显示。切换仅修改显示属性及可选本地阅读偏好，归档JSON中的colorTheme、Markdown、对象ID/编号、资源和脚注保持。恢复时以原归档元数据为准。帮助页不声明此能力；打印/PDF使用白色纸面。图形仍携带已生成的SVG与字体，沿现有颜色变量显示，不在阅读端重新解析源图。
+
 ### 引用上下文与拒绝条件
 
 正文用 `@fig:fig-flow001`、`@tbl:tbl-data001`、`@sec:sec-result`、`@eq:eq-energy` 指向身份。章节引用显示目标标题，改名后更新文字，调序不改变 ID。图表公式显示号按各自最终顺序计算；同一文件内不保留旧可见号。

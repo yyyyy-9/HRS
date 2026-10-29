@@ -2,6 +2,7 @@
 import base64
 from collections import Counter
 from copy import deepcopy
+from contextlib import contextmanager
 import json
 from pathlib import Path
 import re
@@ -18,6 +19,37 @@ from .ooxml import N, W, bookmark_regions, read_provenance, semantic_hash, drawi
 from .runtime import BridgeError, new_path, sha
 
 
+@contextmanager
+def import_stage(name,label):
+    """Keep the primary filesystem error identifiable across the worker channel."""
+    try:yield
+    except OSError as cause:
+        error=BridgeError(label+'失败：'+str(cause))
+        error.import_stage=name;error.io_error=cause
+        raise error from cause
+
+
+def read_document(path,stage='snapshot_read'):
+    label='读取转换副本' if stage=='projection_read' else '读取Word工作副本'
+    with import_stage(stage,label):
+        # Explicit ownership avoids the path existence/is_zipfile probes that
+        # can turn access denial into python-docx's generic PackageNotFound.
+        with Path(path).open('rb') as stream:return Document(stream)
+
+
+@contextmanager
+def import_workspace(parent,maintenance):
+    with import_stage('workspace_create','创建转换临时目录'):
+        temporary=tempfile.TemporaryDirectory(prefix='bridge-import-',dir=parent,ignore_cleanup_errors=True)
+    try:yield Path(temporary.name)
+    finally:
+        try:temporary.cleanup()
+        except OSError as error:maintenance['cleanup_error']=str(error)
+        try:maintenance['cleanup_pending']=Path(temporary.name).exists()
+        except OSError:maintenance['cleanup_pending']=True
+        if maintenance['cleanup_pending']:maintenance['cleanup_path']=temporary.name
+
+
 def escaped(text):
     # Serialization of observed Word text, not an alternative Markdown parser.
     return re.sub(r'([\\`*_\[\]<>|@$=#!~])', r'\\\1', text)
@@ -28,24 +60,31 @@ def fenced(kind, data):
 
 
 class NativeReader:
-    def __init__(self, rt, docx, work, assets, identities=None):
+    def __init__(self, rt, docx, work, assets, identities=None, editable=False):
         from wps_pipeline.scan_docx import Scanner
         self.rt, self.path, self.work, self.assets = rt, Path(docx), Path(work), Path(assets)
-        self.scan = Scanner(self.path, self.work/'scan').run()
+        with import_stage('scan','扫描Word工作副本'):
+            self.scan = Scanner(self.path, self.work/'scan').run()
         self.diagnostics = []
+        self.editable = editable
+        self.detached = []
+        self.current_block = None
+        self.notes = None
         # These empty Word editing/rendering markers have no document content.
         # Keep the original scan on disk; adapt only the reader's event stream.
-        ignored = Counter()
+        ignored = Counter();nonempty_markers=[]
         for block in self.scan['blocks']:
             segments = []
             for segment in block.get('segments', []):
-                if segment['kind'] == 'unsupported':
+                if segment['kind'] in ('unsupported','layout_marker'):
                     node = self.object_xml(segment['object_id'])
                     if node.tag in (qn('w:proofErr'), qn('w:lastRenderedPageBreak')) and not len(node) and not (node.text or '').strip():
                         local = E.QName(node).localname
-                        ignored[(block['block_id'], local)] += 1
+                        if segment['kind']=='unsupported':ignored[(block['block_id'], local)] += 1
                         self.diagnostics.append({'code':'WORD_EDITOR_MARKER_IGNORED', 'block':block['block_id'], 'marker':local})
                         continue
+                    if segment['kind']=='layout_marker':
+                        nonempty_markers.append({'block_id':block['block_id'],'reason':E.QName(node).localname,'object_id':segment['object_id']})
                 segments.append(segment)
             if 'segments' in block:
                 original=block['segments']
@@ -59,8 +98,8 @@ class NativeReader:
             key = (item['block_id'], item['reason'])
             if ignored[key]: ignored[key] -= 1
             else: unsupported.append(item)
-        self.scan['unsupported'] = unsupported
-        if self.scan['unsupported']:
+        self.scan['unsupported'] = unsupported+nonempty_markers
+        if self.scan['unsupported'] and not editable:
             raise BridgeError('UNSUPPORTED_NATIVE_CONTENT: ' + json.dumps(self.scan['unsupported'], ensure_ascii=False))
         self.facts = {b['block_id']:b for b in self.scan['blocks']}
         self.top = [self.facts[i] for i in self.scan['top_level_ids'] if self.facts[i]['kind'] != 'boundary']
@@ -179,6 +218,12 @@ class NativeReader:
         raise BridgeError('UNSUPPORTED_NATIVE_FIELD: ' + instruction.strip())
 
     def paragraph(self, b, caption=False, plain=False, text_skip=0, formatting=True):
+        if self.editable:
+            from .editable_import import paragraph
+            return paragraph(self,b,caption,plain,text_skip,formatting)
+        return self._paragraph(b,caption,plain,text_skip,formatting)
+
+    def _paragraph(self, b, caption=False, plain=False, text_skip=0, formatting=True):
         if b.get('hyperlinks'):return self.linked_paragraph(b,caption,plain,text_skip,formatting)
         text=[];stack=[]
         for s in b.get('segments', []):
@@ -223,26 +268,29 @@ class NativeReader:
         return ''.join(text)
 
     def caption(self, b, marker):
-        from wps_pipeline.recognize_structure import CAP
+        from wps_pipeline.numbered_candidates import caption_prefix
         # Captions now accept safe inline Markdown. Serialize observed Word text
         # with the same escaping as body text; only native OMML creates math.
         text=self.paragraph(b,caption=True,formatting=False).strip()
-        match=CAP.match(text)
-        native_match=CAP.match(b.get('plain_text','').lstrip())
-        if native_match and b.get('hyperlinks') and not any(s['kind']=='field_evidence' for s in b['segments']):
-            skip=len(b['plain_text'])-len(b['plain_text'].lstrip())+native_match.end()
+        parsed=caption_prefix(b.get('plain_text','').strip())
+        if parsed and parsed['label']==marker and b.get('hyperlinks') and not any(s['kind']=='field_evidence' for s in b['segments']):
+            prefix_count=len(b['plain_text'])-len(b['plain_text'].lstrip())+len(parsed['prefix'])
             self.diagnostics.append({'code':'STATIC_CAPTION_NUMBER_NORMALIZED','block':b['block_id'],'message':'Original caption number is display text; HRS derives object numbering.'})
-            return self.paragraph(b,caption=True,formatting=False,text_skip=skip).strip()
-        if match:
+            return self.paragraph(b,caption=True,formatting=False,text_skip=prefix_count).strip()
+        prefix=escaped(parsed['prefix']) if parsed and parsed['label']==marker else None
+        if prefix and text.startswith(prefix):
             self.diagnostics.append({'code':'STATIC_CAPTION_NUMBER_NORMALIZED','block':b['block_id'],
                                      'message':'Original caption number is display text; HRS derives object numbering.'})
-            return text[match.end():].strip()
+            return text[len(prefix):].strip()
         # Known generated caption has a removed SEQ field and a literal label.
         if any(s['kind']=='field_evidence' for s in b.get('segments',[])):
             return text.removeprefix(marker).strip()
         return text
 
     def image(self, drawing):
+        if self.editable:
+            from .editable_import import image
+            return image(self,drawing)
         self.check_drawing(drawing)
         obj=self.scan['objects'][drawing]
         if len(obj['media'])!=1 or obj.get('layout')!='inline':
@@ -280,9 +328,13 @@ class NativeReader:
             texts=[]
             for child in c['children']:
                 p=self.facts[child]
-                if p['kind']!='paragraph':raise BridgeError('Nested native data table is not supported by the HRS table schema')
+                if p['kind']!='paragraph':
+                    if self.editable:
+                        from .editable_import import detached_table
+                        texts.append(detached_table(self,p));continue
+                    raise BridgeError('Nested native data table is not supported by the HRS table schema')
                 if any(s['kind']=='drawing' for s in p.get('segments',[])):
-                    raise BridgeError('IMAGE_IN_DATA_TABLE_UNSUPPORTED: table-captioned image cells require a verified HRS data-table mapping')
+                    if not self.editable:raise BridgeError('IMAGE_IN_DATA_TABLE_UNSUPPORTED: table-captioned image cells require a verified HRS data-table mapping')
                 texts.append(self.paragraph(p))
             grid[ri][ci]={'text':'\n'.join(texts),'rowspan':1,'colspan':span}
             for col in range(ci,ci+span):
@@ -339,14 +391,16 @@ class NativeReader:
         return d
 
 
-def scan_range(rt, path, nodes, work, assets, identities):
-    doc=Document(path);body=doc._element.body;section=deepcopy(body[-1])
+def scan_range(rt, path, nodes, work, assets, identities, editable=False):
+    doc=read_document(path);body=doc._element.body;section=body.find(qn('w:sectPr'))
+    section=deepcopy(section) if section is not None else None
     for child in list(body):body.remove(child)
     for node in nodes:body.append(deepcopy(node))
-    body.append(section)
+    if section is not None:body.append(section)
     work.mkdir()
-    scoped=work/'range.docx';doc.save(scoped)
-    return NativeReader(rt,scoped,work,assets,identities)
+    scoped=work/'range.docx'
+    with import_stage('range_write','写入Word局部副本'):doc.save(scoped)
+    return NativeReader(rt,scoped,work,assets,identities,editable=editable)
 
 
 def restore_provenance(rt, path, meta, work, staged):
@@ -368,7 +422,7 @@ def restore_provenance(rt, path, meta, work, staged):
     if len(mapping)!=len(blocks):raise BridgeError('Provenance block map is incomplete')
     scope=meta.get('body_scope')
     if scope is not None and scope!={'bookmark':'HBD_'+meta['document_key'],'kind':'wps-report-body-v1'}:raise BridgeError('Invalid provenance body scope')
-    doc=Document(path);regions=bookmark_regions(doc,(scope or {}).get('bookmark'))
+    doc=read_document(path);regions=bookmark_regions(doc,(scope or {}).get('bookmark'))
     derived=meta.get('derived_sections',[])
     if not isinstance(derived,list) or len(derived)>1:raise BridgeError('Invalid derived section map')
     for section in derived:
@@ -584,9 +638,15 @@ def external_picture_table(reader, block, role, captions):
     return call(reader.rt,'serialize',items=[{'type':'image-group','data':data}])[0]
 
 
-def import_external(rt,path,work,staged,structure_map=None):
+def import_external(rt,path,work,staged,structure_map=None,editable=False):
     from .recognition import analyze,load_decisions,picture_row
-    reader=NativeReader(rt,path,work,staged/'assets')
+    from . import editable_import as ordinary
+    original_path=path;projection_diagnostics=[]
+    if editable:
+        path=work/'editable.docx'
+        projection_diagnostics=ordinary.project(original_path,path)
+    reader=NativeReader(rt,path,work,staged/'assets',editable=editable)
+    reader.diagnostics.extend(projection_diagnostics)
     decisions=load_decisions(reader,structure_map)
     recognition=analyze(reader,decisions)
     reader.map_hyperlink_targets(recognition,decisions)
@@ -599,13 +659,18 @@ def import_external(rt,path,work,staged,structure_map=None):
         source=('- ' if level>6 else '#' * level+' ')+text+(' {#'+ident+'}' if ident else '')+'\n'
         style_fragments.append((len(chunks),style,projection,prefix))
         chunks.append(source)
-    groups,group_blocks=external_groups(reader,decisions,recognition)
+    try:groups,group_blocks=external_groups(reader,decisions,recognition)
+    except (BridgeError,ValueError,OSError) as error:
+        if not editable:raise
+        ordinary.warn(reader,'WORD_GROUP_AS_INDIVIDUAL_IMAGES','组图布局暂不能完整表示，图片将分别保留。',detail=str(error))
+        groups,group_blocks={},set()
+        recognition['captions']={k:v for k,v in recognition['captions'].items() if k not in {i for g in recognition['groups'] for i in g['blocks']}}
     explicit_blocks={ident for g in decisions.get('groups',[]) for ident in g['blocks']}
     captions=recognition['captions']
     # Only native number bookmarks of identified captions acquire HRS object
     # semantics. Literal @fig / [[...]] text remains ordinary Word text.
     from wps_pipeline.native_output import sequence_field,number_bookmarks
-    native_body=E.fromstring(E.tostring(Document(path)._element.body))
+    native_body=E.fromstring(E.tostring(read_document(path)._element.body))
     for target,cap in captions.items():
         p=native_body[reader.facts[cap['block']]['source_locator']['body_child_index']]
         field=sequence_field(p)
@@ -620,66 +685,97 @@ def import_external(rt,path,work,staged,structure_map=None):
         if b['block_id'] in group_blocks:
             if b['block_id'] in groups: chunks.append(groups[b['block_id']])
             continue
-        if b['kind']=='table':
-            if roles[b['block_id']].get('figure_layout'):
-                chunks.append(external_picture_table(reader,b,roles[b['block_id']],captions));continue
-            data={'schema':'report-table-v1','id':'tbl-'+reader.scan['source_sha256'][:16]+'-'+b['block_id'],
-                  'caption':'','rows':reader.table(b)}
-            if b['block_id'] in captions:data['caption']=reader.caption(reader.facts[captions[b['block_id']]['block']],'表')
-            chunks.append(fenced('report-table',data));continue
-        if b['kind']!='paragraph':raise BridgeError('Unknown native top-level block')
-        kinds=[s['kind'] for s in b['segments'] if s['kind'] not in ('bookmarkStart','bookmarkEnd')]
-        role=(b.get('style_name') or '').casefold()
-        if role=='表题':
-            if i+1>=len(top) or top[i+1]['kind']!='table':raise BridgeError('Unpaired native table caption')
-            continue
-        if role=='图题':raise BridgeError('Unpaired native figure caption')
-        if 'drawing' in kinds:
-            if len(picture_row(b))!=1:raise BridgeError('Mixed or multiple native drawing paragraph')
-            drawing=next(s['object_id'] for s in b['segments'] if s['kind']=='drawing')
-            data=reader.image(drawing)
-            data.update(schema='report-figure-v1',id='fig-'+reader.scan['source_sha256'][:16]+'-'+b['block_id'],kind='image',alt='')
-            obj=reader.scan['objects'][drawing]
-            image_layouts.append({'id':data['id'],'source_sha256':obj['media'][0]['sha256'],
-                'width_emu':int(obj['extent']['cx']),'height_emu':int(obj['extent']['cy'])})
-            if b['block_id'] in captions:data['caption']=reader.caption(reader.facts[captions[b['block_id']]['block']],'图')
-            chunks.append(fenced('report-figure',data));continue
-        text=reader.paragraph(b)
-        resolved=roles[b['block_id']]
-        if resolved['role']=='document_title':
-            heading(text,'Title',1);continue
-        level=resolved.get('level',1)-1 if resolved['role']=='heading' and resolved['status']!='review' else None
-        if level is not None and 0<=level<=5:
-            prefix=''
-            if level==5:
-                from wps_pipeline.numbered_candidates import numeric_expression
-                plain=b.get('plain_text','');parts=plain.split(maxsplit=1)
-                path=parts[0].split('.') if len(parts)==2 else []
-                # WPS's ordinary candidate parser covers up to five components.
-                # This adapter handles only the already confirmed sixth-level
-                # projection, never general prose, values, or Markdown numbering.
-                if len(path)==6 and all(v.isascii() and v.isdecimal() and int(v)>0 for v in path) and numeric_expression(plain) is None:
-                    count=len(plain)-len(parts[1]);prefix=plain[:count]
-                    text=reader.paragraph(b,text_skip=count)
-                    reader.diagnostics.append({'code':'OVERFLOW_CHAPTER_PREFIX_REMOVED','block':b['block_id'],'prefix':prefix,
-                        'message':'Confirmed six-level chapter path removed from the list; Word native role is retained.'})
-            heading(text,'Heading '+str(level+1),level+2,prefix)
-            if level==5:reader.diagnostics.append({'code':'WORD_HEADING_OVERFLOW_AS_LIST','block':b['block_id'],
-                'message':'Body Heading 6 exceeds HRS H6 under the report title; emitted as a list with a source-bound role hint.'})
-            continue
-        if b.get('numbering',{}).get('num_id'):raise BridgeError('External native lists require a verified list style mapping')
-        # A literal number in a Normal paragraph is not native list evidence.
-        # Escape its punctuation so the existing Markdown parser keeps the text.
-        literal=re.sub(r'^([ \t]*\d+)([.)])(?=[ \t])',lambda m:m[1]+'\\'+m[2],text)
-        if literal!=text:
-            reader.diagnostics.append({'code':'LITERAL_NUMBERED_PARAGRAPH_ESCAPED','block':b['block_id'],
-                                       'message':'Typed number retained as body text; no list or heading inferred.'})
-            text=literal
-        chunks.append(text+'\n')
+        reader.current_block=b['block_id']
+        pending_start=len(reader.detached)
+        try:
+            if b['kind']=='table':
+                if roles[b['block_id']].get('figure_layout'):
+                    chunks.append(external_picture_table(reader,b,roles[b['block_id']],captions));continue
+                data={'schema':'report-table-v1','id':'tbl-'+reader.scan['source_sha256'][:16]+'-'+b['block_id'],
+                      'caption':'','rows':reader.table(b)}
+                if b['block_id'] in captions:data['caption']=reader.caption(reader.facts[captions[b['block_id']]['block']],'表')
+                chunks.append(fenced('report-table',data));continue
+            if b['kind']!='paragraph':raise BridgeError('Unknown native top-level block')
+            kinds=[s['kind'] for s in b['segments'] if s['kind'] not in ('bookmarkStart','bookmarkEnd')]
+            role=(b.get('style_name') or '').casefold()
+            if role=='表题' and not editable:
+                if i+1>=len(top) or top[i+1]['kind']!='table':raise BridgeError('Unpaired native table caption')
+                continue
+            if role=='图题' and not editable:raise BridgeError('Unpaired native figure caption')
+            if 'drawing' in kinds and (not editable or len(picture_row(b))==1):
+                if len(picture_row(b))!=1:raise BridgeError('Mixed or multiple native drawing paragraph')
+                drawing=next(s['object_id'] for s in b['segments'] if s['kind']=='drawing')
+                data=reader.image(drawing)
+                data.update(schema='report-figure-v1',id='fig-'+reader.scan['source_sha256'][:16]+'-'+b['block_id'],kind='image',alt='')
+                obj=reader.scan['objects'][drawing]
+                layout=None
+                try:
+                    width,height=int(obj['extent']['cx']),int(obj['extent']['cy'])
+                    if width<=0 or height<=0:raise ValueError('Nonpositive picture extent')
+                    layout={'id':data['id'],'source_sha256':obj['media'][0]['sha256'],'width_emu':width,'height_emu':height}
+                except (KeyError,TypeError,ValueError):
+                    if not editable:raise
+                    ordinary.warn(reader,'WORD_IMAGE_EXTENT_UNRESOLVED','图片缺少有效显示尺寸，按原图比例导入。',object=drawing)
+                if b['block_id'] in captions:data['caption']=reader.caption(reader.facts[captions[b['block_id']]['block']],'图')
+                if layout:image_layouts.append(layout)
+                chunks.append(fenced('report-figure',data));continue
+            text=reader.paragraph(b)
+            if editable:
+                number=b.get('numbering_effective') or {}
+                if number.get('status')!='none' and number.get('num_id') not in (None,'0') and b.get('outline_level_raw') not in range(6):
+                    serialized=ordinary.list_text(b,text)
+                    if serialized is None:
+                        ordinary.warn(reader,'WORD_LIST_LABEL_UNRESOLVED','列表编号定义不完整，正文保留，请核对原序号。')
+                        serialized=text+'\n'
+                    chunks.append(serialized);continue
+            resolved=roles[b['block_id']]
+            if resolved['role']=='document_title':
+                heading(text,'Title',1);continue
+            level=resolved.get('level',1)-1 if resolved['role']=='heading' and resolved['status']!='review' else None
+            if level is not None and 0<=level<=5:
+                prefix=''
+                if level==5:
+                    from wps_pipeline.numbered_candidates import numeric_expression
+                    plain=b.get('plain_text','');parts=plain.split(maxsplit=1)
+                    path=parts[0].split('.') if len(parts)==2 else []
+                    # WPS's ordinary candidate parser covers up to five components.
+                    # This adapter handles only the already confirmed sixth-level
+                    # projection, never general prose, values, or Markdown numbering.
+                    if len(path)==6 and all(v.isascii() and v.isdecimal() and int(v)>0 for v in path) and numeric_expression(plain) is None:
+                        count=len(plain)-len(parts[1]);prefix=plain[:count]
+                        text=reader.paragraph(b,text_skip=count)
+                        reader.diagnostics.append({'code':'OVERFLOW_CHAPTER_PREFIX_REMOVED','block':b['block_id'],'prefix':prefix,
+                            'message':'Confirmed six-level chapter path removed from the list; Word native role is retained.'})
+                heading(text,'Heading '+str(level+1),level+2,prefix)
+                if level==5:reader.diagnostics.append({'code':'WORD_HEADING_OVERFLOW_AS_LIST','block':b['block_id'],
+                    'message':'Body Heading 6 exceeds HRS H6 under the report title; emitted as a list with a source-bound role hint.'})
+                continue
+            if b.get('numbering',{}).get('num_id'):raise BridgeError('External native lists require a verified list style mapping')
+            # A literal number in a Normal paragraph is not native list evidence.
+            # Escape its punctuation so the existing Markdown parser keeps the text.
+            literal=re.sub(r'^([ \t]*\d+)([.)])(?=[ \t])',lambda m:m[1]+'\\'+m[2],text)
+            if literal!=text:
+                reader.diagnostics.append({'code':'LITERAL_NUMBERED_PARAGRAPH_ESCAPED','block':b['block_id'],
+                                           'message':'Typed number retained as body text; no list or heading inferred.'})
+                text=literal
+            chunks.append(text+'\n')
+        except (BridgeError,ValueError,OSError) as error:
+            if not editable:raise
+            del reader.detached[pending_start:]
+            chunks.append(ordinary.fallback_block(reader,b,error))
+            if b['block_id'] in captions:
+                chunks.append(reader.paragraph(reader.facts[captions[b['block_id']]['block']])+'\n')
+        finally:
+            chunks.extend(reader.detached);reader.detached.clear()
+    if reader.notes:chunks.extend(reader.notes.definitions(reader))
+    chunks.extend(reader.detached)
     candidate='\n'.join(chunks).encode('utf8')
     ir=rt.analyze(candidate,staged/'assets')
     origin={'schema':'hrs-word-origin-v1','markdown_sha256':sha(candidate),'word_styles':[],'image_layouts':image_layouts,'source_docx_sha256':reader.scan['source_sha256']}
-    recognition['review'].extend(reader.link_review.values());recognition['unresolved']=len(recognition['review'])
+    recognition['review'].extend(reader.link_review.values())
+    if editable:
+        recognition['review'].extend({'block':d.get('block'),'text':d['message'],'role':'import_difference','evidence':[d['code']]} for d in reader.diagnostics if d.get('review'))
+    recognition['unresolved']=len(recognition['review'])
     (staged/'word-recognition.json').write_text(json.dumps(recognition,ensure_ascii=False,indent=2),encoding='utf8')
     if recognition['review']:reader.diagnostics.append({'code':'WORD_STRUCTURE_REVIEW_RETAINED','review':recognition['review'],
         'message':'Unresolved candidate text retained; inspect word-recognition.json before treating its structure as accepted.'})
@@ -694,21 +790,36 @@ def import_external(rt,path,work,staged,structure_map=None):
     return candidate,[],reader.diagnostics,origin
 
 
-def convert(rt,source,output,provenance=None,structure_map=None):
+def convert(rt,source,output,provenance=None,structure_map=None,import_mode='roundtrip'):
+    if import_mode not in ('roundtrip','editable'):raise BridgeError('Unknown Word import mode')
+    editable=import_mode=='editable'
+    if editable and structure_map is not None:raise BridgeError('Source-bound structure maps require roundtrip mode')
     source=Path(source).resolve();output=new_path(output)
-    before=sha(source.read_bytes())
-    meta=read_provenance(source,provenance)
+    with import_stage('snapshot_read','读取Word工作副本'):before=sha(source.read_bytes())
+    mapping_diagnostics=[]
+    try:meta=read_provenance(source,provenance)
+    except (BridgeError,ValueError,KeyError,TypeError,AttributeError,OSError) as error:
+        if not editable or provenance is not None:raise
+        meta=None;mapping_diagnostics.append({'code':'WORD_MAPPING_NOT_USED','message':'同名来源映射不可用，按当前 Word 内容建立新工程。','detail':str(error)})
     if meta is not None and structure_map is not None:
         raise BridgeError('External structure maps cannot override existing bridge provenance')
-    if meta is None:
-        doc=Document(source)
+    if meta is None and not editable:
+        doc=read_document(source)
         if any(b.get(qn('w:name'),'').startswith('HB_') for b in doc._element.iter(qn('w:bookmarkStart'))):
             raise BridgeError('PROVENANCE_REQUIRED: provide the original .hrs-bridge.json for this bridge DOCX')
-    with tempfile.TemporaryDirectory(prefix='bridge-import-',dir=output.parent) as temp:
-        work=Path(temp);staged=work/'project';(staged/'assets').mkdir(parents=True)
+    maintenance={}
+    with import_workspace(output.parent,maintenance) as work:
+        staged=work/'project';(staged/'assets').mkdir(parents=True)
         if meta:
-            candidate,changed,diagnostics,origin=restore_provenance(rt,source,meta,work,staged)
-        else:candidate,changed,diagnostics,origin=import_external(rt,source,work,staged,structure_map)
+            roundtrip_work=work/'roundtrip';roundtrip_work.mkdir()
+            try:candidate,changed,diagnostics,origin=restore_provenance(rt,source,meta,roundtrip_work,staged)
+            except (BridgeError,ValueError,KeyError,TypeError,IndexError,AttributeError) as error:
+                if getattr(error,'import_stage',None):raise
+                if not editable or provenance is not None:raise
+                meta=None;mapping_diagnostics.append({'code':'WORD_MAPPING_NOT_USED','message':'来源映射不能完整回编当前 Word，已按当前内容建立新工程。','detail':str(error)})
+                candidate,changed,diagnostics,origin=import_external(rt,source,work,staged,editable=True)
+        else:candidate,changed,diagnostics,origin=import_external(rt,source,work,staged,structure_map,editable=editable)
+        diagnostics=mapping_diagnostics+diagnostics
         ir=rt.analyze(candidate,staged/'assets')
         from .runtime import source_contract_valid
         if not ir['ok'] or not source_contract_valid(ir):
@@ -719,7 +830,7 @@ def convert(rt,source,output,provenance=None,structure_map=None):
             if ids(original)!=ids(ir):raise BridgeError('BRIDGE_IDENTITY_CHANGED: edited content cannot preserve all source identities')
         (staged/'report.md').write_bytes(candidate)
         from render_profile import normalize as normalize_profile, normalize_options
-        profile=normalize_profile(meta.get('source_render_profile') if meta else 'engineering')
+        profile=normalize_profile(meta.get('source_render_profile') if meta else 'free' if editable else 'engineering')
         (staged/'meta.json').write_text(json.dumps({'render_profile':profile,'render_options':normalize_options(meta.get('source_render_options') if meta else None)})+'\n',encoding='utf8')
         if origin:(staged/'bridge-origin.json').write_text(json.dumps(origin,ensure_ascii=False,indent=2),encoding='utf8')
         link_reviews=[{'block':d.get('block'),'text':d['text'],'role':'hyperlink','evidence':[d['code']],'target':d.get('target'),'anchor':d.get('anchor'),'doc_location':d.get('doc_location')} for d in diagnostics if d['code']=='WORD_HYPERLINK_UNRESOLVED']
@@ -728,11 +839,26 @@ def convert(rt,source,output,provenance=None,structure_map=None):
                     'roles':[],'review':link_reviews,'unresolved':len(link_reviews)}
             (staged/'word-recognition.json').write_text(json.dumps(record,ensure_ascii=False,indent=2),encoding='utf8')
         if sha(source.read_bytes())!=before:raise BridgeError('Source DOCX changed during import')
-        staged.rename(output)
+        if editable:
+            (staged/'output').mkdir(exist_ok=True)
+            source_copy=source.read_bytes()
+            if sha(source_copy)!=before:raise BridgeError('Source DOCX changed during import')
+            (staged/'output/word-import-source.docx').write_bytes(source_copy)
+            if mapping_diagnostics:
+                record_path=staged/'word-recognition.json'
+                record=json.loads(record_path.read_text('utf8')) if record_path.is_file() else {'schema':'hrs-word-recognition-v1','source_sha256':before,'roles':[],'review':[],'model_calls':0}
+                record['review'].extend({'role':'import_difference','text':d['message'],'evidence':[d['code']]} for d in mapping_diagnostics)
+                record['unresolved']=len(record['review']);record_path.write_text(json.dumps(record,ensure_ascii=False,indent=2),encoding='utf8')
+        with import_stage('project_publish','交付导入工程'):staged.rename(output)
     result={'ok':True,'output':str(output),'markdown_sha256':sha(candidate),'changed_blocks':changed,
-            'mode':'provenance-aware' if meta else 'external-structured','diagnostics':diagnostics+ir['diagnostics']}
-    if not meta or link_reviews:
+            'mode':'provenance-aware' if meta else 'external-editable' if editable else 'external-structured','diagnostics':diagnostics+ir['diagnostics']}
+    if editable:result['source_copy']='output/word-import-source.docx'
+    if not meta or link_reviews or mapping_diagnostics:
         record=json.loads((output/'word-recognition.json').read_text('utf8'))
         result['recognition']={'path':str(output/'word-recognition.json'),'unresolved':record['unresolved'],'model_calls':0}
         result['status']='NEEDS_REVIEW' if record['unresolved'] else 'COMPLETE'
+    if maintenance.get('cleanup_pending'):
+        result.update(cleanup_pending=True,cleanup_path=maintenance['cleanup_path'])
+        result['diagnostics'].append({'code':'WORD_IMPORT_TEMP_CLEANUP_DEFERRED',
+            'message':'工程已完成；临时文件暂时无法移除，已延后清理。','path':maintenance['cleanup_path']})
     return result

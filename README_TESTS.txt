@@ -2,6 +2,8 @@ tests/fixtures提供合成夹具；模板工具在template-tool/tests按其READM
 
 HRS 源码测试入口
 
+源码测试包提供产品测试和运行入口；发行打包及其专用验收留在本地维护树。--plan会列出当前目录可运行的测试范围。
+
 先进入本文件所在目录（含 app/、tests/、tools/）。产品身份只读取 app/release.json。
 测试选择的唯一维护处是 tools/test_catalog.py；源码和三合一 Full 都调用它。
 旧PF/版本命名保留原反例来历，日常按功能选，不靠记住版本组合。
@@ -33,22 +35,16 @@ python -X utf8 -B tools/run_checks.py --groups search --browser "C:/Program File
 
 浏览器依赖：python -m pip install -r requirements-dev.txt
 浏览器允许访问本机127.0.0.1；不会自动下载浏览器。临时工程原生Word集成不并入默认full/contracts/browsers，必须显式选择report_word，避免源码包未带原生组件时假失败。RESULTS会列出未选择的显式集成，full_regression_complete只描述默认自动集。真实Word浏览器场景还需匹配的Word
-组件、模板及可选Pandoc；源码测试使用 HRS_WORD_BUNDLE / HRS_WORD_TEST_ENV 指向同批Full。
+组件、模板及可选Pandoc；源码测试设置 HRS_WORD_SUPPORT / HRS_WORD_PYTHON 或 HRS_WORD_BUNDLE，HRS_WORD_TEST_ENV=1；CP313组件必须用Python3.13子进程。
 普通便携版不需要测试开发依赖，源码包也不包含Full的run.cmd或离线环境。
 
-桌面契约：--groups desktop，覆盖关闭适配、核心更新/回退、路径/清单与原生命周期，仍不需要Electron。
-真实桌面集成需显式 --groups desktop_runtime，并设置 HRS_DESKTOP_LAYOUT（已构建桌面目录）、
-HRS_ELECTRON（固定Electron可执行文件）、HRS_DESKTOP_PORTABLE（同源浏览器ZIP）、HRS_BRIDGE_NODE（测试用Node）
-及 HRS_WORD_PANDOC（本专项公式所需；产品无公式时仍为可选）。测试入口先核对这些路径，再启动专项。
-该组实际验证原保存/草稿、内置PDF/Word、关闭失败、独立进程租约、强制退出与重新启动。
-独立协议客户端不是浏览器人工验收；打印/外链系统调用截获、人工IME/打印、Win10环境分列。
-Electron只用于显式桌面组，默认full/contracts不因缺少桌面内核而报错。
+桌面共享核心契约使用--groups desktop；实际桌面发行和运行环境验收由本地维护树单独提供。
 只做表格列居中时，tables选择对应UI用例，不连带执行Word编译。
 
 工作页体验专项：--groups report_workspace，覆盖新工作页、旧notebook、保存/滚动/标题引用、表格脚注和共享公式；--plan查看去重后的具体范围。
 原生输出专项：--groups report_word，设置HRS_WORD_SUPPORT为匹配word_support目录、HRS_WORD_PYTHON为其Python3.13运行时、HRS_WORD_PANDOC为已选pandoc.exe；另设置浏览器。缺少必需组件会明确失败，不能当成通过。
 
-report_word同时包含整篇Word导入的真实服务专项：外来DOCX的表/组图/OMML、NEEDS_REVIEW保留、自身导出映射回编、取消/来源变化/无组件/登记失败与原稿保护。只替代本机选择窗口的返回值，使用原配套组件及当前页面，不模拟转换结果；无Node/第二浏览器依赖也有反例。普通import组继续保护原Markdown/HTML入口；无浏览器Word请求边界纳入word契约。
+report_word同时包含整篇Word导入的真实服务专项（普通可编辑模式与精确回编分开）：外来DOCX的表/组图/OMML、NEEDS_REVIEW保留、自身导出映射回编、列表/内容控件/缓存域、嵌套表、无Pandoc的局部保留、取消/来源变化/无组件/登记失败与原稿保护；宿主禁止读取任何Word字节的反例保证读取/暂存清单/来源复核/工程复制在同一子进程。WORD-IMPORT-ACCESS-01增加真实Windows读/写/删除共享锁，验证已保存稿不被清理失败覆盖、解锁后回收、系统Temp短名及主错误阶段；非Windows按原生边界SKIP。只替代本机选择窗口的返回值，使用原配套组件及当前页面，不模拟转换结果；无Node/第二浏览器依赖也有反例。普通import组继续保护原Markdown/HTML入口；无浏览器Word请求边界纳入word契约。
 
 4. 完整自动检查与效率
 

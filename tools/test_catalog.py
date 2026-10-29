@@ -137,6 +137,16 @@ GATES = {
     'documentation': ('python', 'app/tools/maintain_docs.py'),
 }
 
+# Release engineering is present only in the local maintenance tree. A Source
+# distribution keeps the complete product test catalog, without private release
+# scripts or tests that require those scripts.
+if not Path(__file__).with_name('release_policy.json').is_file():
+    FEATURES = {feature: (description, ' '.join(name for name in names.split()
+                                              if name.partition(':')[0] != 'release_contract'))
+                for feature, (description, names) in FEATURES.items()
+                if feature != 'desktop_runtime'}
+    GATES.pop('conda_recipe')
+
 
 def registered_tests():
     tests = {}
