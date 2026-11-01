@@ -22,14 +22,14 @@ class TablePosition(ManualService):
                 scroll:s.scrollTop, source:document.querySelector('#markdown').sourceEditor.scrollTop};
         }''')
 
-    def test_apply_settings_stays_at_table_after_diagrams_in_both_views(self):
-        """Render completion, including upstream diagrams, must precede anchoring."""
-        for view, table in [('split', PIPE), ('reading', ENHANCED)]:
-            with self.subTest(view=view):
+    def test_apply_settings_stays_at_table_after_diagrams_in_both_profiles(self):
+        """TABLE-03 / READING-UX-03: both table types remain anchored; read is readonly."""
+        for profile, table in [('engineering', PIPE), ('free', ENHANCED)]:
+            with self.subTest(profile=profile):
                 raw='# 长文表格定位\n\n## 光路\n\n'+UPSTREAM+'\n\n## 测量\n\n'+table+'\n\n'+'尾部正文。\n\n'*40
-                self.page.locator('[data-view="'+view+'"]').click()
-                self.page.locator('#render-profile').select_option('engineering' if view=='split' else 'free')
-                if view=='split':self.page.locator('#follow-scroll').check()
+                self.page.locator('[data-view=split]').click()
+                self.page.locator('#render-profile').select_option(profile)
+                self.page.locator('#follow-scroll').check()
                 source(self.page, raw)
                 self.page.wait_for_function("md=>document.querySelector('#preview-content .doc-block')?._sourceDocument===md",arg=raw)
                 self.page.wait_for_function("document.querySelectorAll('#preview-content .mermaid-card svg').length===8")
@@ -48,10 +48,15 @@ class TablePosition(ManualService):
                 self.page.wait_for_timeout(700)
                 after=self.position()
                 if self.evidence:
-                    (self.evidence/(view+'.json')).write_text(json.dumps({'before':before,'opened':opened,'after':after},indent=2),encoding='utf8')
-                    self.page.screenshot(path=str(self.evidence/(view+'.png')))
-                self.assertLess(abs(after['top']-before['top']),4,(view,before,after))
+                    (self.evidence/(profile+'.json')).write_text(json.dumps({'before':before,'opened':opened,'after':after},indent=2),encoding='utf8')
+                    self.page.screenshot(path=str(self.evidence/(profile+'.png')))
+                self.assertLess(abs(after['top']-before['top']),4,(profile,before,after))
                 self.assertIn('保留原值',value(self.page))
+                changed=value(self.page);self.page.locator('[data-view=reading]').click()
+                self.page.wait_for_function('!document.querySelector("#preview-content [data-block-editor]")')
+                self.page.locator('#preview-content .report-table-wrap td').first.dblclick()
+                self.assertTrue(self.page.locator('#modal-layer').is_hidden())
+                self.assertEqual(value(self.page),changed)
 
 
 if __name__=='__main__':unittest.main()

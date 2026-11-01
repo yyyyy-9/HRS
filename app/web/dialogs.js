@@ -3,7 +3,7 @@
    above an open editor modal and keeps keyboard focus inside the dialog. */
 (function(root){
 'use strict';
-const FOCUSABLE='button:not([disabled]),[href],input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"]),summary';
+const FOCUSABLE='button:not([disabled]),[href],input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),math-field:not([disabled]),[tabindex]:not([tabindex="-1"]),summary';
 function focusables(container){
  return [...container.querySelectorAll(FOCUSABLE)].filter(el=>!el.hidden&&!el.closest('[hidden]')&&el.getClientRects().length);
 }

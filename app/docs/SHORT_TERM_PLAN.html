@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>短期计划 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="4ddc1c5339ec903c362137de264caf35817dbf2639c2bd55e40d1fa5be65b4e9"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>短期计划 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="3f71d4c811df55f835ed2e5b9b1c38b5afeee86018d447ce054fa1ce913f76f6"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -404,6 +404,58 @@ body{max-width:none!important;width:auto;padding:0!important;margin:0!important;
  * exported single-file HTML and generated help. No JS data/IR mutations.
  */
 .hrs-blank-space {display:block;height:calc(var(--hrs-blank-lines) * var(--hrs-blank-line-height));margin:0;padding:0;pointer-events:none;}
+.preview-copy-markdown {margin-left:auto;flex-shrink:0;white-space:nowrap;}
+.cm-hf8-equation-line{background:var(--hrs-table-stripe,var(--hrs-pane));border-left:2px solid var(--hrs-line);}
+.equation-number{position:relative;color:inherit;}
+.equation-number[data-typeset="1"]>.equation-number-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}
+.equation-number>svg{display:block;max-width:100%;}
+/* The surrounding paragraph rhythm supplies the block gap; small formulas
+ * need no fixed-height blank area. Shared by preview and offline output. */
+.report-equation{margin:14px 0;}
+.report-equation>.markdown-math.math-display{margin:0;min-height:0;padding:8px 6px;}
+.formula-editor textarea{display:block;width:100%;height:140px;min-height:120px;box-sizing:border-box;font-family:Consolas,monospace;}
+.formula-visual{min-height:70px;margin:8px 0;}
+.formula-visual math-field{display:block;width:100%;box-sizing:border-box;padding:14px;font-size:26px;background:var(--hrs-paper);color:var(--hrs-ink);border:1px solid var(--hrs-line);border-radius:6px;--selection-background-color:var(--hrs-brand);--selection-color:var(--hrs-on-brand);--caret-color:var(--hrs-brand);--contains-highlight-background-color:var(--hrs-brand-tint);}
+.formula-visual math-field:focus-within{outline:2px solid var(--hrs-brand);outline-offset:1px;}
+.formula-selection-tools{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin:6px 0;}
+.formula-selection-tools span{margin-right:auto;font-size:11px;color:var(--hrs-muted);}
+.formula-visual math-field::part(menu-toggle){display:none;}
+.formula-visual math-field::part(virtual-keyboard-toggle){display:none;}
+.formula-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:5px;margin:10px 0;}
+.formula-tools .formula-structure{height:auto;min-height:86px;padding:7px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-color:var(--hrs-line);font-size:11px;line-height:1.4;}
+.formula-structure-sample{height:46px;width:100%;display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;pointer-events:none;}
+.formula-structure-sample svg{max-width:100%;max-height:46px;width:auto;height:auto;}
+.formula-layout-tools{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:7px 0 12px;}
+.formula-layout-tools button{min-height:28px;padding:3px 9px;font-size:12px;}
+.formula-layout-hint{font-size:11px;line-height:1.6;color:var(--hrs-muted);flex:1 1 300px;}
+.formula-source-details{margin:2px 0 12px;}
+.formula-source-details>summary{cursor:pointer;font-size:12px;color:var(--hrs-text);margin-bottom:7px;}
+.formula-editor .formula-source-details textarea{height:110px;min-height:80px;}
+.formula-preview-title{font-size:11px;color:var(--hrs-muted);}
+.formula-editor .formula-final-preview{margin-top:5px;}
+.formula-final-preview{overflow:auto;max-height:220px;}
+.toc-level-control{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:4px 8px;font-size:11px;flex-shrink:0;}
+.toc-level-control select{max-width:130px;color:var(--hrs-ink);background:var(--hrs-paper);border:1px solid var(--hrs-line);border-radius:4px;}
+.toc-tree .toc-children{list-style:none;margin:0;padding:0 0 0 12px;}
+.toc-tree>.toc-children{padding-left:0;}
+.toc-tree .toc-children[hidden]{display:none;}
+.toc-tree .toc-row{display:grid;grid-template-columns:14px minmax(0,1fr) 14px;align-items:start;gap:2px;border-top:2px solid transparent;border-bottom:2px solid transparent;}
+.toc-tree .toc-row>a{grid-column:2;min-width:0;padding:5px 2px;}
+.toc-toggle,.toc-grip{flex:none;min-width:14px;padding:5px 0;border:0;background:transparent;color:var(--hrs-muted);cursor:pointer;}
+.toc-tree .toc-toggle{grid-column:1;}
+.toc-tree .toc-grip{grid-column:3;}
+.toc-grip{cursor:grab;opacity:.45;touch-action:none;}
+.toc-row:hover>.toc-grip,.toc-grip:focus{opacity:1;}
+.toc-drop-before{border-top-color:var(--hrs-brand)!important;}
+.toc-drop-after{border-bottom-color:var(--hrs-brand)!important;}
+.toc-dragging>.toc-row{opacity:.5;}
+.source-snippets{font-size:11px;}
+@media(max-width:1350px){.source-pane .pane-hint{display:none;}}
+.snippet-fields{display:flex;flex-wrap:wrap;gap:10px;}
+.snippet-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px;}
+.edit-layout.reading .report-figure-wrap,.edit-layout.reading .report-table-wrap,.edit-layout.reading .mermaid-card{cursor:default;}
+.edit-layout.reading .report-figure-wrap:hover,.edit-layout.reading .report-table-wrap:hover,.edit-layout.reading .mermaid-card:hover{outline:0;box-shadow:none;}
+.preview-pane .pane-hint {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 img.hrs-image-pending {aspect-ratio:var(--hrs-image-placeholder-ratio);width:100%;object-fit:contain;}
 .report-table-wrap {
   position: relative;
@@ -589,14 +641,14 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.2.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">短期计划</h1>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.3.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">短期计划</h1>
 <p>关联：<a href="CURRENT_STATUS.html">当前状态</a> · <a href="LONG_TERM_ROADMAP.html">长期路线</a> · <a href="HISTORY_INDEX.md">发行记录</a>。</p>
 <ul>
-<li>优化未变化图片节点的复用，减少重复解码与绘制，保持真实资源更新和定位行为。</li>
+<li>按真实长稿和旧系统反馈继续核对预览性能、系统剪贴板和定位；保持已实现的图片/公式节点复用及内容更新保护。</li>
 <li>维护浏览器、标准安装、离线HTML配色、打印、帮助文档、接口和发行清单的一致性。</li>
 <li>完成hrstudio的conda-forge配方审核及频道构建，按构建结果维护安装支持范围。</li>
 <li>按明确反例完善原生Word链、模板适配、章节/列表隔离和引用域。</li>
-<li>保持只读查询、完整预检及显式plan/apply的职责和快照保护。</li>
+<li>继续按真实文稿维护可视公式结构/间距/多行、统一窗口历史与源码互通、当前范围源码折叠、正文源码字号及预览缩放定位、目录拖动和片段记录；保持旧浏览器、阅读只读、原引用定位、完整预检及章节 plan/apply 的快照保护。</li>
 <li>按长期路线扩展混合合稿和受限回编，以功能专项验证实际支持范围。</li>
 </ul>
 </article><div class="docs-bottom">HTML Report Studio · 来自项目 Markdown · 离线 Marked</div></main></div><script id="hrs-reader-runtime">/* Generated by tools/build_reader_bundle.js; DO NOT edit. */
@@ -605,6 +657,34 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 'use strict';
 const data={
   "schema": "hrs-product-settings-v1",
+  "view_options": {
+    "storage_key": "hrs-view-options-v1",
+    "source_font_size": {
+      "default": 13,
+      "min": 11,
+      "max": 22,
+      "step": 1
+    },
+    "source_wrap": {
+      "default": true
+    },
+    "source_ratio": {
+      "default": 50,
+      "min": 30,
+      "max": 70,
+      "step": 2
+    },
+    "preview_zoom": {
+      "default": 100,
+      "choices": [
+        100,
+        125,
+        150,
+        175,
+        200
+      ]
+    }
+  },
   "render_profiles": {
     "default": "free",
     "choices": [

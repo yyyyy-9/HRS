@@ -6,15 +6,17 @@ This is a deterministic adapter export, not a rebuild of upstream packages.
 from pathlib import Path
 
 BEFORE = 'window.SourceEditor={attach:Yu};'
-AFTER = 'window.SourceEditor={attach:Yu,extensionAPI:{StateEffect:W,StateField:he,Decoration:F,EditorState:z,EditorView:D,EditorSelection:w,external:ei}};'
+PREVIOUS = 'window.SourceEditor={attach:Yu,extensionAPI:{StateEffect:W,StateField:he,Decoration:F,EditorState:z,EditorView:D,EditorSelection:w,external:ei}};'
+AFTER = 'window.SourceEditor={attach:Yu,extensionAPI:{StateEffect:W,StateField:he,Decoration:F,EditorState:z,EditorView:D,EditorSelection:w,external:ei,foldedRanges:Rn,foldEffect:Ii,unfoldEffect:Qt,sourceBlocks:Dt}};'
 
 
 def expose(text):
-    if AFTER in text:
+    if text.endswith(AFTER + '})();\n'):
         return text
-    if text.count(BEFORE) != 1 or not text.endswith(BEFORE + '})();\n'):
-        raise ValueError('Pinned editor adapter export changed; inspect before rebuilding')
-    return text.replace(BEFORE, AFTER)
+    for tail in (PREVIOUS, BEFORE):
+        if text.count(tail) == 1 and text.endswith(tail + '})();\n'):
+            return text[:-len(tail + '})();\n')] + AFTER + '})();\n'
+    raise ValueError('Pinned editor adapter export changed; inspect before rebuilding')
 
 
 if __name__ == '__main__':

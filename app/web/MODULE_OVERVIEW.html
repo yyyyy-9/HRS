@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="6fcad39ace7110a3dd0201b3377bcd8248eb5b7254ac322bb62d89ab0dd67e63"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="70cd268c3eb471dcc7f0350b6c005a5c08330be71063e5b235019e0e1869d2eb"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -404,6 +404,58 @@ body{max-width:none!important;width:auto;padding:0!important;margin:0!important;
  * exported single-file HTML and generated help. No JS data/IR mutations.
  */
 .hrs-blank-space {display:block;height:calc(var(--hrs-blank-lines) * var(--hrs-blank-line-height));margin:0;padding:0;pointer-events:none;}
+.preview-copy-markdown {margin-left:auto;flex-shrink:0;white-space:nowrap;}
+.cm-hf8-equation-line{background:var(--hrs-table-stripe,var(--hrs-pane));border-left:2px solid var(--hrs-line);}
+.equation-number{position:relative;color:inherit;}
+.equation-number[data-typeset="1"]>.equation-number-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}
+.equation-number>svg{display:block;max-width:100%;}
+/* The surrounding paragraph rhythm supplies the block gap; small formulas
+ * need no fixed-height blank area. Shared by preview and offline output. */
+.report-equation{margin:14px 0;}
+.report-equation>.markdown-math.math-display{margin:0;min-height:0;padding:8px 6px;}
+.formula-editor textarea{display:block;width:100%;height:140px;min-height:120px;box-sizing:border-box;font-family:Consolas,monospace;}
+.formula-visual{min-height:70px;margin:8px 0;}
+.formula-visual math-field{display:block;width:100%;box-sizing:border-box;padding:14px;font-size:26px;background:var(--hrs-paper);color:var(--hrs-ink);border:1px solid var(--hrs-line);border-radius:6px;--selection-background-color:var(--hrs-brand);--selection-color:var(--hrs-on-brand);--caret-color:var(--hrs-brand);--contains-highlight-background-color:var(--hrs-brand-tint);}
+.formula-visual math-field:focus-within{outline:2px solid var(--hrs-brand);outline-offset:1px;}
+.formula-selection-tools{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin:6px 0;}
+.formula-selection-tools span{margin-right:auto;font-size:11px;color:var(--hrs-muted);}
+.formula-visual math-field::part(menu-toggle){display:none;}
+.formula-visual math-field::part(virtual-keyboard-toggle){display:none;}
+.formula-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:5px;margin:10px 0;}
+.formula-tools .formula-structure{height:auto;min-height:86px;padding:7px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-color:var(--hrs-line);font-size:11px;line-height:1.4;}
+.formula-structure-sample{height:46px;width:100%;display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;pointer-events:none;}
+.formula-structure-sample svg{max-width:100%;max-height:46px;width:auto;height:auto;}
+.formula-layout-tools{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:7px 0 12px;}
+.formula-layout-tools button{min-height:28px;padding:3px 9px;font-size:12px;}
+.formula-layout-hint{font-size:11px;line-height:1.6;color:var(--hrs-muted);flex:1 1 300px;}
+.formula-source-details{margin:2px 0 12px;}
+.formula-source-details>summary{cursor:pointer;font-size:12px;color:var(--hrs-text);margin-bottom:7px;}
+.formula-editor .formula-source-details textarea{height:110px;min-height:80px;}
+.formula-preview-title{font-size:11px;color:var(--hrs-muted);}
+.formula-editor .formula-final-preview{margin-top:5px;}
+.formula-final-preview{overflow:auto;max-height:220px;}
+.toc-level-control{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:4px 8px;font-size:11px;flex-shrink:0;}
+.toc-level-control select{max-width:130px;color:var(--hrs-ink);background:var(--hrs-paper);border:1px solid var(--hrs-line);border-radius:4px;}
+.toc-tree .toc-children{list-style:none;margin:0;padding:0 0 0 12px;}
+.toc-tree>.toc-children{padding-left:0;}
+.toc-tree .toc-children[hidden]{display:none;}
+.toc-tree .toc-row{display:grid;grid-template-columns:14px minmax(0,1fr) 14px;align-items:start;gap:2px;border-top:2px solid transparent;border-bottom:2px solid transparent;}
+.toc-tree .toc-row>a{grid-column:2;min-width:0;padding:5px 2px;}
+.toc-toggle,.toc-grip{flex:none;min-width:14px;padding:5px 0;border:0;background:transparent;color:var(--hrs-muted);cursor:pointer;}
+.toc-tree .toc-toggle{grid-column:1;}
+.toc-tree .toc-grip{grid-column:3;}
+.toc-grip{cursor:grab;opacity:.45;touch-action:none;}
+.toc-row:hover>.toc-grip,.toc-grip:focus{opacity:1;}
+.toc-drop-before{border-top-color:var(--hrs-brand)!important;}
+.toc-drop-after{border-bottom-color:var(--hrs-brand)!important;}
+.toc-dragging>.toc-row{opacity:.5;}
+.source-snippets{font-size:11px;}
+@media(max-width:1350px){.source-pane .pane-hint{display:none;}}
+.snippet-fields{display:flex;flex-wrap:wrap;gap:10px;}
+.snippet-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px;}
+.edit-layout.reading .report-figure-wrap,.edit-layout.reading .report-table-wrap,.edit-layout.reading .mermaid-card{cursor:default;}
+.edit-layout.reading .report-figure-wrap:hover,.edit-layout.reading .report-table-wrap:hover,.edit-layout.reading .mermaid-card:hover{outline:0;box-shadow:none;}
+.preview-pane .pane-hint {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 img.hrs-image-pending {aspect-ratio:var(--hrs-image-placeholder-ratio);width:100%;object-fit:contain;}
 .report-table-wrap {
   position: relative;
@@ -589,7 +641,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.2.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.3.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
 <a class="level2" href="#section-3">同源桌面宿主</a>
 <a class="level2" href="#section-4">Word beta 界面适配</a>
 <a class="level2" href="#section-5">渲染与输出配置</a>
@@ -606,7 +658,9 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <a class="level2" href="#section-16">程序接口与独立下游</a>
 <a class="level2" href="#section-17">产品测试</a>
 <a class="level2" href="#section-18">混合粘贴的数学适配</a></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">HTML Report Studio 模块说明</h1>
+<p>公式编辑由 formula_editor.js 惰性加载离线 MathLive，等待数学字体就绪后显示；双向同步仅存在于弹窗草稿，孤立上下标拖选使用组件公开选区接口保留其容器，原 MathJax 继续负责输出。report_equations.presentation 只处理显示副本的显式 tag。section_operations（Python/JavaScript）各自消费已有 IR/SourceMap，提供章节范围与操作，不新增 Markdown 解析器。outline_tree 只在树结构变化时重建节点，普通输入更新位置与文字；阅读视图不发出移动意图。text_snippets 以受限声明式内容存储在用户数据区，插入复用对象粘贴。引用使用原定位链，不维护额外的前端反向使用索引。</p>
 <h2 id="section-2">统一定义与派生缓存</h2>
+<p>编辑器字号、自动折行和预览/阅读显示比例归本机视图偏好，与文稿render_options分开；统一选择范围和默认值由product_settings提供。视图适配复用CodeMirror公开扩展、SourceBlocks/SourceMap的原范围和原滚动锚点，字号仅作用正文/标题，缩放层在导出article之外；不改源文、历史、资源、编号或输出模型。公式结构样例复用惰性弹窗与原MathJax缓存，不为每个按钮创建可视编辑器；实际间距/换行仍以TeX进入原公式提交事务。</p>
 <p><code>release.json</code>只维护产品版本和包修订，<code>release_info.py</code>派生服务、构建与帮助使用的身份；运行界面从health读取同一结果。协议schema和安全信任摘要有独立生命周期，不随产品发布机械变更。</p>
 <p><code>product_settings.json</code>只维护产品级选择目录、中文标签、配色样式文件以及新稿／旧工程显示默认值。<code>product_settings.py</code>提供不可变Python视图；<code>tools/build_settings.js</code>生成不可变的<code>web/product_settings.js</code>，构建和文档门禁检查同源。界面主题颜色仍由theme*.css维护；高亮语义颜色/符号映射由product_settings唯一维护；渲染语义仍归原ReportProfile，归档边界不另写主题目录和默认值。</p>
 <p><code>SourceMap.create</code>复用已有tokens，位置/行号二分查找，对象身份索引按实际赋值失效重建。app只缓存一个正在编辑的源快照，不持久化第二份模型；章号和摘要集合在本次渲染建立；preview_commit.js只复用未变安全正文DOM，结构/对象变化不增量猜测语义，目录/定义行更新位置但保持节点。呈现设置写入复用同一请求适配并绑定文稿会话。</p>
@@ -783,6 +837,34 @@ python tools/maintain_docs.py --check
 'use strict';
 const data={
   "schema": "hrs-product-settings-v1",
+  "view_options": {
+    "storage_key": "hrs-view-options-v1",
+    "source_font_size": {
+      "default": 13,
+      "min": 11,
+      "max": 22,
+      "step": 1
+    },
+    "source_wrap": {
+      "default": true
+    },
+    "source_ratio": {
+      "default": 50,
+      "min": 30,
+      "max": 70,
+      "step": 2
+    },
+    "preview_zoom": {
+      "default": 100,
+      "choices": [
+        100,
+        125,
+        150,
+        175,
+        200
+      ]
+    }
+  },
   "render_profiles": {
     "default": "free",
     "choices": [

@@ -85,11 +85,14 @@ def _patch(text,edits):
     for start,end,value in sorted(edits,reverse=True):text=text[:start]+value+text[end:]
     return text
 
-def rewrite(text,ir,ids,paths):
+def rewrite(text,ir,ids,paths,anonymous_equations=None):
     edits=[]
     for block in ir['blocks']:
         a=char_index(text,block['start']);b=char_index(text,block['end']);raw=text[a:b];local=[]
         oid=block.get('id');typ=block['type']
+        if typ=='equation' and not oid and anonymous_equations and block['start'] in anonymous_equations:
+            newline='\r\n' if '\r\n' in raw else '\n'
+            local.append((0,0,'<!-- hrs:eq id='+anonymous_equations[block['start']]+' -->'+newline))
         if typ in ('figure','table') and block.get('sourceKind')!='gfm-pipe':
             for key,x,y,value in _json_fields(raw):
                 if key=='id' and oid in ids:local.append((x,y,json.dumps(ids[oid])))
@@ -183,7 +186,13 @@ def paste_bundle(bundle,target_text,roots,target_key,check_image,local_files=Non
         fresh=oid.split('-',1)[0]+'-'+uuid.uuid4().hex[:12]
         while fresh in used:fresh=oid.split('-',1)[0]+'-'+uuid.uuid4().hex[:12]
         ids[oid]=fresh;used.add(fresh)
-    rewritten=rewrite(text,ir,ids,paths)
+    anonymous={}
+    for block in ir['blocks']:
+        if block['type']!='equation' or block.get('id'):continue
+        fresh='eq-'+uuid.uuid4().hex[:12]
+        while fresh in used:fresh='eq-'+uuid.uuid4().hex[:12]
+        anonymous[block['start']]=fresh;used.add(fresh)
+    rewritten=rewrite(text,ir,ids,paths,anonymous)
     checked=_fragment(rewritten)
     if any(d['code']=='EXTERNAL_IMAGE' for d in checked['diagnostics']):raise ValueError('仍有未导入的本地图片')
     return {'markdown':rewritten,'id_map':ids,'asset_map':paths,'assets':final}

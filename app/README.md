@@ -56,6 +56,15 @@ python app/block_cli.py apply D:\Reports\edit-plan.json --expect-plan-sha256 <pl
 
 支持 replace、insert-before、insert-after；匿名块用绑定同一快照的 --index。正式写回只接受工程 report.md，自动备份到 .history/。旧快照、被修改的计划/候选、范围不符、附件变化和文件占用均失败；不自动整链重试，不开放附件批量写入。
 
+按章节追加仍先读取源 SHA，再准备任意 Markdown 内容和候选差异：
+
+```powershell
+python app/block_cli.py plan D:\Reports\demo --section "实验报告" --section "结果" --operation append --expect-sha256 <源SHA-256> --text-file D:\Reports\results.md --output D:\Reports\section-plan.json
+python app/block_cli.py apply D:\Reports\section-plan.json --expect-plan-sha256 <plan返回的SHA-256>
+```
+
+`--section` 可重复形成精确标题路径；唯一短标题也可。操作可用 append、prepend 或 replace-body。章节正文包含其下级标题，replace-body 保留当前标题；已有 ID、数字与技术内容由提供的 Markdown 决定，不自动猜改。Agent 可在已授权任务内完成读取、生成候选、检查差异及显式提交，不要求人逐段确认。
+
 ## 能力与边界
 
 源码区Ctrl+V可接收Word/WPS的文字、图片和普通／合并表格：正文去掉Word排版，图表进入既有对象和附件链，按原顺序一次插入／撤销。Windows从显式剪贴板快照取得图片；不猜题注或标题，不自动下载外链图片，嵌套表／表内图等明确提示，详见使用手册。

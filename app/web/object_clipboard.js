@@ -17,7 +17,7 @@ function parse(html,plain){
 function eligible(text){
  if(root.SourceBlocks.scan(text).some(r=>r.object))return true;
  const records=root.SourceMap.create(text,root.marked.lexer(root.SourceBlocks.normalized(text).text)).blocks;
- return records.some(r=>r.type!=='code'&&r.type!=='html'&&/!\[[^\]]*\]\([^)]+\)/.test(r.raw||r.token.raw));
+ return records.some(r=>r.type==='reportEquation'||r.type!=='code'&&r.type!=='html'&&/!\[[^\]]*\]\([^)]+\)/.test(r.raw||r.token.raw));
 }
 function attach(editor,{request,context,commit,chooseImage,prepareRich,beforePaste,onError}={}){
  let pasting=false;
@@ -63,6 +63,7 @@ function attach(editor,{request,context,commit,chooseImage,prepareRich,beforePas
   // Pasting source examples inside a normal code fence remains literal text.
   const range=root.SourceMap.create(editor.value,root.marked.lexer(root.SourceBlocks.normalized(editor.value).text)).blocks.find(r=>r.start<editor.selectionStart&&r.end>editor.selectionStart);
   if(range?.type==='code'&&!/^report-(?:figure|table|image-group)$/.test(range.token.lang||''))return;
+  if(range?.type==='reportEquation')return; // Editing within TeX remains literal.
   const bundle=parse(html,plain);
   if(!bundle&&prepareRich&&root.ReportRichClipboard.matches(html)){
    event.preventDefault();paste(()=>prepareRich(html,plain));return;

@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>长期发展路线 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="0fc44adbd5ee3b908a7c0cbe6fa8995719d68835ad55a52420ee73d1751130e7"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>长期发展路线 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="862d47b498781846a8bfe93588cd69323c039170d2a3b85897f476c3c7ea026b"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -404,6 +404,58 @@ body{max-width:none!important;width:auto;padding:0!important;margin:0!important;
  * exported single-file HTML and generated help. No JS data/IR mutations.
  */
 .hrs-blank-space {display:block;height:calc(var(--hrs-blank-lines) * var(--hrs-blank-line-height));margin:0;padding:0;pointer-events:none;}
+.preview-copy-markdown {margin-left:auto;flex-shrink:0;white-space:nowrap;}
+.cm-hf8-equation-line{background:var(--hrs-table-stripe,var(--hrs-pane));border-left:2px solid var(--hrs-line);}
+.equation-number{position:relative;color:inherit;}
+.equation-number[data-typeset="1"]>.equation-number-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}
+.equation-number>svg{display:block;max-width:100%;}
+/* The surrounding paragraph rhythm supplies the block gap; small formulas
+ * need no fixed-height blank area. Shared by preview and offline output. */
+.report-equation{margin:14px 0;}
+.report-equation>.markdown-math.math-display{margin:0;min-height:0;padding:8px 6px;}
+.formula-editor textarea{display:block;width:100%;height:140px;min-height:120px;box-sizing:border-box;font-family:Consolas,monospace;}
+.formula-visual{min-height:70px;margin:8px 0;}
+.formula-visual math-field{display:block;width:100%;box-sizing:border-box;padding:14px;font-size:26px;background:var(--hrs-paper);color:var(--hrs-ink);border:1px solid var(--hrs-line);border-radius:6px;--selection-background-color:var(--hrs-brand);--selection-color:var(--hrs-on-brand);--caret-color:var(--hrs-brand);--contains-highlight-background-color:var(--hrs-brand-tint);}
+.formula-visual math-field:focus-within{outline:2px solid var(--hrs-brand);outline-offset:1px;}
+.formula-selection-tools{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin:6px 0;}
+.formula-selection-tools span{margin-right:auto;font-size:11px;color:var(--hrs-muted);}
+.formula-visual math-field::part(menu-toggle){display:none;}
+.formula-visual math-field::part(virtual-keyboard-toggle){display:none;}
+.formula-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:5px;margin:10px 0;}
+.formula-tools .formula-structure{height:auto;min-height:86px;padding:7px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-color:var(--hrs-line);font-size:11px;line-height:1.4;}
+.formula-structure-sample{height:46px;width:100%;display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;pointer-events:none;}
+.formula-structure-sample svg{max-width:100%;max-height:46px;width:auto;height:auto;}
+.formula-layout-tools{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:7px 0 12px;}
+.formula-layout-tools button{min-height:28px;padding:3px 9px;font-size:12px;}
+.formula-layout-hint{font-size:11px;line-height:1.6;color:var(--hrs-muted);flex:1 1 300px;}
+.formula-source-details{margin:2px 0 12px;}
+.formula-source-details>summary{cursor:pointer;font-size:12px;color:var(--hrs-text);margin-bottom:7px;}
+.formula-editor .formula-source-details textarea{height:110px;min-height:80px;}
+.formula-preview-title{font-size:11px;color:var(--hrs-muted);}
+.formula-editor .formula-final-preview{margin-top:5px;}
+.formula-final-preview{overflow:auto;max-height:220px;}
+.toc-level-control{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:4px 8px;font-size:11px;flex-shrink:0;}
+.toc-level-control select{max-width:130px;color:var(--hrs-ink);background:var(--hrs-paper);border:1px solid var(--hrs-line);border-radius:4px;}
+.toc-tree .toc-children{list-style:none;margin:0;padding:0 0 0 12px;}
+.toc-tree>.toc-children{padding-left:0;}
+.toc-tree .toc-children[hidden]{display:none;}
+.toc-tree .toc-row{display:grid;grid-template-columns:14px minmax(0,1fr) 14px;align-items:start;gap:2px;border-top:2px solid transparent;border-bottom:2px solid transparent;}
+.toc-tree .toc-row>a{grid-column:2;min-width:0;padding:5px 2px;}
+.toc-toggle,.toc-grip{flex:none;min-width:14px;padding:5px 0;border:0;background:transparent;color:var(--hrs-muted);cursor:pointer;}
+.toc-tree .toc-toggle{grid-column:1;}
+.toc-tree .toc-grip{grid-column:3;}
+.toc-grip{cursor:grab;opacity:.45;touch-action:none;}
+.toc-row:hover>.toc-grip,.toc-grip:focus{opacity:1;}
+.toc-drop-before{border-top-color:var(--hrs-brand)!important;}
+.toc-drop-after{border-bottom-color:var(--hrs-brand)!important;}
+.toc-dragging>.toc-row{opacity:.5;}
+.source-snippets{font-size:11px;}
+@media(max-width:1350px){.source-pane .pane-hint{display:none;}}
+.snippet-fields{display:flex;flex-wrap:wrap;gap:10px;}
+.snippet-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px;}
+.edit-layout.reading .report-figure-wrap,.edit-layout.reading .report-table-wrap,.edit-layout.reading .mermaid-card{cursor:default;}
+.edit-layout.reading .report-figure-wrap:hover,.edit-layout.reading .report-table-wrap:hover,.edit-layout.reading .mermaid-card:hover{outline:0;box-shadow:none;}
+.preview-pane .pane-hint {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 img.hrs-image-pending {aspect-ratio:var(--hrs-image-placeholder-ratio);width:100%;object-fit:contain;}
 .report-table-wrap {
   position: relative;
@@ -589,7 +641,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.2.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">输出策略的持续方向</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.3.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">输出策略的持续方向</a>
 <a class="level2" href="#section-3">当前能力基础</a>
 <a class="level2" href="#section-4">近期能力路线</a>
 <a class="level2" href="#section-5">为独立 Word 双向转换保留的结构基础</a>
@@ -610,7 +662,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <h2 id="section-4">近期能力路线</h2>
 <ol>
 <li>保持跨语言契约、输入保真、旧 HTML 兼容和目标 Windows 验收。</li>
-<li>最小程序化块操作：HRS统一拥有plan/apply，独立桥接委托；继续按真实调用完善失败保护与批量隔离，不建立第二份持久文档模型或每段强制ID。</li>
+<li>程序化块与章节操作已共用原提交链：HRS统一拥有plan/apply，独立桥接委托；继续按真实调用完善失败保护与批量隔离，不建立第二份持久文档模型或每段强制ID。</li>
 <li>程序化 HTML：HRS 正式 CLI 通过显式薄入口调用原引擎完成单份往返，桥接复用；批量状态、失败隔离和输入输出清单按具体 Issue 扩展。安全 HTML 沿同一预览/导出/回编链维护。</li>
 <li>根据真实调用补足通用 IR 语义及小范围模块职责，不以“完整 AST”或大规模服务重构为预设目标。</li>
 </ol>
@@ -681,6 +733,34 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 'use strict';
 const data={
   "schema": "hrs-product-settings-v1",
+  "view_options": {
+    "storage_key": "hrs-view-options-v1",
+    "source_font_size": {
+      "default": 13,
+      "min": 11,
+      "max": 22,
+      "step": 1
+    },
+    "source_wrap": {
+      "default": true
+    },
+    "source_ratio": {
+      "default": 50,
+      "min": 30,
+      "max": 70,
+      "step": 2
+    },
+    "preview_zoom": {
+      "default": 100,
+      "choices": [
+        100,
+        125,
+        150,
+        175,
+        200
+      ]
+    }
+  },
   "render_profiles": {
     "default": "free",
     "choices": [

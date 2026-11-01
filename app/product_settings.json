@@ -1,5 +1,12 @@
 {
   "schema": "hrs-product-settings-v1",
+  "view_options": {
+    "storage_key": "hrs-view-options-v1",
+    "source_font_size": {"default": 13, "min": 11, "max": 22, "step": 1},
+    "source_wrap": {"default": true},
+    "source_ratio": {"default": 50, "min": 30, "max": 70, "step": 2},
+    "preview_zoom": {"default": 100, "choices": [100, 125, 150, 175, 200]}
+  },
   "render_profiles": {
     "default": "free",
     "choices": [

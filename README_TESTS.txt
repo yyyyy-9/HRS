@@ -48,6 +48,11 @@ report_word同时包含整篇Word导入的真实服务专项（普通可编辑�
 
 4. 完整自动检查与效率
 
+预览体验专项使用 --groups preview_ux：保留未变化图片/公式节点，核对内容变化后的刷新、
+复制选区/整块Markdown及附件、缩进代码显式转换与撤销、旧DOM事件绑定和缓存释放。
+旧版Chromium的富格式系统剪贴板需要窗口模式时，显式设置 HRS_TEST_HEADED=1；
+运行同一套断言，不把缺失HTML的无界面后端当作通过。其他情况默认无界面运行。
+
 python -X utf8 -B tools/run_checks.py --browser "C:/Program Files/Google/Chrome/Application/chrome.exe" --evidence ../hrs-full-results
 
 纯Python测试合并为一个进程；适合合并的浏览器用例复用一个Chromium进程，但每个用例

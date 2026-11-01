@@ -22,3 +22,12 @@ for(const separator of ['\n','\n\n']){
  assert.deepEqual(result.items.map(x=>[x.id,x.number]),[['tbl-native',1],['tbl-enhanced',2]]);
 }
 console.log('NUMBERING-02 unified sequences and duplicate identity: PASS');
+const equations=global.ReportEquations;
+const tagged=String.raw`\begin{aligned}a&=\boldsymbol{x}\\b&=2\end{aligned}\tag{2}`;
+assert.equal(equations.presentation(tagged).tex,String.raw`\begin{aligned}a&=\boldsymbol{x}\\b&=2\end{aligned}`);
+assert.deepEqual(equations.presentation(String.raw`x\tag*{A{B}\}C}`).tags,[String.raw`\tag*{A{B}\}C}`]);
+for(const literal of [String.raw`\text{\tag{literal}}`,String.raw`% \tag{comment}`,String.raw`\verb|\tag{literal}|`,String.raw`x\tag{unclosed`])assert.equal(equations.presentation(literal).tex,literal);
+const snippets=require('../app/web/text_snippets.js');
+assert.deepEqual(snippets.fields('{{field:样品}} {{field:样品}} {{date}}'),['样品']);
+assert.equal(snippets.expand('{{field:样品}} {{date}} {{cursor}} {{danger()}}',{'样品':'$x$'},'2026-10-31','CURSOR'),'$x$ 2026-10-31 CURSOR {{danger()}}');
+console.log('MATH-UX-02 tags preserve raw source and CAPTURE-01 templates are declarative: PASS');

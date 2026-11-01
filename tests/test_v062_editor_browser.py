@@ -6,7 +6,7 @@ Pillow only reads browser screenshots; it does not create or edit the evidence.
 import io,json,unittest
 from PIL import Image
 from browser_support import ManualService
-from browser_support import source,value
+from browser_support import source,value,fold_source
 
 TEXT='# 选区与阅读\n\n## 开始 {#sec-start}\n\n普通正文，可以阅读。\n\n```python\nalpha = 1234567890\nbeta = alpha + 42\nprint(beta)\n```\n\n## 表格 {#sec-table}\n\n| 参数 | 数值 |\n|---|---|\n| A | 10 |\n\n参见 @sec:sec-start。\n\n- [ ] 任务\n'
 
@@ -34,7 +34,7 @@ class EditorFeedback(ManualService):
         self.assertEqual(value(self.page),text)
 
     def test_02_mouse_selection_is_visible_and_copy_preserves_code(self):
-        source(self.page,TEXT);self.page.locator('#btn-unfold-all').click()
+        source(self.page,TEXT);fold_source(self.page,expand=True)
         a=TEXT.index('alpha =');b=TEXT.index('print(beta)')-1
         for theme in ('blue','warm','navy'):
             self.page.locator('#color-theme').select_option(theme)
@@ -87,15 +87,21 @@ class EditorFeedback(ManualService):
         self.assertEqual(value(self.page),TEXT)
         if self.evidence:self.page.screenshot(path=str(self.evidence/'reading.png'))
 
-    def test_04_reading_preserves_table_dialog_and_task_transaction(self):
+    def test_04_reading_rejects_table_and_task_changes_split_keeps_transaction(self):
+        """READING-UX-03: reading is now strictly readonly; split keeps editing."""
         self.reading();self.page.locator('#preview-content table').dblclick()
+        self.assertTrue(self.page.locator('#modal-layer').is_hidden())
+        box=self.page.locator('#preview-content .hrs-task-checkbox');self.assertTrue(box.is_disabled())
+        self.assertEqual(value(self.page),TEXT)
+        self.page.locator('[data-view=split]').click()
+        self.page.locator('#preview-content table').dblclick()
         self.page.wait_for_selector('#modal-layer:not([hidden])')
         self.assertIn('表格',self.page.locator('#modal-title').inner_text())
         self.page.locator('#modal-cancel').click()
-        self.assertTrue(self.page.locator('#edit-layout.reading').is_visible())
+        self.assertTrue(self.page.locator('#edit-layout.split').is_visible())
         box=self.page.locator('#preview-content .hrs-task-checkbox');box.check()
         self.page.wait_for_function('document.querySelector("#markdown").sourceEditor.value.includes("- [x] 任务")')
-        self.assertTrue(self.page.locator('#edit-layout.reading').is_visible())
+        self.assertTrue(self.page.locator('#edit-layout.split').is_visible())
         self.page.locator('#btn-undo').click()
         self.page.wait_for_function('t=>document.querySelector("#markdown").sourceEditor.value===t',arg=TEXT)
 

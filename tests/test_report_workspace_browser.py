@@ -147,10 +147,11 @@ class ReportExperience(unittest.TestCase):
     def test_engineering_highlight_is_plain_and_inline_edit_preserves_syntax(self):
         text='# Report\n\n## ==普通== heading\n\nParagraph\n'
         with tempfile.TemporaryDirectory() as folder,browser_session() as browser,LiveDocument(browser,folder,text,profile='engineering',registered=True) as d:
-            p=d.page;heading=p.locator('#preview-content h2')
+            p=d.page;heading=p.locator('#preview-content h2 .hrs-heading-text')
             self.assertEqual(p.locator('#preview-content mark').count(),0)
+            self.assertEqual(p.locator('#preview-content h2 .hrs-heading-number').get_attribute('contenteditable'),'false')
             self.assertEqual(heading.get_attribute('data-block-editor'),'1')
-            heading.dblclick();p.wait_for_function("document.querySelector('#preview-content h2').isContentEditable")
+            heading.dblclick();p.wait_for_function("document.querySelector('#preview-content h2 .hrs-heading-text').isContentEditable")
             p.keyboard.press('End');p.keyboard.insert_text(' edited');p.locator('#source-stats').click()
             p.wait_for_function("document.querySelector('#markdown').sourceEditor.value.includes('edited')")
             self.assertIn('==普通==',value(p));self.assertNotIn('<mark',value(p));self.assertEqual(d.errors,[])

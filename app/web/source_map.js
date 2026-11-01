@@ -98,7 +98,7 @@ function create(source,tokens){
 /* GFM task markers are nominated by Marked list_item tokens. Map the lexer's
  * de-indented item/quote text back through the existing UTF-16 source map;
  * neither code examples nor arbitrary HTML inputs become editable tasks. */
-function taskRanges(source,record,marked,{frames=false}={}){
+function taskRanges(source,record,marked,{frames=false,literals=false}={}){
  if(!['list','blockquote','hrsStyledList'].includes(record.type))return [];
  const normalized=root.SourceBlocks.normalized(record.raw,{tabs:true}),result=[];
  const positions=Array.from({length:normalized.text.length+1},(_,i)=>record.start+normalized.sourceOffset(i));
@@ -141,6 +141,10 @@ function taskRanges(source,record,marked,{frames=false}={}){
   for(const token of tokens||[]){
    const raw=token.raw||'',found=raw&&locate(raw,parent,map,cursor);if(!found)continue;
    cursor=found.cursor;const local=found.map;
+   if(literals&&['code','html','table','reportEquation','reportImageGroup'].includes(token.type)){
+    if(Number.isInteger(local[0])&&Number.isInteger(local[raw.length]))result.push({start:local[0],end:local[raw.length]});
+    continue;
+   }
    if(token.type==='list')visit(token.items,raw,local);
    else if(token.type==='list_item'||token.type==='blockquote'){
     if(frames&&token.type==='list_item'){
@@ -149,7 +153,7 @@ function taskRanges(source,record,marked,{frames=false}={}){
       if(Number.isInteger(start)&&Number.isInteger(end))result.push({start,end,body:source.slice(start,end),marker:source.slice(source.lastIndexOf('\n',start-1)+1,start)});
      }
     }
-    if(!frames&&token.type==='list_item'&&token.task){
+    if(!frames&&!literals&&token.type==='list_item'&&token.task){
      const prefix=raw.match(/^ {0,3}(?:[-+*]|\d{1,9}[.)])[ \t]+\[([ xX])\](?:[ \t]+|$)/);
      if(prefix){const offset=prefix[0].indexOf('[')+1,start=local[offset];
       if(Number.isInteger(start)&&source[start-1]==='['&&source[start+1]===']')result.push({start,end:start+1,checked:!!token.checked});
@@ -162,6 +166,31 @@ function taskRanges(source,record,marked,{frames=false}={}){
   }
  }
  visit([record.token],normalized.text,positions);return result;
+}
+function deindentCode(record){
+ if(record?.type!=='code'||record.token?.codeBlockStyle!=='indented')throw Error('只能转换当前缩进代码块');
+ return record.raw.replace(/^[ \t]+/gm,'');
+}
+/* Shared DOM endpoints for read-only source copying and existing prose edits. */
+function inlineOffsets(target,range,serial){
+ if(!target.contains(range.startContainer)||!target.contains(range.endContainer))return null;
+ function offset(node,at,bias){
+  function find(element,base){
+   if(element===node){
+    if(element.nodeType===3)return base+serial(element.ownerDocument.createTextNode(element.nodeValue.slice(0,at))).length;
+    const children=[...element.childNodes],inner=children.map(serial).join(''),all=serial(element),head=all.indexOf(inner);
+    return base+Math.max(0,head)+children.slice(0,at).map(serial).join('').length;
+   }
+   if(element.nodeType!==1||!element.contains(node))return null;
+   const children=[...element.childNodes],inner=children.map(serial).join(''),all=serial(element),head=all.indexOf(inner);
+   if(element.matches('.markdown-math,[data-xref-raw]')||element.tagName==='SUP'&&element.querySelector('[data-hrs-footnote-ref]')||head<0)return base+(bias==='end'?all.length:0);
+   let cursor=base+head;for(const child of children){const result=find(child,cursor);if(result!==null)return result;cursor+=serial(child).length;}return null;
+  }
+  let cursor=0;for(const child of target.childNodes){const result=find(child,cursor);if(result!==null)return result;cursor+=serial(child).length;}
+  return node===target?[...target.childNodes].slice(0,at).map(serial).join('').length:null;
+ }
+ const start=offset(range.startContainer,range.startOffset,'start'),end=offset(range.endContainer,range.endOffset,'end');
+ return start===null||end===null?null:{start,end};
 }
 function textFrame(raw,headingLevel=null){
  const trailing=raw.match(/(?:\r?\n)+$/)?.[0]||'',line=raw.slice(0,raw.length-trailing.length);
@@ -194,5 +223,5 @@ function rebaseUnchanged(source,snapshot,range,raw){
  else throw Error('当前预览块的源文已变化，请等待刷新后编辑');
  return assertRange(source,next,raw,source);
 }
-const api={create,assertRange,rebaseUnchanged,taskRanges,listFrames:(source,record,marked)=>taskRanges(source,record,marked,{frames:true}),textFrame,replaceNormalizedText};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.SourceMap=api;
+const api={create,assertRange,rebaseUnchanged,taskRanges,listFrames:(source,record,marked)=>taskRanges(source,record,marked,{frames:true}),literalRanges:(source,record,marked)=>taskRanges(source,record,marked,{literals:true}),textFrame,replaceNormalizedText,inlineOffsets,deindentCode};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.SourceMap=api;
 })(typeof window!=='undefined'?window:globalThis);

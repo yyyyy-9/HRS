@@ -35,4 +35,15 @@ map.setObjectId(figures[1],'fig-two');assert.equal(map.object('fig-one'),figures
 map.setObjectId(figures[1],null);assert.equal(map.object('fig-two'),null);
 assert.throws(()=>map.setObjectId({...figures[0]},'fig-foreign'),/范围|map|record|记录/i);
 const empty=SourceMap.create('',[]);assert.equal(empty.at(0),null);assert.equal(empty.object('nothing'),null);
+// INDENT-PROSE-01: an explicit operation on the nominated block only. No
+// standalone whitespace cleanup, fenced-code conversion or newline rewriting.
+for(const [raw,expected] of [['\t正文😀\r\n    第二行\r\n','正文😀\r\n第二行\r\n'],['        更多空格\n','更多空格\n'],['  \t甲\n \t 乙\n','甲\n乙\n']]){
+ const map=SourceMap.create(raw,marked.lexer(SourceBlocks.normalized(raw).text)),record=map.blocks[0];
+ assert.equal(SourceMap.deindentCode(record),expected);
+ assert.equal(record.raw,raw);
+}
+for(const raw of ['```text\n    示例\n```\n','- 列表\n\n    续段\n']){
+ const record=SourceMap.create(raw,marked.lexer(SourceBlocks.normalized(raw).text)).blocks[0];
+ assert.throws(()=>SourceMap.deindentCode(record),/缩进代码块/);
+}
 console.log('Source index boundaries, duplicate identities, index invalidation, HTML token reuse and CRLF/Unicode PASS');

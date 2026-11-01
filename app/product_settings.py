@@ -11,6 +11,16 @@ from types import MappingProxyType
 def load_settings(path=None):
     data=json.loads(Path(path or Path(__file__).with_suffix('.json')).read_text('utf8'))
     if data.get('schema')!='hrs-product-settings-v1':raise ValueError('产品设置格式无效')
+    view=data['view_options']
+    if not isinstance(view['storage_key'],str) or not view['storage_key']:raise ValueError('本机显示设置存储键无效')
+    for key in ('source_font_size','source_ratio'):
+        entry=view[key]
+        if any(type(entry[name]) is not int for name in ('default','min','max','step')) or not entry['min']<=entry['default']<=entry['max'] or entry['step']<1:
+            raise ValueError('本机显示范围无效：'+key)
+    if type(view['source_wrap']['default']) is not bool:raise ValueError('源码折行默认值必须是布尔值')
+    zoom=view['preview_zoom'];choices=zoom['choices']
+    if choices!=sorted(set(choices)) or any(type(value) is not int or value<100 for value in choices) or zoom['default'] not in choices:
+        raise ValueError('文稿缩放目录无效')
     for key in ('render_profiles','color_themes'):
         group=data[key];ids=[item['id'] for item in group['choices']]
         if not ids or len(set(ids))!=len(ids) or group['default'] not in ids:raise ValueError('产品设置目录无效：'+key)

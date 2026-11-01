@@ -32,6 +32,15 @@ HTML Report Studio 维护 Markdown 编辑、结构校验、HTML 导出/回编及
 
 独立 `hrs-wps-bridge` 试用包已消费当前 IR/Marked、HTML 薄入口和 WPS Scanner/真实母模板，提供固定样本的受限转换。其 DOCX 伴随派生映射保留 HRS 身份与原策略；当前原生内容发生修改时重新读取，不用旧快照覆盖。WPS 保存会重写样式 ID 并丢弃自定义 XML，具体承载、依赖、运行命令及拒绝边界以该独立包 README 为准，不修改本页上游契约。
 
+按章节追加仍先读取源 SHA，再准备任意 Markdown 内容和候选差异：
+
+```powershell
+python block_cli.py plan D:\Reports\demo --section "实验报告" --section "结果" --operation append --expect-sha256 <源SHA-256> --text-file D:\Reports\results.md --output D:\Reports\section-plan.json
+python block_cli.py apply D:\Reports\section-plan.json --expect-plan-sha256 <plan返回的SHA-256>
+```
+
+`--section` 可重复形成精确标题路径；唯一短标题也可。操作可用 append、prepend 或 replace-body。章节正文包含其下级标题，replace-body 保留当前标题；已有 ID、数字与技术内容由提供的 Markdown 决定，不自动猜改。Agent 可在已授权任务内完成读取、生成候选、检查差异及显式提交，不要求人逐段确认。
+
 ## 当前可调用的读取入口
 
 在解压包的 `app/` 目录运行，示例路径替换成真实完整工程：

@@ -72,6 +72,16 @@ def value(page):
     return page.locator('#markdown').evaluate('e=>e.sourceEditor.value')
 
 
+def fold_source(page, *, expand=False):
+    """Reach the requested state through the single visible scope toggle."""
+    button=page.locator('#btn-source-fold')
+    for _ in range(2):
+        state=button.get_attribute('data-fold-state')
+        if button.is_disabled() or state==('expanded' if expand else 'collapsed'):return
+        button.click()
+    page.wait_for_function('desired=>document.querySelector("#btn-source-fold").dataset.foldState===desired',arg='expanded' if expand else 'collapsed')
+
+
 def css_color(page, token):
     """Resolve the canonical theme token, independently of a table/code consumer."""
     return page.evaluate("token=>{const probe=document.createElement('span');probe.style.backgroundColor=`var(--hrs-${token})`;document.body.append(probe);const value=getComputedStyle(probe).backgroundColor;probe.remove();return value;}", token)
@@ -84,11 +94,13 @@ def browser_session():
     executable = Path(os.environ.get('CHROMIUM_PATH', ''))
     if not executable.is_file():
         raise RuntimeError('Browser tests require CHROMIUM_PATH pointing to an installed Chromium executable')
+    launch_options = {'executable_path': str(executable),
+                      'headless': os.environ.get('HRS_TEST_HEADED') != '1'}
     if os.environ.get('HRS_TEST_REUSE_BROWSER') == '1':
         if _shared is None:
             playwright = sync_playwright().start()
             try:
-                browser = playwright.chromium.launch(executable_path=str(executable), headless=True)
+                browser = playwright.chromium.launch(**launch_options)
             except BaseException:
                 playwright.stop()
                 raise
@@ -103,7 +115,7 @@ def browser_session():
                     context.close()
     else:
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(executable_path=str(executable), headless=True)
+            browser = playwright.chromium.launch(**launch_options)
             try:
                 yield browser
             finally:

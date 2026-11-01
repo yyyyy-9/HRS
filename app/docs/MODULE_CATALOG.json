@@ -1,9 +1,115 @@
 {
   "catalog_format": "hrs-module-catalog-v1",
-  "app_baseline": "2.2.0 R1",
+  "app_baseline": "2.3.0 R4",
   "scope": "source tree only; no external report files are opened",
   "caveat": "This is an interface index, not a Python import dependency graph or a DOCX compiler.",
   "items": [
+    {
+      "id": "formula_editor",
+      "path": "web/formula_editor.js",
+      "layer": "source-ui",
+      "responsibility": "Offline visual/LaTeX draft with one bounded session history; original range commit remains in app",
+      "entrypoints": [
+        "open",
+        "load"
+      ],
+      "input": "one formula and source snapshot",
+      "output": "edited TeX or cancel",
+      "side_effects": "dialog-only until apply",
+      "word_pipeline_role": "never-source-of-truth",
+      "bytes": 23733,
+      "sha256": "2ae7c40841faf3e3d3414a0f670d468982cf119b472049dbd8f02f82a335cb03",
+      "review_flags": []
+    },
+    {
+      "id": "section_ranges",
+      "path": "section_operations.py",
+      "layer": "source-range",
+      "responsibility": "Unique heading path and section body range over original IR",
+      "entrypoints": [
+        "sections",
+        "locate",
+        "edit"
+      ],
+      "input": "report_contract IR and declared text",
+      "output": "UTF-16 scoped candidate range",
+      "side_effects": "read-only",
+      "word_pipeline_role": "primary",
+      "bytes": 1932,
+      "sha256": "bda60b3c5609d7512b04dff5b2d6e03a031094c397184edf8a09a6061099e664",
+      "review_flags": []
+    },
+    {
+      "id": "browser_sections",
+      "path": "web/section_operations.js",
+      "layer": "source-range",
+      "responsibility": "Section ranges and single editor transactions over SourceMap",
+      "entrypoints": [
+        "index",
+        "move",
+        "locate",
+        "edit"
+      ],
+      "input": "current source map",
+      "output": "scoped move or edit",
+      "side_effects": "no direct persistence",
+      "word_pipeline_role": "never-source-of-truth",
+      "bytes": 3469,
+      "sha256": "9599a9d787ab2189456616d3f7da9f627db1949a309605eb6631f510c73aac17",
+      "review_flags": []
+    },
+    {
+      "id": "outline_tree",
+      "path": "web/outline_tree.js",
+      "layer": "source-ui",
+      "responsibility": "Nested outline, disclosure and explicit section drag intent",
+      "entrypoints": [
+        "attach"
+      ],
+      "input": "current headings and sections",
+      "output": "navigate or same-level move intent",
+      "side_effects": "DOM only",
+      "word_pipeline_role": "never-source-of-truth",
+      "bytes": 6937,
+      "sha256": "a0688a649024ad96f36dc4c778db122257ace9344658335bfff6b84dff728cb9",
+      "review_flags": []
+    },
+    {
+      "id": "text_snippet_store",
+      "path": "text_snippets.py",
+      "layer": "user-settings",
+      "responsibility": "Validated declarative Markdown snippets in application user data",
+      "entrypoints": [
+        "read",
+        "write",
+        "validate"
+      ],
+      "input": "explicit snippet settings and revision",
+      "output": "persistent snippets with SHA revision",
+      "side_effects": "explicit atomic user-settings write",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 1776,
+      "sha256": "827b74713b7b86a6ee73575baea6ad29d20c438a72e7b0ded4f5a2b0a6a8346c",
+      "review_flags": []
+    },
+    {
+      "id": "text_snippets",
+      "path": "web/text_snippets.js",
+      "layer": "source-ui",
+      "responsibility": "Declarative capture fields and snippet dialog",
+      "entrypoints": [
+        "open",
+        "fields",
+        "expand"
+      ],
+      "input": "explicit Markdown and fields",
+      "output": "draft insertion intent",
+      "side_effects": "no script evaluation",
+      "word_pipeline_role": "never-source-of-truth",
+      "bytes": 4139,
+      "sha256": "be3ad73a9f1c08d241a57b1fc62d3a571dfb7d6bc52a4f8dfc84db8c14cc24fe",
+      "review_flags": []
+    },
     {
       "id": "markdown_file",
       "path": "markdown_file.py",
@@ -130,7 +236,7 @@
       "id": "preview_commit",
       "path": "web/preview_commit.js",
       "layer": "presentation",
-      "responsibility": "reuse unchanged safe prose DOM and keep current source metadata; structural changes retain full rendering",
+      "responsibility": "reuse safe prose and identical local image/math leaves only at accepted commit; new wrappers keep current source metadata",
       "entrypoints": [
         "reusable",
         "commit"
@@ -139,8 +245,8 @@
       "output": "reconciled preview",
       "side_effects": "DOM only",
       "word_pipeline_role": "display-only",
-      "bytes": 1740,
-      "sha256": "88db518542135db52842ad0cca8dd68fb79de34a421bf318f4889dbaf57b9dea",
+      "bytes": 2998,
+      "sha256": "22eb4b8d3aecdfc42125071c11c3df5dd3df55edfafe5337b331788c2fb31b4b",
       "review_flags": []
     },
     {
@@ -192,8 +298,24 @@
       "output": "display decorations and guarded native transactions",
       "side_effects": "same source buffer; no persistence",
       "word_pipeline_role": "secondary",
-      "bytes": 4006,
-      "sha256": "1f951af0734346966acd8b8ca8938881b18b41dd50688e84e2a36cc95156ae6b",
+      "bytes": 6671,
+      "sha256": "51481c47fdeee84cd6d6d333ebef715fe0723b37498d10decb0a4bd46ee1722d",
+      "review_flags": []
+    },
+    {
+      "id": "view_controls",
+      "path": "web/view_controls.js",
+      "layer": "local-view-preferences",
+      "responsibility": "Shared source prose font, wrapping, split layout, scope-derived fold state and preview/reading scale without modifying source or output",
+      "entrypoints": [
+        "attach"
+      ],
+      "input": "canonical view catalog, local storage and original scroll anchors",
+      "output": "local display controls and measured scale stage",
+      "side_effects": "local preferences and DOM only; no source transaction",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 9136,
+      "sha256": "b4ef9a7678517178d09cb6482078f4d77cee0b1f4172076939234cd7e23745c5",
       "review_flags": []
     },
     {
@@ -226,8 +348,8 @@
       "output": "lazy loading and cached image dimensions",
       "side_effects": "temporary DOM/cache only",
       "word_pipeline_role": "display-only",
-      "bytes": 1653,
-      "sha256": "14540d1f7accf8cdf79e324353aad97a4b67f85fd318db5ceae1af9c8b34832d",
+      "bytes": 1810,
+      "sha256": "186464a47f605cedb89764145fcb3c04d9225a61f8d27a4a3c20c6ce021749b1",
       "review_flags": []
     },
     {
@@ -304,8 +426,8 @@
       "output": "validated immutable catalog",
       "side_effects": "read-only",
       "word_pipeline_role": "not-semantic",
-      "bytes": 1658,
-      "sha256": "329d6c0609a906118fac758d175ae9372695ba4e02ccfc7cc1b1996c6ee2d125",
+      "bytes": 2476,
+      "sha256": "142070e325c9a2f24e6829db23fbe3476e3a2f428ce3b6cbc8099c2da1c11b4b",
       "review_flags": []
     },
     {
@@ -320,8 +442,8 @@
       "output": "identical browser catalog",
       "side_effects": "generated only",
       "word_pipeline_role": "not-semantic",
-      "bytes": 2822,
-      "sha256": "058c2873ee3d6977c9ec19b5158599cd88718afe7523e0165077ad79dc8e5084",
+      "bytes": 3284,
+      "sha256": "6e636b87515cbef38d7dd985a15d8adb7e318a00199ecde4fbad25ae5e153882",
       "review_flags": []
     },
     {
@@ -391,8 +513,8 @@
       "output": "validated new source and draft assets",
       "side_effects": "writes draft assets after candidate validation",
       "word_pipeline_role": "indirect",
-      "bytes": 10788,
-      "sha256": "4cb582d23bafa156a959f33d2f2ffa7c59b6419b62a72f0fd5d2ec9d76afbf1c",
+      "bytes": 11357,
+      "sha256": "bb39f505fed45417e14c1243a6ad299229a3fd5fc09cedc96e099dda32eae9c3",
       "review_flags": []
     },
     {
@@ -409,8 +531,8 @@
       "output": "existing editor change transaction",
       "side_effects": "explicit clipboard reads/writes and draft import",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 5571,
-      "sha256": "24246e09716c3231b40ba60dc90373f7819401f0de9370869f8056c8176bdeb1",
+      "bytes": 5681,
+      "sha256": "f877993db102c3d906873ce9941147074b651993d48c8f0dfe04cbdb44c28222",
       "review_flags": []
     },
     {
@@ -515,8 +637,8 @@
       "output": "candidate, diff or explicit commit receipt",
       "side_effects": "plan new files; apply original with shared backup/atomic save",
       "word_pipeline_role": "primary",
-      "bytes": 9343,
-      "sha256": "f33d8d7ad05487b1fd84ef53393f353714631d7ee906e40cf2eea96835015e6b",
+      "bytes": 9881,
+      "sha256": "b6ec8abbca4a087bb12b66882e23039ccbaed2bb5f30f28f7d661506045a56aa",
       "review_flags": []
     },
     {
@@ -674,8 +796,8 @@
       "output": "shared screen, print and help CSS component rules",
       "side_effects": "CSS only",
       "word_pipeline_role": "not-semantic",
-      "bytes": 12856,
-      "sha256": "991110ba329a175c02f21171349aa4c786e52e25c1055db0f39e97066b8d1366",
+      "bytes": 17584,
+      "sha256": "80ac4dfbeb71bb857310bfcbf3d7a7459722fcbdf39bcfe022f5bf529362a34a",
       "review_flags": []
     },
     {
@@ -779,8 +901,8 @@
       "output": "JSON API / binary resources",
       "side_effects": "reads/writes projects and drafts",
       "word_pipeline_role": "do-not-import",
-      "bytes": 124286,
-      "sha256": "5d0e549a0f59ec77190179e13005ede84aa44362ccff6271e64ccc1952e999f6",
+      "bytes": 124724,
+      "sha256": "d027385c714bf5ea3481388b7ece3fa076d079bc0247b909a9297d56fc8300a9",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -1064,8 +1186,8 @@
       "output": "visual preview and UI events",
       "side_effects": "modifies editor state via explicit action",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 244266,
-      "sha256": "dd37810ad623c68ab828b4e9ca67e5eb294826a8d0a85a5a6cb76c516746b2ff",
+      "bytes": 250541,
+      "sha256": "9bc2b99d43f20f95d9d2885f59c0496df5a9eb2fed166e07ec33818b703b2fa4",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -1202,14 +1324,16 @@
         "taskRanges",
         "listFrames",
         "textFrame",
-        "replaceNormalizedText"
+        "replaceNormalizedText",
+        "inlineOffsets",
+        "deindentCode"
       ],
       "input": "Markdown / Marked tokens",
-      "output": "source ranges",
+      "output": "source ranges and explicit single-block conversion text",
       "side_effects": "read-only until UI applies edit",
       "word_pipeline_role": "reference",
-      "bytes": 12059,
-      "sha256": "b2cf57887d266338a2a49de0436e31c25271c382c138e0c102eae276599ad236",
+      "bytes": 14228,
+      "sha256": "a7e9677ba1c0ad2092da765ec3c752a487a1222fb881c112e2d50f6de56a3634",
       "review_flags": []
     },
     {
@@ -1280,8 +1404,8 @@
       "output": "user decision (boolean)",
       "side_effects": "temporary DOM only",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 3190,
-      "sha256": "7e54866f1f8e16fd0b8435bb2c85ba4131493a678172326d5c764fdf228aa4c6",
+      "bytes": 3217,
+      "sha256": "a966ac804f905c15b26be3a2203d88e25eb15bf9add968ba3e411a3918f3547e",
       "review_flags": []
     },
     {
@@ -1349,8 +1473,8 @@
       "output": "highlight spans",
       "side_effects": "read-only visual",
       "word_pipeline_role": "exclude",
-      "bytes": 15822,
-      "sha256": "7bee268f5473f338d22c142726c1bfccd2dc9ddaf3edf80a1a4652deb80a6f71",
+      "bytes": 16012,
+      "sha256": "6fad82510375b99710ef914c09124a72fbe340459f5b0f4a862f242ea1270db2",
       "review_flags": []
     },
     {
@@ -1526,8 +1650,8 @@
       "output": "navigation, copy and zoom controls",
       "side_effects": "DOM only: never mutates source JSON or Markdown",
       "word_pipeline_role": "exclude",
-      "bytes": 56337,
-      "sha256": "302c3ad5d40c53a881a3d1e22d89abc3a01e738157d7e549634e8e2fb260dbc7",
+      "bytes": 56799,
+      "sha256": "f7f6939204542c6bc6c73d4a4a1a57504ee287666baa68ac33f121fd706d692b",
       "review_flags": []
     },
     {
@@ -1585,8 +1709,8 @@
       "output": "CSS layout",
       "side_effects": "CSS only",
       "word_pipeline_role": "not-semantic",
-      "bytes": 67322,
-      "sha256": "800d46db790aafc6b895e4e2b089a09205536bed563ffaeb71070b50a8d54231",
+      "bytes": 68835,
+      "sha256": "4a651d4333ffa480278c080c98cad609e0e1c1f0ae673ad6e73717d88a6d24ec",
       "review_flags": []
     },
     {
@@ -1636,8 +1760,8 @@
       "output": "equation token",
       "side_effects": "read-only helpers",
       "word_pipeline_role": "reference",
-      "bytes": 2237,
-      "sha256": "6280d7027c00fb88ac81e179aa255e7c944452fb026d96c160d4c69e30ad4fed",
+      "bytes": 3474,
+      "sha256": "e9ddd76e5d6e10c5d218c4a961d97394590c76e8c3ab6afd5157aa1117ebffb7",
       "review_flags": []
     },
     {
@@ -1650,8 +1774,8 @@
       "output": "editor DOM and source text",
       "side_effects": "browser only",
       "word_pipeline_role": "exclude",
-      "bytes": 293529,
-      "sha256": "e049d21014154e9cc579843e36307b5de90834a6911445848d2488953b6c0c9f",
+      "bytes": 293591,
+      "sha256": "5fa0fbba0de7985c3fe75b26d370001404e949e41550564fb7f1fa47af2cb5fd",
       "review_flags": []
     }
   ]

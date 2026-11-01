@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Word 数据交接 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="837fb40936ced7e359caa591cec7e7676c1a8562c5b43971770e67ed29e36105"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Word 数据交接 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="bc2c817e9f15a55e8c9f0d71edc0883c9ffe44fb1771105dcc50abe3c0bb2b41"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -404,6 +404,58 @@ body{max-width:none!important;width:auto;padding:0!important;margin:0!important;
  * exported single-file HTML and generated help. No JS data/IR mutations.
  */
 .hrs-blank-space {display:block;height:calc(var(--hrs-blank-lines) * var(--hrs-blank-line-height));margin:0;padding:0;pointer-events:none;}
+.preview-copy-markdown {margin-left:auto;flex-shrink:0;white-space:nowrap;}
+.cm-hf8-equation-line{background:var(--hrs-table-stripe,var(--hrs-pane));border-left:2px solid var(--hrs-line);}
+.equation-number{position:relative;color:inherit;}
+.equation-number[data-typeset="1"]>.equation-number-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}
+.equation-number>svg{display:block;max-width:100%;}
+/* The surrounding paragraph rhythm supplies the block gap; small formulas
+ * need no fixed-height blank area. Shared by preview and offline output. */
+.report-equation{margin:14px 0;}
+.report-equation>.markdown-math.math-display{margin:0;min-height:0;padding:8px 6px;}
+.formula-editor textarea{display:block;width:100%;height:140px;min-height:120px;box-sizing:border-box;font-family:Consolas,monospace;}
+.formula-visual{min-height:70px;margin:8px 0;}
+.formula-visual math-field{display:block;width:100%;box-sizing:border-box;padding:14px;font-size:26px;background:var(--hrs-paper);color:var(--hrs-ink);border:1px solid var(--hrs-line);border-radius:6px;--selection-background-color:var(--hrs-brand);--selection-color:var(--hrs-on-brand);--caret-color:var(--hrs-brand);--contains-highlight-background-color:var(--hrs-brand-tint);}
+.formula-visual math-field:focus-within{outline:2px solid var(--hrs-brand);outline-offset:1px;}
+.formula-selection-tools{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin:6px 0;}
+.formula-selection-tools span{margin-right:auto;font-size:11px;color:var(--hrs-muted);}
+.formula-visual math-field::part(menu-toggle){display:none;}
+.formula-visual math-field::part(virtual-keyboard-toggle){display:none;}
+.formula-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:5px;margin:10px 0;}
+.formula-tools .formula-structure{height:auto;min-height:86px;padding:7px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-color:var(--hrs-line);font-size:11px;line-height:1.4;}
+.formula-structure-sample{height:46px;width:100%;display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;pointer-events:none;}
+.formula-structure-sample svg{max-width:100%;max-height:46px;width:auto;height:auto;}
+.formula-layout-tools{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:7px 0 12px;}
+.formula-layout-tools button{min-height:28px;padding:3px 9px;font-size:12px;}
+.formula-layout-hint{font-size:11px;line-height:1.6;color:var(--hrs-muted);flex:1 1 300px;}
+.formula-source-details{margin:2px 0 12px;}
+.formula-source-details>summary{cursor:pointer;font-size:12px;color:var(--hrs-text);margin-bottom:7px;}
+.formula-editor .formula-source-details textarea{height:110px;min-height:80px;}
+.formula-preview-title{font-size:11px;color:var(--hrs-muted);}
+.formula-editor .formula-final-preview{margin-top:5px;}
+.formula-final-preview{overflow:auto;max-height:220px;}
+.toc-level-control{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:4px 8px;font-size:11px;flex-shrink:0;}
+.toc-level-control select{max-width:130px;color:var(--hrs-ink);background:var(--hrs-paper);border:1px solid var(--hrs-line);border-radius:4px;}
+.toc-tree .toc-children{list-style:none;margin:0;padding:0 0 0 12px;}
+.toc-tree>.toc-children{padding-left:0;}
+.toc-tree .toc-children[hidden]{display:none;}
+.toc-tree .toc-row{display:grid;grid-template-columns:14px minmax(0,1fr) 14px;align-items:start;gap:2px;border-top:2px solid transparent;border-bottom:2px solid transparent;}
+.toc-tree .toc-row>a{grid-column:2;min-width:0;padding:5px 2px;}
+.toc-toggle,.toc-grip{flex:none;min-width:14px;padding:5px 0;border:0;background:transparent;color:var(--hrs-muted);cursor:pointer;}
+.toc-tree .toc-toggle{grid-column:1;}
+.toc-tree .toc-grip{grid-column:3;}
+.toc-grip{cursor:grab;opacity:.45;touch-action:none;}
+.toc-row:hover>.toc-grip,.toc-grip:focus{opacity:1;}
+.toc-drop-before{border-top-color:var(--hrs-brand)!important;}
+.toc-drop-after{border-bottom-color:var(--hrs-brand)!important;}
+.toc-dragging>.toc-row{opacity:.5;}
+.source-snippets{font-size:11px;}
+@media(max-width:1350px){.source-pane .pane-hint{display:none;}}
+.snippet-fields{display:flex;flex-wrap:wrap;gap:10px;}
+.snippet-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px;}
+.edit-layout.reading .report-figure-wrap,.edit-layout.reading .report-table-wrap,.edit-layout.reading .mermaid-card{cursor:default;}
+.edit-layout.reading .report-figure-wrap:hover,.edit-layout.reading .report-table-wrap:hover,.edit-layout.reading .mermaid-card:hover{outline:0;box-shadow:none;}
+.preview-pane .pane-hint {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 img.hrs-image-pending {aspect-ratio:var(--hrs-image-placeholder-ratio);width:100%;object-fit:contain;}
 .report-table-wrap {
   position: relative;
@@ -589,7 +641,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.2.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">输出模式与模板角色</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.3.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">输出模式与模板角色</a>
 <a class="level2" href="#section-3">编辑入口与源稿提交</a>
 <a class="level2" href="#section-4">笔记降级边界</a>
 <a class="level2" href="#section-5">项目分工与内容来源</a>
@@ -623,6 +675,11 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <p>下游应读取 <strong><code>report.md</code>、<code>assets/</code> 和 <code>report_contract.py</code> 派生的 IR</strong>。稳定身份、显示编号与输出样式分别管理；阅读按钮、目录、高亮、代码卡片、折叠和 MathJax SVG 都是显示结果，不能作为 Word 的语义输入。</p>
 <p>双向转换可以共用现行语义契约。自身生成 Word 可由下游保留对象 ID/书签等身份信息；外部规范文档可利用原生样式和对象；混乱排版存在歧义，必须报告或保留无法表达的信息，不承诺任意 Word 布局无损往返。编辑器不为此强制普通段落 JSON 化或增加 ID。</p>
 <p>独立 <code>hrs-wps-bridge</code> 试用包已消费当前 IR/Marked、HTML 薄入口和 WPS Scanner/真实母模板，提供固定样本的受限转换。其 DOCX 伴随派生映射保留 HRS 身份与原策略；当前原生内容发生修改时重新读取，不用旧快照覆盖。WPS 保存会重写样式 ID 并丢弃自定义 XML，具体承载、依赖、运行命令及拒绝边界以该独立包 README 为准，不修改本页上游契约。</p>
+<p>按章节追加仍先读取源 SHA，再准备任意 Markdown 内容和候选差异：</p>
+<pre><code class="language-powershell">python block_cli.py plan D:\Reports\demo --section &quot;实验报告&quot; --section &quot;结果&quot; --operation append --expect-sha256 &lt;源SHA-256&gt; --text-file D:\Reports\results.md --output D:\Reports\section-plan.json
+python block_cli.py apply D:\Reports\section-plan.json --expect-plan-sha256 &lt;plan返回的SHA-256&gt;
+</code></pre>
+<p><code>--section</code> 可重复形成精确标题路径；唯一短标题也可。操作可用 append、prepend 或 replace-body。章节正文包含其下级标题，replace-body 保留当前标题；已有 ID、数字与技术内容由提供的 Markdown 决定，不自动猜改。Agent 可在已授权任务内完成读取、生成候选、检查差异及显式提交，不要求人逐段确认。</p>
 <h2 id="section-6">当前可调用的读取入口</h2>
 <p>在解压包的 <code>app/</code> 目录运行，示例路径替换成真实完整工程：</p>
 <pre><code class="language-powershell">python report_contract.py validate D:\Reports\demo\report.md --json
@@ -736,6 +793,34 @@ python tools/audit_modules.py --check
 'use strict';
 const data={
   "schema": "hrs-product-settings-v1",
+  "view_options": {
+    "storage_key": "hrs-view-options-v1",
+    "source_font_size": {
+      "default": 13,
+      "min": 11,
+      "max": 22,
+      "step": 1
+    },
+    "source_wrap": {
+      "default": true
+    },
+    "source_ratio": {
+      "default": 50,
+      "min": 30,
+      "max": 70,
+      "step": 2
+    },
+    "preview_zoom": {
+      "default": 100,
+      "choices": [
+        100,
+        125,
+        150,
+        175,
+        200
+      ]
+    }
+  },
   "render_profiles": {
     "default": "free",
     "choices": [

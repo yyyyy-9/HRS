@@ -1,6 +1,10 @@
 # HTML Report Studio 模块说明
 
+公式编辑由 formula_editor.js 惰性加载离线 MathLive，等待数学字体就绪后显示；双向同步仅存在于弹窗草稿，孤立上下标拖选使用组件公开选区接口保留其容器，原 MathJax 继续负责输出。report_equations.presentation 只处理显示副本的显式 tag。section_operations（Python/JavaScript）各自消费已有 IR/SourceMap，提供章节范围与操作，不新增 Markdown 解析器。outline_tree 只在树结构变化时重建节点，普通输入更新位置与文字；阅读视图不发出移动意图。text_snippets 以受限声明式内容存储在用户数据区，插入复用对象粘贴。引用使用原定位链，不维护额外的前端反向使用索引。
+
 ## 统一定义与派生缓存
+
+编辑器字号、自动折行和预览/阅读显示比例归本机视图偏好，与文稿render_options分开；统一选择范围和默认值由product_settings提供。视图适配复用CodeMirror公开扩展、SourceBlocks/SourceMap的原范围和原滚动锚点，字号仅作用正文/标题，缩放层在导出article之外；不改源文、历史、资源、编号或输出模型。公式结构样例复用惰性弹窗与原MathJax缓存，不为每个按钮创建可视编辑器；实际间距/换行仍以TeX进入原公式提交事务。
 
 `release.json`只维护产品版本和包修订，`release_info.py`派生服务、构建与帮助使用的身份；运行界面从health读取同一结果。协议schema和安全信任摘要有独立生命周期，不随产品发布机械变更。
 

@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>当前版本状态 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="9378b76d955eec5fc944810339d7d6ba64aa6d141b4bc0cce6ad5a7cbb39abd8"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>当前版本状态 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="9ce6aae112d4a4d02058fad12c4decaee54e87d683c053228e56f8e614a24f4c"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -404,6 +404,58 @@ body{max-width:none!important;width:auto;padding:0!important;margin:0!important;
  * exported single-file HTML and generated help. No JS data/IR mutations.
  */
 .hrs-blank-space {display:block;height:calc(var(--hrs-blank-lines) * var(--hrs-blank-line-height));margin:0;padding:0;pointer-events:none;}
+.preview-copy-markdown {margin-left:auto;flex-shrink:0;white-space:nowrap;}
+.cm-hf8-equation-line{background:var(--hrs-table-stripe,var(--hrs-pane));border-left:2px solid var(--hrs-line);}
+.equation-number{position:relative;color:inherit;}
+.equation-number[data-typeset="1"]>.equation-number-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}
+.equation-number>svg{display:block;max-width:100%;}
+/* The surrounding paragraph rhythm supplies the block gap; small formulas
+ * need no fixed-height blank area. Shared by preview and offline output. */
+.report-equation{margin:14px 0;}
+.report-equation>.markdown-math.math-display{margin:0;min-height:0;padding:8px 6px;}
+.formula-editor textarea{display:block;width:100%;height:140px;min-height:120px;box-sizing:border-box;font-family:Consolas,monospace;}
+.formula-visual{min-height:70px;margin:8px 0;}
+.formula-visual math-field{display:block;width:100%;box-sizing:border-box;padding:14px;font-size:26px;background:var(--hrs-paper);color:var(--hrs-ink);border:1px solid var(--hrs-line);border-radius:6px;--selection-background-color:var(--hrs-brand);--selection-color:var(--hrs-on-brand);--caret-color:var(--hrs-brand);--contains-highlight-background-color:var(--hrs-brand-tint);}
+.formula-visual math-field:focus-within{outline:2px solid var(--hrs-brand);outline-offset:1px;}
+.formula-selection-tools{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin:6px 0;}
+.formula-selection-tools span{margin-right:auto;font-size:11px;color:var(--hrs-muted);}
+.formula-visual math-field::part(menu-toggle){display:none;}
+.formula-visual math-field::part(virtual-keyboard-toggle){display:none;}
+.formula-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:5px;margin:10px 0;}
+.formula-tools .formula-structure{height:auto;min-height:86px;padding:7px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-color:var(--hrs-line);font-size:11px;line-height:1.4;}
+.formula-structure-sample{height:46px;width:100%;display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;pointer-events:none;}
+.formula-structure-sample svg{max-width:100%;max-height:46px;width:auto;height:auto;}
+.formula-layout-tools{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:7px 0 12px;}
+.formula-layout-tools button{min-height:28px;padding:3px 9px;font-size:12px;}
+.formula-layout-hint{font-size:11px;line-height:1.6;color:var(--hrs-muted);flex:1 1 300px;}
+.formula-source-details{margin:2px 0 12px;}
+.formula-source-details>summary{cursor:pointer;font-size:12px;color:var(--hrs-text);margin-bottom:7px;}
+.formula-editor .formula-source-details textarea{height:110px;min-height:80px;}
+.formula-preview-title{font-size:11px;color:var(--hrs-muted);}
+.formula-editor .formula-final-preview{margin-top:5px;}
+.formula-final-preview{overflow:auto;max-height:220px;}
+.toc-level-control{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:4px 8px;font-size:11px;flex-shrink:0;}
+.toc-level-control select{max-width:130px;color:var(--hrs-ink);background:var(--hrs-paper);border:1px solid var(--hrs-line);border-radius:4px;}
+.toc-tree .toc-children{list-style:none;margin:0;padding:0 0 0 12px;}
+.toc-tree>.toc-children{padding-left:0;}
+.toc-tree .toc-children[hidden]{display:none;}
+.toc-tree .toc-row{display:grid;grid-template-columns:14px minmax(0,1fr) 14px;align-items:start;gap:2px;border-top:2px solid transparent;border-bottom:2px solid transparent;}
+.toc-tree .toc-row>a{grid-column:2;min-width:0;padding:5px 2px;}
+.toc-toggle,.toc-grip{flex:none;min-width:14px;padding:5px 0;border:0;background:transparent;color:var(--hrs-muted);cursor:pointer;}
+.toc-tree .toc-toggle{grid-column:1;}
+.toc-tree .toc-grip{grid-column:3;}
+.toc-grip{cursor:grab;opacity:.45;touch-action:none;}
+.toc-row:hover>.toc-grip,.toc-grip:focus{opacity:1;}
+.toc-drop-before{border-top-color:var(--hrs-brand)!important;}
+.toc-drop-after{border-bottom-color:var(--hrs-brand)!important;}
+.toc-dragging>.toc-row{opacity:.5;}
+.source-snippets{font-size:11px;}
+@media(max-width:1350px){.source-pane .pane-hint{display:none;}}
+.snippet-fields{display:flex;flex-wrap:wrap;gap:10px;}
+.snippet-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px;}
+.edit-layout.reading .report-figure-wrap,.edit-layout.reading .report-table-wrap,.edit-layout.reading .mermaid-card{cursor:default;}
+.edit-layout.reading .report-figure-wrap:hover,.edit-layout.reading .report-table-wrap:hover,.edit-layout.reading .mermaid-card:hover{outline:0;box-shadow:none;}
+.preview-pane .pane-hint {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 img.hrs-image-pending {aspect-ratio:var(--hrs-image-placeholder-ratio);width:100%;object-fit:contain;}
 .report-table-wrap {
   position: relative;
@@ -589,12 +641,18 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.2.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">编辑与文稿</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.3.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">编辑与文稿</a>
 <a class="level2" href="#section-3">HTML与Word</a>
 <a class="level2" href="#section-4">程序接口</a>
 <a class="level2" href="#section-5">支持范围</a></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">当前状态</h1>
 <p>产品版本和包修订统一读取release.json。HRS提供浏览器形式和标准Python安装，共用同一app核心。Word组件和模板工具的对应源码分别见components与template-tool。</p>
+<p>公式弹窗提供离线 MathLive 可视输入与 LaTeX 双向同步，分式、上下标、矩阵和对齐等结构可直接编辑；宏定义及不支持的写法保留源码输入。源稿、编号和输出仍由原模型持有，未编辑应用/取消不改写原文。块公式源码范围可见，插入即选择，复制沿统一身份映射。预览及 HTML 旧 tag 不产生重复号，Word 继续遵守工程快照的公式编号开关。</p>
+<p>公式结构有数学样例和中文名称，分段函数/等号对齐使用两行模板；窄/宽空格写入实际TeX，多行结构可新增行，普通行间公式可显式保留原式转为多行。不把普通空格或源码Enter误当数学换行，不静默改变行内公式类型。标题栏撤销/重做统一覆盖源码、可视输入和结构操作，只持有本次窗口最近100步；原稿与窗口历史分离，应用仍是一笔文稿事务。源码正文/标题字号和预览/阅读100%至200%显示比例为本机偏好，受保护源块/折叠卡片字号及文稿/导出排版独立；自动折行在目录栏，折叠/展开为随当前范围实际状态变化的单按钮。左栏直接从最近打开开始，不重复显示静态本机运行卡片。</p>
+<p>目录提供层级树、快速折叠及同级整节拖动，同级条目有无下级标题占用相同的箭头栏。Markdown 片段支持显式字段/日期/光标和按节追加，保存在应用数据区，不运行代码。引用沿现有链接定位，不提供源码悬浮窗或使用位置窗口。Agent 可按唯一标题路径对章节正文 append/prepend/replace-body，继续使用原 plan/apply 全文摘要、锁、备份、原子提交，范围外字节保持。</p>
+<p>编辑器中的阅读视图只读，图表、公式和题注不打开编辑窗口，任务框与目录移动、文稿撤销/重做不可用；导航、链接、放大和复制保留。可视公式等待字体加载后接受命中操作，字形及选区更清晰；孤立上下标的拖选替换保留其层级，其他结构沿原数学模型。短块公式不再使用固定最小高度，预览与离线HTML共享段距；普通长英文的单词换行保持浏览器行为。</p>
 <h2 id="section-2">编辑与文稿</h2>
+<p>同一文稿连续预览时，本地图片和公式SVG在内容、资源地址及显示属性完全一致时复用显示节点；编号、题注、引用和源码范围由新外层节点承载。切换文稿/模式或清空资源缓存后重新构建。仍使用原完整解析与暂存渲染，不承诺任意长稿局部渲染或完全消除浏览器重绘。</p>
+<p>分屏/阅读选区可显式复制Markdown；普通文字保留源位置，复杂结构或格式端点复制完整源码块，附件复用原对象剪贴板。缩进代码显示原因并提供只作用于当前顶层块、可撤销的“转为正文”；标准Markdown语法及列表/脚注续行保持。</p>
 <p>支持自由笔记、工程报告、Markdown源编辑、分屏预览及阅读。自由笔记按H1聚焦时，目录只列本专题，章节/图表/公式按专题派生编号，返回全部恢复全文；显示开关、全文ID和引用定位分开管理。工程章节号在标题文字编辑范围之外；普通Mermaid可在原编辑窗口填写图题。图表对象、脚注、引用、公式、查找、恢复草稿和附件管理使用同一源模型。Windows文件/文件夹链接显式点击后交系统打开，未保存稿不猜相对路径基准。</p>
 <p>工程report.md和assets是内容真源；无附件Markdown可从“直接编辑Markdown”原位保存，以原文件为唯一正文。HTML/PDF输出同目录，设置/草稿/备份在应用数据区；新增行在保存时统一到原换行模式，BOM及非空稿件原有末尾换行保留，实际正文同步缓冲/savedMd及UTF-16选区。原本无末尾换行的稿件不强加；外部修改冲突保护复用原提交链。添加附件或Word操作先显式另存新工程，原文件保留。预览与离线HTML的连续引用行均保留换行。保存导入的独立本地图片时创建正常图片对象。临时工程稿可独立检查和编译，回写须先查看差异并显式提交；来源或附件变化时拒绝覆盖。</p>
 <p>Mermaid源文由完整本地Pele1.10.0渲染，预览、编辑和阅读包共用；布局缓存与主题颜色分离，图内公式沿原MathJax排版，HTML保留主题变量及独立字形，PDF/Word图形固定最终配色。对象、编号、回编原文、A0及Bridge页面模型保持。兼容目标为Mermaid12.1；主题指令、HTML标签、脚本回调和布局差异见手册。基本流程图支持拖动及旧%% pos位置，连线同步、应用/取消、撤销、保存重开与输出保持；自动布局可清除手动位置。</p>
@@ -613,7 +671,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <p>plan只产生候选和差异，apply必须显式携带审查摘要，重新核对源稿、范围和资源，复用锁、备份及原子保存。程序不内置模型API客户端，不执行文稿中的代码。</p>
 <h2 id="section-5">支持范围</h2>
 <p>Windows浏览器便携包使用本地Chromium系浏览器。桌面宿主源码与浏览器共用核心；窗口、剪贴板、打印和办公软件页面按相应集成测试验证。</p>
-<p>任意Word/HTML无损双向转换、跨来源混合合稿和复杂编辑后回编仍按<a href="LONG_TERM_ROADMAP.html">长期路线</a>逐项扩展。旧浏览器输入时可能出现图片重绘，优化安排见<a href="SHORT_TERM_PLAN.html">短期计划</a>。</p>
+<p>任意Word/HTML无损双向转换、跨来源混合合稿和复杂编辑后回编仍按<a href="LONG_TERM_ROADMAP.html">长期路线</a>逐项扩展。浏览器兼容目标保持Chrome112/Edge92；系统剪贴板、办公软件和实际旧系统环境的边界分别验收，不能以DOM复用保证所有硬件上不闪烁。</p>
 <p>标准wheel/sdist以hrstudio为安装分发名，命令仍为hrs，模块为html_report_studio；Python/Conda元数据与公开tag使用同一版本。v1 Conda配方从相同元数据生成，本地与提交版仅来源位置不同。PyPI尚未上传，conda-forge公开安装须等配方审核及频道构建完成；PR本身不等于已发布。自有代码使用GPL-3.0-or-later，依赖和文稿权利见随包LICENSING.md。</p>
 <p>相关入口：<a href="HISTORY_INDEX.md">发行记录</a> · <a href="CHANGELOG_READABLE.html">发行说明</a> · <a href="SHORT_TERM_PLAN.html">短期计划</a>。</p>
 <p>所有Markdown/增强表、普通/对象Mermaid及块公式使用公共编号，源语法不区分是否带号。工程章号/图表号固定，公式由文档选项控制；身份与题名独立。公式粘贴的格式边界见手册。</p>
@@ -624,6 +682,34 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 'use strict';
 const data={
   "schema": "hrs-product-settings-v1",
+  "view_options": {
+    "storage_key": "hrs-view-options-v1",
+    "source_font_size": {
+      "default": 13,
+      "min": 11,
+      "max": 22,
+      "step": 1
+    },
+    "source_wrap": {
+      "default": true
+    },
+    "source_ratio": {
+      "default": 50,
+      "min": 30,
+      "max": 70,
+      "step": 2
+    },
+    "preview_zoom": {
+      "default": 100,
+      "choices": [
+        100,
+        125,
+        150,
+        175,
+        200
+      ]
+    }
+  },
   "render_profiles": {
     "default": "free",
     "choices": [

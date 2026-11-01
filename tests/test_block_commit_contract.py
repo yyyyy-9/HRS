@@ -15,6 +15,22 @@ class BlockCommit(unittest.TestCase):
   self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.root=Path(self.tmp.name).resolve()
   self.project=self.root/'project';(self.project/'assets').mkdir(parents=True)
   self.file=self.project/'report.md';self.raw=('\ufeff# 报告 😀\r\n\r\n'+table()+'\r\n见 @tbl:tbl-one。\r\n尾部 `\\` $ 和 < >。\r\n').encode('utf8');self.file.write_bytes(self.raw)
+ def test_section_plan_relocates_exact_path_and_preserves_other_sections(self):
+  raw='\ufeff# 甲\r\n\r\n## 结果\r\n\r\n旧结果😀。\r\n\r\n# 乙\r\n\r\n## 结果\r\n\r\n保留。\r\n'
+  self.file.write_bytes(raw.encode())
+  with self.assertRaisesRegex(ValueError,'AMBIGUOUS_SECTION'):plan(self.file,sha(raw.encode()),'新增',section=['结果'],operation='append')
+  result,candidate=plan(self.file,sha(raw.encode()),'测量 $x=2$。\n第二行。\n',section=['甲','结果'],operation='append')
+  self.assertEqual(candidate.decode(),raw.replace('# 乙','测量 $x=2$。\r\n第二行。\r\n\r\n# 乙',1))
+  path=self.root/'section.json';receipt=write_plan(path,result,candidate);out=apply_plan(path,receipt['plan_sha256'])
+  self.assertEqual(self.file.read_bytes(),candidate);self.assertEqual(Path(out['backup']).read_bytes(),raw.encode())
+ def test_section_prepend_replace_and_rejected_missing_reference(self):
+  raw='# 文章\n\n## 结果 {#sec-result}\n\n旧内容。\n\n## 结论\n\n保留。\n';self.file.write_bytes(raw.encode())
+  for operation in ('prepend','replace-body'):
+   result,candidate=plan(self.file,sha(raw.encode()),'新内容。\n',section=['结果'],operation=operation)
+   self.assertTrue(candidate.startswith(b'# '));self.assertTrue(candidate.decode().endswith('## 结论\n\n保留。\n'))
+   self.assertIn('旧内容',candidate.decode()) if operation=='prepend' else self.assertNotIn('旧内容',candidate.decode())
+  with self.assertRaisesRegex(ValueError,'MISSING_REFERENCE'):plan(self.file,sha(raw.encode()),'见 @fig:fig-absent',section=['结果'],operation='append')
+  self.assertEqual(self.file.read_bytes(),raw.encode())
  def create(self,replacement=None,operation='replace'):
   result,candidate=plan(self.project,sha(self.raw),table('新题') if replacement is None else replacement,object_id='tbl-one',operation=operation)
   path=self.root/'plan.json';receipt=write_plan(path,result,candidate);return path,receipt,candidate

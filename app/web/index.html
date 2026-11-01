@@ -52,6 +52,7 @@
   <script src="/web/object_clipboard.js" defer></script>
   <script src="/web/rich_clipboard.js" defer></script>
   <script src="/web/report_equations.js" defer></script>
+  <script src="/web/formula_editor.js" defer></script>
   <script src="/web/source_map.js" defer></script>
   <script src="/web/scroll_follow.js" defer></script>
   <script src="/web/code_highlight.js" defer></script>
@@ -60,8 +61,12 @@
   <script src="/web/source_projection.js" defer></script>
   <script src="/web/draft_snapshot.js" defer></script>
   <script src="/web/product_settings.js" defer></script>
+  <script src="/web/view_controls.js" defer></script>
   <script src="/web/render_profile.js" defer></script>
   <script src="/web/notebook_view.js" defer></script>
+  <script src="/web/section_operations.js" defer></script>
+  <script src="/web/outline_tree.js" defer></script>
+  <script src="/web/text_snippets.js" defer></script>
   <script src="/web/preview_images.js" defer></script>
   <script src="/web/color_theme.js" defer></script>
   <script src="/web/export_archive.js" defer></script>
@@ -126,17 +131,14 @@
     </header>
     <div class="shell">
       <aside class="sidebar">
-        <div class="side-section">
-          <div class="section-title">工作台 <span>本机</span></div>
-          <div class="side-card"><span class="local-dot"></span><div><b>本机运行</b><small>数据不经过外部服务器</small></div></div>
-        </div>
         <div class="side-section recent-section">
           <div class="section-title">最近打开 <button id="btn-recent" title="刷新最近文档">↻</button></div>
           <div id="recent-list" class="recent-list muted">读取中…</div>
         </div>
         <div class="side-section grow toc-section">
           <div class="section-title">文档目录 <button id="btn-rebuild-toc" title="刷新目录">↻</button></div>
-          <div id="topic-controls" hidden><label for="topic-select">查看范围</label><select id="topic-select" aria-label="查看专题"><option value="">全部专题</option></select><label class="topic-space-option"><input id="preserve-blank-lines" type="checkbox"><span data-render-option-label="preserve_blank_lines"></span></label></div>
+          <div id="topic-controls" hidden><label for="topic-select">查看范围</label><select id="topic-select" aria-label="查看专题"><option value="">全部专题</option></select></div>
+          <div class="source-display-options"><label class="topic-space-option" id="blank-lines-option"><input id="preserve-blank-lines" type="checkbox"><span data-render-option-label="preserve_blank_lines"></span></label><label class="source-wrap-control" title="只在屏幕上折行，不改变 Markdown 源文"><input id="source-wrap" type="checkbox" checked>自动折行</label></div>
           <nav id="toc" class="toc"><span class="muted">等待载入…</span></nav>
         </div>
         <div class="side-section side-footer">
@@ -247,15 +249,15 @@
         <section id="report-workspace-bar" class="report-workspace-bar" hidden><strong>临时工程工作页</strong><span id="report-workspace-origin"></span><button id="btn-workspace-check" class="tool">检查本稿</button><button id="btn-workspace-export" class="tool">导出 Word</button><button id="btn-workspace-sync" class="tool" disabled>同步回源稿…</button><details class="top-menu" id="menu-workspace"><summary class="tool top-menu-trigger">整理临时稿 ▾</summary><div class="top-menu-list align-right"><button id="btn-workspace-save" class="menu-item"><b>保存为独立工程…</b><small>新建目录与身份，保留原临时稿</small></button><button id="btn-workspace-archive" class="menu-item"><b>归档本稿</b><small>从常用列表收起，可在准备窗口继续</small></button><button id="btn-workspace-trash" class="menu-item"><b>移入回收站</b><small>保留附件和草稿，可恢复</small></button></div></details><button id="btn-workspace-return" class="tool">返回原台账</button></section>
         <div class="edit-layout split" id="edit-layout">
           <section class="source-pane" id="source-pane">
-            <div class="pane-title"><span class="pane-icon">⌘</span> Markdown 源码 <span class="pane-hint">Ctrl + 单击定位预览</span><label class="source-wrap-control" title="只在屏幕上折行，不改变 Markdown 源文"><input id="source-wrap" type="checkbox" checked>自动折行</label><button id="btn-fold-all" class="source-fold-tool" title="收起围栏代码块">全部折叠</button><button id="btn-unfold-all" class="source-fold-tool" title="展开完整源码">全部展开</button></div>
+            <div class="pane-title"><span class="pane-icon">⌘</span> Markdown 源码 <span class="pane-hint">Ctrl + 单击定位预览</span><div class="source-header-actions"><div class="source-font-controls" role="group" aria-label="源码正文字号"><button id="source-font-decrease" class="source-fold-tool" type="button" aria-label="缩小源码正文字号" title="缩小源码正文与标题；代码和对象保持原字号">A−</button><output id="source-font-value" aria-live="polite"></output><button id="source-font-increase" class="source-fold-tool" type="button" aria-label="增大源码正文字号" title="增大源码正文与标题；代码和对象保持原字号">A＋</button></div><button id="btn-source-fold" class="source-fold-tool" type="button" disabled>折叠</button><button id="btn-snippets" class="source-snippets source-fold-tool" title="插入片段或快速记录 · Ctrl+Alt+Q">片段 / 快速记录</button></div></div>
             <textarea id="markdown" spellcheck="false" placeholder="# 在这里输入 Markdown 文档…" aria-label="Markdown 源码"></textarea>
             <details id="source-notes" class="source-notes" hidden><summary id="source-notes-title">本稿注释与参考</summary><p>这里编辑脚注定义；正文继续在上方编写。单击条目定位预览，编辑只修改对应定义。</p><div id="source-notes-list"></div></details>
             <div class="editor-foot" id="source-stats">0 字符</div>
           </section>
           <div id="split-divider" class="split-divider" role="separator" aria-label="调整源码与预览宽度" aria-orientation="vertical" aria-valuemin="30" aria-valuemax="70" aria-valuenow="50" tabindex="0" title="拖动调整两栏；方向键微调，双击恢复均分"></div>
           <section class="preview-pane" id="preview-pane">
-            <div class="pane-title"><span class="pane-icon">◉</span> 文档预览 <span class="pane-hint" id="preview-hint">公式与流程图离线渲染</span><label class="follow-scroll-control" title="按对应源码块双向跟随，折叠内容也能定位"><input id="follow-scroll" type="checkbox">跟随滚动</label></div>
-            <div class="page-scroll"><article id="preview-content" class="paper"></article></div>
+            <div class="pane-title"><span class="pane-icon">◉</span> 文档预览 <span class="pane-hint" id="preview-hint">公式与流程图离线渲染</span><div class="preview-view-controls"><div class="preview-zoom-controls" role="group" aria-label="文稿显示比例"><button id="preview-zoom-decrease" class="source-fold-tool" type="button" title="缩小显示" aria-label="缩小文稿显示比例">−</button><label class="preview-zoom-control" title="仅调整当前预览和阅读的显示比例，不改变导出"><select id="preview-zoom" aria-label="文稿显示比例"></select></label><button id="preview-zoom-increase" class="source-fold-tool" type="button" title="放大显示" aria-label="增大文稿显示比例">＋</button></div><label class="follow-scroll-control" title="按对应源码块双向跟随，折叠内容也能定位"><input id="follow-scroll" type="checkbox">跟随滚动</label></div></div>
+            <div class="page-scroll"><div id="preview-scale-stage" class="preview-scale-stage"><div id="preview-scale-content" class="preview-scale-content"><article id="preview-content" class="paper"></article></div></div></div>
           </section>
         </div>
         <section id="problems-panel" class="problems-panel" aria-label="文档检查问题列表" hidden>
@@ -277,7 +279,7 @@
   <div id="modal-layer" class="modal-layer" hidden>
     <div class="modal-scrim"></div>
     <section class="modal-window" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <div class="modal-head"><div><small id="modal-kicker">编辑</small><h2 id="modal-title">编辑</h2></div><button class="icon-close" id="modal-close" aria-label="关闭">×</button></div>
+      <div class="modal-head"><div><small id="modal-kicker">编辑</small><h2 id="modal-title">编辑</h2></div><div class="modal-head-controls"><div id="modal-actions" hidden></div><button class="icon-close" id="modal-close" aria-label="关闭">×</button></div></div>
       <div id="modal-body" class="modal-body"></div>
       <div class="modal-foot"><span id="modal-note"></span><div><button class="btn btn-quiet" id="modal-cancel">取消</button><button class="btn btn-quiet" id="modal-extra" hidden>不保存</button><button class="btn btn-primary" id="modal-ok">应用修改</button></div></div>
     </section>

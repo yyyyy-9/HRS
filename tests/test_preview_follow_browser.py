@@ -1,5 +1,6 @@
 """PREVIEW-FOLLOW/NOTE-CHECK: native input, real scroll, canonical tokens/map."""
 import json
+from pathlib import Path
 from browser_support import ManualService
 from browser_support import source,value
 
@@ -114,6 +115,139 @@ class PreviewFollow(ManualService):
         self.assertIn('输入法测试',value(self.page));self.preview_wheel(650)
         self.page.wait_for_function('before=>document.querySelector(".cm-scroller").scrollTop>before+100',arg=before,timeout=3000)
         self.assertEqual(value(self.page).replace('输入法测试',''),raw)
+
+    def test_07_unchanged_images_and_math_survive_text_edits_but_changed_content_refreshes(self):
+        """RENDER-UX-01: reuse live leaves, never a stale source or asset URL."""
+        picture=Path(__file__).parent/'fixtures/fp_hartmann/figures/synthetic-1.png'
+        for name in ['reuse-a.png','reuse-b.png']:(self.project/'assets'/name).write_bytes(picture.read_bytes())
+        raw='# 保留节点\n\n正文原样。\n\n![图](assets/reuse-a.png)\n\n公式 $x+1$。\n'
+        self.free(raw);self.page.wait_for_function('document.querySelector("#preview-content img")?.complete && document.querySelector("#preview-content .markdown-math svg")')
+        self.page.evaluate('window.uxLeaves=[document.querySelector("#preview-content img"),document.querySelector("#preview-content .markdown-math svg")]')
+        measurements=[]
+        for marker in ['甲','乙','丙']:
+            source(self.page,raw.replace('正文原样。','正文'+marker+'。').replace('公式 $x+1$','公式'+marker+' $x+1$'))
+            self.page.wait_for_function('s=>document.querySelector("#preview-content").textContent.includes(s)',arg='正文'+marker+'。')
+            self.assertTrue(self.page.evaluate('uxLeaves[0]===document.querySelector("#preview-content img")'),'Unchanged picture was rebuilt')
+            self.assertTrue(self.page.evaluate('uxLeaves[1]===document.querySelector("#preview-content .markdown-math svg")'),'Unchanged equation was rebuilt')
+            measurements.append(self.page.evaluate('document.querySelector("#preview-content")._hrsRenderStats'))
+        if self.evidence:(self.evidence/'node-reuse.json').write_text(json.dumps({'browser':self.browser.version,'samples':measurements},ensure_ascii=False,indent=2)+'\n',encoding='utf8')
+        source(self.page,raw.replace('reuse-a.png','reuse-b.png').replace('$x+1$','$y+2$'))
+        self.page.wait_for_function('document.querySelector("#preview-content img")?.src.includes("reuse-b.png") && document.querySelector("#preview-content .markdown-math")?.dataset.tex==="y+2"')
+        self.assertFalse(self.page.evaluate('uxLeaves[0]===document.querySelector("#preview-content img")'))
+        self.assertFalse(self.page.evaluate('uxLeaves[1]===document.querySelector("#preview-content .markdown-math svg")'))
+
+    def test_08_indented_code_conversion_is_explicit_scoped_and_undoable(self):
+        """INDENT-PROSE-01: change only the nominated top-level indented block."""
+        code='\t正文😀。\r\n    第二行。\r\n'
+        raw='# 缩进\r\n\r\n'+code+'\r\n```text\r\n    围栏代码\r\n```\r\n\r\n- 项目\r\n\r\n    列表续段。\r\n\r\n说明[^n]\r\n\r\n[^n]: 注释\r\n    脚注续行。\r\n'
+        self.free(raw);self.page.wait_for_selector('#preview-content .hrs-code-panel')
+        button=self.page.locator('#preview-content .hrs-code-to-prose')
+        self.assertEqual(button.count(),1)
+        self.assertEqual(button.locator('..').locator('.hrs-code-language').inner_text(),'缩进代码块')
+        self.assertIn('4 个空格',button.locator('..').get_attribute('title'))
+        self.assertEqual(value(self.page),raw)
+        button.click();expected=raw.replace(code,'正文😀。\r\n第二行。\r\n',1)
+        self.assertEqual(value(self.page),expected)
+        self.page.locator('#markdown').evaluate('n=>n.sourceEditor.focus()');self.page.keyboard.press('Control+z')
+        self.assertEqual(value(self.page),raw)
+        self.page.keyboard.press('Control+Shift+z');self.assertEqual(value(self.page),expected)
+        source(self.page,raw);self.page.wait_for_selector('#preview-content .hrs-code-to-prose')
+        html=self.page.evaluate("()=>ReportStudioProgrammatic.exportHTML({sourceMode:'recompilable'})")
+        self.assertIn('缩进代码块',html);self.assertNotIn('hrs-code-to-prose',html)
+        self.page.wait_for_function('document.querySelector(".cm-note-definition")?.textContent.includes("[^n]")')
+        if self.evidence:self.page.screenshot(path=str(self.evidence/'indented-code-action.png'))
+
+    def test_09_preview_copy_markdown_in_split_reading_and_legacy_clipboard(self):
+        """RENDER-UX-01: source copy is explicit and works without modern clipboard."""
+        paragraph='前段😀，**加粗 $x+1$** 与 [链接](https://example.com)。'
+        raw='# 复制\r\n\r\n'+paragraph+'\r\n\r\n后段。\r\n'
+        self.free(raw);self.page.context.grant_permissions(['clipboard-read','clipboard-write'])
+        def select_paragraph():
+            self.page.locator('#preview-content p').filter(has_text='前段😀').evaluate('p=>{const r=document.createRange();r.selectNodeContents(p);getSelection().removeAllRanges();getSelection().addRange(r);document.dispatchEvent(new Event("selectionchange"));}')
+        for reading,legacy in [(False,False),(True,False),(True,True)]:
+            if reading:self.page.get_by_role('button',name='阅读',exact=True).click()
+            if legacy:self.page.evaluate('()=>{window.savedUXClipboard=navigator.clipboard;Object.defineProperty(navigator,"clipboard",{value:undefined,configurable:true});}')
+            select_paragraph();button=self.page.locator('#btn-preview-copy-markdown')
+            self.assertEqual(button.count(),1);button.wait_for(state='visible')
+            button.click()
+            self.page.wait_for_function('expected=>(window.savedUXClipboard||navigator.clipboard).readText().then(value=>value===expected)',arg=paragraph)
+            self.assertEqual(value(self.page),raw)
+        if self.evidence:self.page.screenshot(path=str(self.evidence/'preview-copy-markdown.png'))
+
+    def test_10_reused_prose_binds_editing_handlers_once(self):
+        """RENDER-UX-01: repeated commits must not multiply Enter handlers."""
+        raw='# 事件\n\n稳定正文。\n\n后段0。\n';self.free(raw)
+        for i in range(1,5):
+            source(self.page,raw.replace('后段0。','后段'+str(i)+'。'))
+            self.page.wait_for_function('text=>document.querySelector("#preview-content").textContent.includes(text)',arg='后段'+str(i)+'。')
+        target=self.page.locator('#preview-content [data-block-editor]').filter(has_text='稳定正文。')
+        target.dblclick();self.page.keyboard.press('End');self.page.keyboard.press('Enter');self.page.keyboard.insert_text('新行')
+        body=value(self.page).split('稳定正文。',1)[1].split('后段',1)[0]
+        self.assertEqual(body,'\n新行\n\n')
+
+    def test_11_complex_preview_copy_uses_existing_resource_bundle(self):
+        """RENDER-UX-01: a figure selection copies its whole source and assets."""
+        picture=Path(__file__).parent/'fixtures/fp_hartmann/figures/synthetic-1.png'
+        (self.project/'assets/copy-source.png').write_bytes(picture.read_bytes())
+        raw='# 资源复制\n\n![资源](assets/copy-source.png)\n\n后段保留。\n'
+        self.free(raw);self.page.context.grant_permissions(['clipboard-read','clipboard-write'])
+        self.page.wait_for_selector('#preview-content img')
+        expected=self.page.locator('#preview-content img').evaluate('img=>{const block=img.closest(".doc-block"),r=document.createRange();r.selectNodeContents(block);getSelection().removeAllRanges();getSelection().addRange(r);document.dispatchEvent(new Event("selectionchange"));return block._sourceRaw;}')
+        button=self.page.locator('#btn-preview-copy-markdown');button.wait_for(state='visible')
+        self.assertEqual(button.inner_text(),'复制整块 Markdown');button.click()
+        self.page.wait_for_function('document.querySelector("#toast").textContent.includes("已复制 Markdown")')
+        # Consume the actual native paste formats, including on old Chromium
+        # where clipboard.read() rejects HTML that ClipboardEvent can expose.
+        self.page.evaluate('''()=>{
+          window.uxPasted=null;window.uxPasteReceived=false;
+          function receive(event){
+            window.uxPasteReceived=true;
+            window.uxPasted=ReportObjectClipboard.parse(event.clipboardData.getData('text/html'),event.clipboardData.getData('text/plain'));
+            event.preventDefault();event.stopImmediatePropagation();document.removeEventListener('paste',receive,true);
+          }
+          document.addEventListener('paste',receive,true);document.querySelector('#markdown').sourceEditor.focus();
+        }''')
+        self.page.keyboard.press('Control+v');self.page.wait_for_function('window.uxPasteReceived')
+        self.assertTrue(self.page.evaluate('!!window.uxPasted'),'Native paste did not carry the HRS resource bundle')
+        self.assertEqual(self.page.evaluate('uxPasted.markdown'),expected)
+        self.assertTrue(self.page.evaluate('Object.keys(uxPasted.assets).length>0'))
+        self.assertEqual(value(self.page),raw)
+
+    def test_12_resource_reuse_survives_new_blocks_and_palette_but_not_mode_change(self):
+        """RENDER-UX-01: changed offsets keep fresh wrappers and display ownership."""
+        picture=Path(__file__).parent/'fixtures/fp_hartmann/figures/synthetic-1.png'
+        (self.project/'assets/context.png').write_bytes(picture.read_bytes())
+        raw='# 上下文\n\n![图片](assets/context.png)\n\n$\\alpha+1$\n'
+        self.free(raw);self.page.wait_for_function('document.querySelector("#preview-content img")?.complete && document.querySelector("#preview-content .markdown-math svg")')
+        self.page.evaluate('window.contextLeaves=[document.querySelector("#preview-content img"),document.querySelector("#preview-content .markdown-math svg")]')
+        updated=raw.replace('![图片]','前插段落。\n\n![图片]');source(self.page,updated)
+        self.page.wait_for_function('document.querySelector("#preview-content").textContent.includes("前插段落")')
+        self.assertTrue(self.page.evaluate('contextLeaves[0]===document.querySelector("#preview-content img") && contextLeaves[1]===document.querySelector("#preview-content .markdown-math svg")'))
+        self.page.locator('#color-theme').select_option('celadon')
+        self.page.wait_for_function('document.documentElement.dataset.colorTheme==="celadon"')
+        self.assertTrue(self.page.evaluate('contextLeaves[0]===document.querySelector("#preview-content img")'))
+        self.assertEqual(value(self.page),updated)
+        self.page.locator('#render-profile').select_option('engineering')
+        self.page.wait_for_function('document.querySelector("#preview-content").dataset.hrsRenderProfile==="engineering"')
+        self.assertFalse(self.page.evaluate('contextLeaves[0]===document.querySelector("#preview-content img")'))
+        self.assertEqual(value(self.page),updated)
+
+    def test_13_preview_source_copy_keeps_plain_offsets_and_complete_inline_syntax(self):
+        """RENDER-UX-01: never copy half of an emphasis/link delimiter pair."""
+        paragraph='普通😀前文，**加粗文字**和尾部。'
+        raw='# 选区\n\n'+paragraph+'\n\n后段。\n'
+        self.free(raw);self.page.context.grant_permissions(['clipboard-read','clipboard-write'])
+        target=self.page.locator('#preview-content p').filter(has_text='普通😀')
+        def copy_selected(expression,label,expected):
+            target.evaluate('p=>{'+expression+';getSelection().removeAllRanges();getSelection().addRange(r);document.dispatchEvent(new Event("selectionchange"));}')
+            button=self.page.locator('#btn-preview-copy-markdown');button.wait_for(state='visible')
+            self.assertEqual(button.inner_text(),label);button.click()
+            self.page.wait_for_function('expected=>navigator.clipboard.readText().then(value=>value===expected)',arg=expected)
+        copy_selected('const n=p.firstChild,r=document.createRange(),a=n.nodeValue.indexOf("前文");r.setStart(n,a);r.setEnd(n,a+2)',
+                      '复制 Markdown','前文')
+        copy_selected('const n=p.querySelector("strong").firstChild,r=document.createRange();r.setStart(n,1);r.setEnd(n,3)',
+                      '复制整块 Markdown',paragraph)
+        self.assertEqual(value(self.page),raw)
 
 if __name__=='__main__':
     import unittest

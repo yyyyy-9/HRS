@@ -35,19 +35,24 @@ def resource_snapshot(folder,resources):
         result[resource]=sha(data)
     return result
 
-def plan(source,expected,replacement,*,object_id=None,index=None,operation='replace'):
+def plan(source,expected,replacement,*,object_id=None,index=None,section=None,operation='replace'):
     source=source_path(source);raw=source.read_bytes();text=raw.decode('utf8')
     if not expected:raise BlockCommandError('MISSING_SNAPSHOT_PRECONDITION')
     if expected!=sha(raw):raise BlockCommandError('STALE_SNAPSHOT')
     if not isinstance(replacement,str) or len(replacement.encode('utf8'))>10*1024*1024:raise BlockCommandError('Replacement must be UTF-8 text up to 10 MiB')
-    if (object_id is None)==(index is None):raise BlockCommandError('Select one stable ID or snapshot-local index')
+    if sum(value is not None for value in (object_id,index,section))!=1:raise BlockCommandError('Select one stable ID, snapshot-local index or section path')
     ir=analyze(text,assets=source.parent/'assets')
-    found=project(ir,'get' if object_id is not None else 'get-block',object_id=object_id,block_index=index,expected_sha256=expected)
-    if not found.get('found'):raise BlockCommandError(found['lookupStatus'])
-    block=found['block'];a,b=block['start'],block['end']
-    if operation=='insert-before':b=a
-    elif operation=='insert-after':a=b
-    elif operation!='replace':raise BlockCommandError('Unsupported candidate operation')
+    original_replacement=replacement
+    if section is not None:
+        from section_operations import locate,edit
+        a,b,replacement=edit(text,locate(ir,section),replacement,operation)
+    else:
+        found=project(ir,'get' if object_id is not None else 'get-block',object_id=object_id,block_index=index,expected_sha256=expected)
+        if not found.get('found'):raise BlockCommandError(found['lookupStatus'])
+        block=found['block'];a,b=block['start'],block['end']
+        if operation=='insert-before':b=a
+        elif operation=='insert-after':a=b
+        elif operation!='replace':raise BlockCommandError('Unsupported candidate operation')
     utf16=text.encode('utf-16-le');prefix=utf16[:a*2].decode('utf-16-le');suffix=utf16[b*2:].decode('utf-16-le')
     candidate=(prefix+replacement+suffix).encode('utf8')
     if len(candidate)>10*1024*1024:raise BlockCommandError('Candidate exceeds the existing 10 MiB source limit')
@@ -57,10 +62,10 @@ def plan(source,expected,replacement,*,object_id=None,index=None,operation='repl
     assets=resource_snapshot(source.parent,ir['assets']+after['assets'])
     if source.read_bytes()!=raw:raise BlockCommandError('STALE_SNAPSHOT')
     diff=''.join(difflib.unified_diff(text.splitlines(True),candidate.decode('utf8').splitlines(True),fromfile='report.md',tofile='candidate.md'))
-    replacement_raw=replacement.encode('utf8')
+    replacement_raw=original_replacement.encode('utf8')
     return {'schema':SCHEMA,'source':str(source),'ok':True,'operation':'dry-run:'+operation,
         'source_sha256':sha(raw),'candidate_sha256':sha(candidate),
-        'target':{'id':object_id,'index':index,'offset_unit':'utf16','start':a,'end':b},
+        'target':{'id':object_id,'index':index,**({'section':section} if section is not None else {}),'offset_unit':'utf16','start':a,'end':b},
         'unchanged_prefix_sha256':sha(prefix.encode('utf8')),'unchanged_suffix_sha256':sha(suffix.encode('utf8')),
         'replacement_b64':base64.b64encode(replacement_raw).decode('ascii'),'replacement_sha256':sha(replacement_raw),
         'asset_hashes':assets,'original_unchanged':True,'diagnostics':after['diagnostics'],'diff':diff},candidate
@@ -100,7 +105,7 @@ def apply_plan(plan_path,expected_plan_sha256):
     with report_lock(source.parent):
         # Re-locate using current IR, not the old coordinates in the JSON.
         target=data['target'];operation=data['operation'].removeprefix('dry-run:')
-        verified,rebuilt=plan(source,data['source_sha256'],replacement.decode('utf8'),object_id=target['id'],index=target['index'],operation=operation)
+        verified,rebuilt=plan(source,data['source_sha256'],replacement.decode('utf8'),object_id=target['id'],index=target['index'],section=target.get('section'),operation=operation)
         if data.get('asset_hashes')!=verified['asset_hashes']:raise BlockCommandError('ASSET_CHANGED: referenced resources changed after planning')
         if any(data.get(key)!=value for key,value in verified.items()) or rebuilt!=candidate:
             raise BlockCommandError('PLAN_SCOPE_CHANGED: candidate is not the declared block edit')
@@ -116,14 +121,14 @@ def main(argv=None):
         if hasattr(stream,'reconfigure'):stream.reconfigure(encoding='utf8')
     parser=argparse.ArgumentParser(description=__doc__);sub=parser.add_subparsers(dest='command',required=True)
     p=sub.add_parser('plan');p.add_argument('source',type=Path)
-    target=p.add_mutually_exclusive_group(required=True);target.add_argument('--id');target.add_argument('--index',type=int)
+    target=p.add_mutually_exclusive_group(required=True);target.add_argument('--id');target.add_argument('--index',type=int);target.add_argument('--section',action='append',help='Exact heading title; repeat for a parent/child path')
     p.add_argument('--expect-sha256',required=True);p.add_argument('--text-file',type=Path,required=True)
-    p.add_argument('--operation',choices=('replace','insert-before','insert-after'),default='replace');p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--operation',choices=('replace','insert-before','insert-after','append','prepend','replace-body'),default='replace');p.add_argument('--output',type=Path,required=True)
     a=sub.add_parser('apply');a.add_argument('plan',type=Path);a.add_argument('--expect-plan-sha256',required=True)
     args=parser.parse_args(argv)
     try:
         if args.command=='plan':
-            result,candidate=plan(args.source,args.expect_sha256,args.text_file.read_bytes().decode('utf8'),object_id=args.id,index=args.index,operation=args.operation)
+            result,candidate=plan(args.source,args.expect_sha256,args.text_file.read_bytes().decode('utf8'),object_id=args.id,index=args.index,section=args.section,operation=args.operation)
             result=write_plan(args.output,result,candidate)
         else:result=apply_plan(args.plan,args.expect_plan_sha256)
         print(json.dumps(result,ensure_ascii=False));return 0

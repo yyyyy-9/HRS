@@ -209,7 +209,17 @@
     "apply_precondition": "explicit reviewed plan SHA-256; current source/range/candidate/resources revalidated",
     "save": "shared editor lock, history backup and atomic report.md replacement",
     "bridge": "delegates to HRS; no independent block model",
-    "batch_asset_writes": false
+    "batch_asset_writes": false,
+    "section_selector": {
+      "argument": "--section (repeatable exact parent/child path)",
+      "operations": [
+        "append",
+        "prepend",
+        "replace-body"
+      ],
+      "range": "target heading body including descendants; next same or higher heading excluded; source SHA-bound UTF-16",
+      "apply_scope": "project report.md only; same lock/backup/atomic commit; no batch attachment writes"
+    }
   },
   "engineering_output_checks": "render_profile.output_checks consumes existing IR headings; errors block output, prefix notices need explicit snapshot acceptance",
   "html_cli": {
@@ -247,7 +257,8 @@
     "writes": "only explicit reviewed apply; plan/hash/resources/atomic-save constraints remain mandatory",
     "review": "Word role/number-edit decisions remain bound to scan/candidate source; no evaluation truths",
     "metrics": "deterministic conversion API calls separate from AI development/review; unavailable calls/tokens/time=null or UNAVAILABLE",
-    "tests": "feature catalog; real local service, component DOM, generated gates and Office/system acceptance recorded separately"
+    "tests": "feature catalog; real local service, component DOM, generated gates and Office/system acceptance recorded separately",
+    "formula_authoring": "New content: no manual tag or equation numbers; use show_equation_numbers and optional eq identity/reference. Preserve external source tags; preview suppresses presentation tag only."
   },
   "module_export_transaction": {
     "routes": [

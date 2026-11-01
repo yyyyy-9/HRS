@@ -1,7 +1,7 @@
 """TEST-SYSTEM-01: retained regression assertions, now using the actual local API."""
 from pathlib import Path
 import json, os, re, tempfile, unittest
-from browser_support import LiveDocument, browser_session, css_color
+from browser_support import LiveDocument, browser_session, css_color, fold_source
 
 MD='''# PF13.2 合成验收
 
@@ -88,7 +88,7 @@ class TableMath(unittest.TestCase):
         assert page.locator('.report-table-wrap').first.locator('caption').text_content().startswith('表 1  TCC')
         assert page.locator('.report-table-wrap').first.locator('[data-table-copy]').count()==1
         assert page.evaluate('document.querySelector("#markdown").value')==MD
-        page.locator('#btn-fold-all').click()
+        fold_source(page)
         folded=page.locator('.source-fold-summary[data-language="gfm-pipe"]')
         folded.first.wait_for(timeout=8000)
         assert '表 1' in folded.first.text_content()

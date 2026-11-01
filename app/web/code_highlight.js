@@ -74,11 +74,12 @@ function highlightHTML(code,lang){
  }
  return out+escapeHTML(raw.slice(at));
 }
-function buildCodeCard(code,lang,{copy=true}={}){
+function buildCodeCard(code,lang,{copy=true,indented=false}={}){
  const wrapper=document.createElement('div');wrapper.className='hrs-code-panel';
  const head=document.createElement('div');head.className='hrs-code-head';
- const badge=document.createElement('span');badge.className='hrs-code-language';badge.textContent=label(lang);head.append(badge);
- if(copy){const button=document.createElement('button');button.className='hrs-code-copy';button.type='button';button.textContent='复制';button.setAttribute('aria-label','复制 '+label(lang)+' 代码');
+ const badge=document.createElement('span');badge.className='hrs-code-language';badge.textContent=indented?'缩进代码块':label(lang);head.append(badge);
+ if(indented){wrapper.dataset.hrsCodeStyle='indented';head.title='独立段落行首 4 个空格或 Tab 会触发 Markdown 缩进代码块';}
+ if(copy){const button=document.createElement('button');button.className='hrs-code-copy';button.type='button';button.textContent='复制';button.setAttribute('aria-label','复制 '+badge.textContent+' 代码');
    button.addEventListener('click',async()=>{
     try{if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(String(code));
      else{const area=document.createElement('textarea');area.value=String(code);area.style.position='fixed';area.style.opacity='0';document.body.append(area);try{area.select();if(!document.execCommand('copy'))throw Error('当前浏览器不允许复制');}finally{area.remove();}}
