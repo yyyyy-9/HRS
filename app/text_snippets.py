@@ -1,4 +1,5 @@
 """User-owned declarative Markdown snippets; no executable template language."""
+from file_io import atomic_write
 import hashlib,json,re
 from project_workspace import is_link
 
@@ -22,7 +23,6 @@ def validate(items):
     return items
 
 def write(workspace,items,revision):
-    from studio import atomic_write
     current=read(workspace)
     if current['revision']!=revision:raise ValueError('片段已在其他窗口修改，请重新打开')
     raw=(json.dumps({'snippets':validate(items)},ensure_ascii=False,indent=2)+'\n').encode('utf8')

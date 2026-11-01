@@ -4,7 +4,9 @@ Plan is read-only. Only the explicit apply command commits report.md, through
 the same lock, backup and atomic replacement used by the editor.
 """
 from __future__ import annotations
-import argparse,base64,difflib,hashlib,json,re,sys
+from file_io import digest as sha, write_new, IncompleteOutputError
+from asset_validation import check_image, clean_asset_name
+import argparse,base64,difflib,json,sys
 from pathlib import Path
 from report_contract import analyze
 from agent_readonly import project
@@ -15,7 +17,6 @@ from asset_paths import asset_file
 SCHEMA='hrs-block-plan-v1'
 
 class BlockCommandError(ValueError):pass
-def sha(raw):return hashlib.sha256(raw).hexdigest()
 
 def source_path(source):
     source=Path(source)
@@ -24,7 +25,6 @@ def source_path(source):
     return source.resolve(strict=True)
 
 def resource_snapshot(folder,resources):
-    from studio import check_image,clean_asset_name
     root=folder/'assets';result={}
     if is_link(root):raise BlockCommandError('Assets directory may not be a link')
     for resource in sorted(set(resources)):
@@ -80,9 +80,13 @@ def write_plan(output,result,candidate,*,candidate_path=None):
     created=[]
     try:
         for path,data in ((candidate_path,candidate),(output,body)):
-            with path.open('xb') as stream:created.append(path);stream.write(data)
-    except Exception:
-        for path in created:path.unlink()
+            write_new(path,data);created.append(path)
+    except BaseException as error:
+        remaining=list(getattr(error,'incomplete_outputs',[]))
+        for path in created:
+            try:path.unlink(missing_ok=True)
+            except OSError:remaining.append(path)
+        if remaining:raise IncompleteOutputError(remaining,error) from error
         raise
     return {'ok':True,'operation':'plan','plan':str(output),'plan_sha256':sha(body),'candidate':str(candidate_path),
         'source_sha256':result['source_sha256'],'candidate_sha256':sha(candidate),'original_unchanged':True,'diff':result['diff']}
@@ -91,7 +95,9 @@ def apply_plan(plan_path,expected_plan_sha256):
     path=Path(plan_path).resolve(strict=True);body=path.read_bytes()
     if not expected_plan_sha256 or sha(body)!=expected_plan_sha256:raise BlockCommandError('PLAN_CHANGED: use the reviewed plan SHA-256')
     data=json.loads(body.decode('utf8'))
-    if data.get('schema')!=SCHEMA:raise BlockCommandError('Unsupported block plan schema')
+    if not isinstance(data,dict) or data.get('schema')!=SCHEMA:raise BlockCommandError('Unsupported block plan schema')
+    if not isinstance(data.get('target'),dict) or not isinstance(data.get('operation'),str) or not data['operation'].startswith('dry-run:'):
+        raise BlockCommandError('Invalid plan target or operation')
     source=source_path(data['source'])
     if source.name!='report.md':raise BlockCommandError('Apply only accepts an HRS project report.md')
     filename=data.get('candidate')
@@ -133,6 +139,7 @@ def main(argv=None):
         else:result=apply_plan(args.plan,args.expect_plan_sha256)
         print(json.dumps(result,ensure_ascii=False));return 0
     except (ValueError,OSError,KeyError,TypeError) as error:
-        print(json.dumps({'ok':False,'operation':args.command,'error':str(error)},ensure_ascii=False));return 1
+        print(json.dumps({'ok':False,'operation':args.command,'code':getattr(error,'code','BLOCK_COMMAND_FAILED'),
+            'error':str(error),**({'incomplete_outputs':error.incomplete_outputs} if isinstance(error,IncompleteOutputError) else {})},ensure_ascii=False));return 1
 
 if __name__=='__main__':raise SystemExit(main())

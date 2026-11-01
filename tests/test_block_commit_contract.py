@@ -73,7 +73,7 @@ class BlockCommit(unittest.TestCase):
   def blocked(target,data):
    if target==self.file:raise PermissionError('file occupied')
    return original(target,data)
-  with patch('studio.atomic_write',blocked):
+  with patch('project_commit.atomic_write',blocked):
    with self.assertRaises(PermissionError):apply_plan(path,receipt['plan_sha256'])
   self.assertEqual(self.file.read_bytes(),self.raw)
  def test_source_changed_during_backup_is_not_overwritten(self):

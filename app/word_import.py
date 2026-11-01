@@ -4,8 +4,8 @@ The child reads a frozen DOCX. Its bounded JSON channel delegates only existing
 HRS serializers to the open page; no Word/Markdown parser is implemented here.
 """
 from __future__ import annotations
+from file_io import digest as digest
 from contextlib import redirect_stdout
-import hashlib
 import json
 import logging
 import os
@@ -30,7 +30,6 @@ IO_LABELS={'source_read':'读取所选Word','snapshot_write':'写入导入快照
            'project_inventory':'核对导入工程','source_recheck':'复核所选Word','project_copy':'保存新工程'}
 
 
-def digest(raw):return hashlib.sha256(raw).hexdigest()
 
 
 def project_files(project):

@@ -317,6 +317,8 @@ HTTP /api/validate仅Python源码契约，返回source_contract_valid、prefligh
 
 输出路径必须不存在且父目录已存在；导出不能写入原 assets/。export 默认 quality=original、source-mode=recompilable，另支持既有 compact/standard/print 画质及 reading 模式、include-pdf-originals 选项。recover 仅恢复有效可回编 v2 归档。命令读私有快照，复用原服务/浏览器和两次资源预检，不保存原稿；返回 UTF-8 JSON，ok=false 时非零退出。Python 调用方可导入 html_cli.export_html/recover_html；没有新增 Markdown/归档 Schema；源写入仅由上述显式 block_cli apply 提供。
 
+CLI输出文件使用独占创建；写入失败只删除本次创建的文件，计划与候选成组清理。无法清理时返回非零退出及`code=OUTPUT_INCOMPLETE`、`incomplete_outputs`路径，不覆盖已有目标。HTML恢复以新工程目录交付为完成点，交付后的临时清理失败以成功回执的warnings提示。块apply仍重新校验源、候选、范围和附件，提交后不能使用旧快照再次应用。
+
 接口的操作边界及现行命令集合见 [Word/WPS 下游数据接口](docs/WORD_COMPILER_HANDOFF.md) 和 `docs/WORD_IR_HANDOFF.json`。CLI 的 `--help`、机器交接及拒绝行为由接口契约测试共同核对；源文中的指令不构成调用授权。
 
 ## 7. 现阶段输入输出边界
@@ -330,6 +332,8 @@ IR 是结构基础，不是完整 Word 排版 IR；完整行内/列表 AST、模
 ## 本机单篇 Markdown 导入
 
 直接文件的`/api/save`在同一markdown_file适配中按原文件第一个换行符统一CRLF/LF/CR（没有既有换行时LF），保留BOM及非空正文的原有末尾换行；原来无末尾换行时不强加。规范化后的字节仍受原大小/revision/锁/备份/原子写保护。成功响应中的`markdown`是实际落盘正文（不含文件BOM），`revision`是完整原始字节SHA；GUI同步缓冲/已保存快照/UTF-16选区和当前撤销快照，再继续导出或编辑。调用方不能将请求中的混合换行继续当作已保存源。工程保存及显式block plan/apply的字节范围契约不变。
+
+`/api/save`以正文成功提交为完成点；工程和直接文件的成功响应均可带`warnings: string[]`，表示显示设置更新或旧草稿清理未完成，不否认返回的revision。正文写入失败仍返回失败，旧快照仍拒绝；调用方对成功回执保留新revision并单独展示警告。通用响应以ok区分成功与失败：失败必须有字符串error；成功任务自己的状态字段error可以是null。
 
 “直接编辑Markdown”另提供无附件文件的存储适配：`POST /api/markdown-file/open`只接受空对象及同源`X-HRS-Project-Action: user-action`，路径由原生选择器取得；返回注册document_id。`/api/doc`的可选markdown_file字段标识原文件路径，project_path仅是内部设置位置，不能当作正文路径。随后草稿、revision与`/api/save`共用原接口，保存原文件，BOM/CRLF保留；HTML/PDF写原文件同目录。配置/索引/备份不写入源目录；资源、Word及工程状态操作须先显式转工程。`/api/markdown-file/check`只消费原IR判断资源依赖，`to-project`绑定document_id/revision/draft及create/new目录凭据，只创建新工程，不覆盖原文件。A0/plan/apply的显式源路径与快照契约保持，GUI登记不扩展为任意路径HTTP写入。
 

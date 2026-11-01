@@ -25,7 +25,8 @@ import uuid
 import webbrowser
 
 # The embedded Python _pth includes ../app; normal CPython also resolves this.
-from studio import Handler, StudioServer, atomic_write, pick_browser, digest
+from studio import Handler, StudioServer, pick_browser
+from file_io import atomic_write, digest
 from portable_sessions import WindowSessions
 from portable_transport import accept_key, read_control, write_control
 

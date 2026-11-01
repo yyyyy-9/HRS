@@ -434,5 +434,24 @@
     ],
     "agent_scope_unchanged": true,
     "arbitrary_file_or_command_interface": false
+  },
+  "transport_types": {
+    "python": "interface_types.py",
+    "browser": "web/interfaces.d.ts (generated)",
+    "types": [
+      "ApiResponse",
+      "ApiSuccess",
+      "ApiError",
+      "SaveResponse",
+      "SourceSnapshot",
+      "DocumentResponse",
+      "DraftResponse",
+      "ClipboardAsset",
+      "ObjectBundle",
+      "WordBrowserModel",
+      "WorkspaceStatus"
+    ],
+    "validation": "Transport shapes only; success/error discriminated by ok, successful job error may be null. SaveResponse warnings do not negate the committed revision. Compatible extra fields stay intact; IR, resource, revision and Word validators retain semantic authority.",
+    "development_check": "audit_modules.py --check verifies generated declarations; tsc -p jsconfig.json checks the shared request/operation boundary without emitting code."
   }
 }

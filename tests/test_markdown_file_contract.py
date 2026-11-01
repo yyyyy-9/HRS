@@ -70,7 +70,7 @@ class MarkdownFileContract(unittest.TestCase):
             def blocked_target(path,data):
                 if Path(path)==source:raise PermissionError('shared lock')
                 return atomic_write(path,data)
-            with patch('studio.atomic_write',side_effect=blocked_target):
+            with patch('project_commit.atomic_write',side_effect=blocked_target):
                 with self.assertRaises(PermissionError):files.save(identity,'failed',digest(expected))
             self.assertEqual(source.read_bytes(),expected)
             reloaded=MarkdownFiles(workspace);self.assertEqual(reloaded.source(identity),source)

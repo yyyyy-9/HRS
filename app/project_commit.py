@@ -1,4 +1,5 @@
 """One report commit path for the editor and explicit block apply."""
+from file_io import atomic_write, digest
 from contextlib import contextmanager
 from datetime import datetime
 import os
@@ -37,7 +38,6 @@ def report_lock(folder):
         handle.close()
 
 def backup_report(folder,source=None):
-    from studio import atomic_write,digest
     folder=Path(folder);data=(Path(source) if source is not None else folder/'report.md').read_bytes();history=folder/'.history'
     if is_link(history):raise ValueError('工程 .history 目录不能是链接')
     history.mkdir(exist_ok=True)
@@ -48,7 +48,6 @@ def backup_report(folder,source=None):
 
 def commit_report_locked(folder,data,expected,*,source=None):
     """Caller holds report_lock; revision is checked again after the backup."""
-    from studio import atomic_write,digest
     explicit_source=source
     folder=Path(folder);source=Path(source) if source is not None else folder/'report.md'
     if is_link(source):raise ValueError('报告正文不能是链接文件')

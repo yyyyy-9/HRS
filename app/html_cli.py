@@ -5,11 +5,12 @@ Playwright and an installed Chrome/Chromium/Edge; it never downloads a browser.
 Inputs are copied into a private local session and never saved by the editor.
 """
 from __future__ import annotations
+from file_io import digest as _sha, write_new, IncompleteOutputError
+from asset_validation import check_image, clean_asset_name
 
 import argparse
 import base64
 from contextlib import contextmanager
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -25,8 +26,6 @@ class HTMLCommandError(ValueError):
         super().__init__(message);self.code=code
 
 
-def _sha(raw):
-    return hashlib.sha256(raw).hexdigest()
 
 
 def _new_output(path):
@@ -143,8 +142,7 @@ def export_html(project, output, *, browser=None, quality='original', source_mod
     if before != _snapshot(project):
         raise HTMLCommandError('Project source changed while exporting; output was not committed')
     data = result['html'].encode('utf8')
-    with output.open('xb') as stream:
-        stream.write(data)
+    write_new(output,data)
     return {'ok': True, 'operation': 'export-html', 'output': str(output), 'bytes': len(data),
             'sha256': _sha(data), 'source_unchanged': True, 'engine': result['engine'],
             'render_profile':profile,'render_options':options,'color_theme':color,'diagnostics':diagnostics,'conversion_model_api_calls': 0}
@@ -153,7 +151,6 @@ def export_html(project, output, *, browser=None, quality='original', source_mod
 def recover_html(source, output, *, browser=None):
     """Recover the original source with the existing archive/hash/media checks."""
     from report_contract import analyze
-    from studio import check_image, clean_asset_name
     source = Path(source).resolve()
     if not source.is_file():
         raise HTMLCommandError('HTML input does not exist: ' + str(source))
@@ -174,8 +171,9 @@ def recover_html(source, output, *, browser=None):
         }''', document)
     markdown = restored['markdown'].encode('utf8')
     hashes = {}
-    with tempfile.TemporaryDirectory(prefix='hrs-html-recovery-', dir=output.parent) as directory:
-        staged = Path(directory) / 'project'
+    staging=tempfile.TemporaryDirectory(prefix='hrs-html-recovery-', dir=output.parent)
+    try:
+        staged = Path(staging.name) / 'project'
         (staged / 'assets').mkdir(parents=True)
         (staged / 'report.md').write_bytes(markdown)
         if 'renderProfile' in restored:
@@ -195,10 +193,19 @@ def recover_html(source, output, *, browser=None):
         if source.read_bytes() != raw:
             raise HTMLCommandError('HTML input changed while recovering')
         staged.rename(output)
+    except BaseException as error:
+        try:staging.cleanup()
+        except OSError:
+            raise IncompleteOutputError([Path(staging.name)],error) from error
+        raise
+    warnings=[]
+    try:staging.cleanup()
+    except OSError as error:
+        warnings.append('Project recovered; temporary cleanup incomplete: '+str(error))
     return {'ok': True, 'operation': 'recover-html', 'output': str(output),
             'markdown_sha256': _sha(markdown), 'assets': hashes,
             'unique_blobs': len(set(hashes.values())), 'diagnostics': ir['diagnostics'],
-            'source_unchanged': True, 'conversion_model_api_calls': 0}
+            'source_unchanged': True, 'conversion_model_api_calls': 0, 'warnings':warnings}
 
 
 def check_project(source,*,browser=None,render_profile=None):
@@ -277,7 +284,8 @@ def main(argv=None):
         print(json.dumps(result, ensure_ascii=False))
         return 0
     except Exception as error:
-        print(json.dumps({'ok': False, 'operation': args.command, 'code':getattr(error,'code','HTML_COMMAND_FAILED'), 'error': str(error)}, ensure_ascii=False))
+        print(json.dumps({'ok': False, 'operation': args.command, 'code':getattr(error,'code','HTML_COMMAND_FAILED'), 'error': str(error),
+            **({'incomplete_outputs':error.incomplete_outputs} if isinstance(error,IncompleteOutputError) else {})}, ensure_ascii=False))
         return 1
 
 

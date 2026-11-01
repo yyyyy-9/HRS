@@ -5,6 +5,7 @@ resolve a registered project, check its report revision and require a genuine
 same-origin user action before calling any mutating method.
 """
 from __future__ import annotations
+from file_io import write_json as _atomic_json
 
 from datetime import datetime, timezone
 import hashlib
@@ -12,7 +13,6 @@ import json
 import os
 from pathlib import Path
 import re
-import stat
 import uuid
 
 from project_workspace import is_link
@@ -33,15 +33,6 @@ def _sha(path:Path)->str:
     return h.hexdigest()
 
 
-def _atomic_json(path:Path,value:dict)->None:
-    part=path.with_name(path.name+'.'+uuid.uuid4().hex[:8]+'.tmp')
-    try:
-        with part.open('x',encoding='utf-8') as stream:
-            json.dump(value,stream,ensure_ascii=False,indent=2)
-            stream.write('\n');stream.flush();os.fsync(stream.fileno())
-        os.replace(part,path)
-    finally:
-        if part.exists():part.unlink()
 
 
 def _protected_references(text:str)->set[str]:

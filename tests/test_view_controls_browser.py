@@ -5,6 +5,57 @@ from browser_support import ManualService,source,value,fold_source,LiveDocument
 
 
 class ViewControls(ManualService):
+    def test_09_fold_control_is_ready_after_real_document_load(self):
+        """SOURCE-FOLD-03: load must not restore the old disabled attribute."""
+        raw='# 启动稿\r\n\r\n```text\r\n中文😀代码\r\n```\r\n'
+        with LiveDocument(self.browser,self.folder/'startup-fold',raw,profile='engineering',registered=True) as document:
+            page=document.page;button=page.locator('#btn-source-fold')
+            self.assertFalse(button.is_disabled(),'No card or gutter interaction should be needed after load')
+            self.assertEqual(button.inner_text(),'折叠')
+            button.click();self.assertEqual(button.inner_text(),'展开')
+            self.assertEqual(page.locator('.source-fold-summary').count(),1)
+            button.click();self.assertEqual(button.inner_text(),'折叠');self.assertEqual(value(page),raw)
+            empty=document.folder/'empty';(empty/'assets').mkdir(parents=True)
+            (empty/'report.md').write_bytes('# 空稿\n\n正文\n'.encode('utf-8'))
+            document.server.registry.register('f'*32,empty)
+            page.evaluate('id=>ReportStudioProgrammatic.open(id)','f'*32)
+            self.assertTrue(button.is_disabled());self.assertEqual(button.get_attribute('data-fold-state'),'empty')
+            page.evaluate('id=>ReportStudioProgrammatic.open(id)','e'*32)
+            self.assertFalse(button.is_disabled());self.assertEqual(button.inner_text(),'折叠')
+            page.reload();page.wait_for_function('typeof ReportStudioProgrammatic!=="undefined"')
+            page.evaluate('()=>ReportStudioProgrammatic.ready()')
+            page.evaluate('id=>ReportStudioProgrammatic.open(id)','e'*32)
+            self.assertFalse(button.is_disabled());self.assertEqual(value(page),raw)
+            if self.evidence:page.screenshot(path=str(self.evidence/'loaded-fold-ready.png'))
+            self.assertFalse(document.errors)
+
+    def test_10_fold_control_keeps_load_lock_and_recovers_on_failure(self):
+        """SOURCE-FOLD-03: update desired state while busy, release it only on completion."""
+        raw='# 打开稿\n\n```text\n原文不变\n```\n'
+        # A genuine second document and a delayed final request keep load's
+        # own lease active after its new content has already rendered.
+        other=self.folder/'loaded-other';(other/'assets').mkdir(parents=True)
+        (other/'report.md').write_bytes(raw.encode('utf-8'));self.server.registry.register('d'*32,other)
+        source(self.page,'# 当前无块\n\n正文\n')
+        self.page.wait_for_function('document.querySelector("#btn-source-fold").dataset.foldState==="empty"')
+        held=[];self.page.route('**/api/recent',lambda route:held.append(route))
+        try:
+            with self.page.expect_request('**/api/recent'):
+                self.page.evaluate('()=>{window.pendingFoldLoad=ReportStudioProgrammatic.open("d".repeat(32));}')
+            self.page.wait_for_function('raw=>document.querySelector("#preview-content .doc-block")?._sourceDocument===raw',arg=raw)
+            self.assertTrue(held,'Load reached its pending final request')
+            self.assertTrue(self.page.locator('#btn-source-fold').is_disabled(),'Do not enable controls inside the load lease')
+            held.pop().continue_();self.page.evaluate('()=>window.pendingFoldLoad')
+        finally:
+            for route in held:route.continue_()
+            self.page.evaluate('()=>window.pendingFoldLoad.catch(()=>null)')
+            self.page.unroute('**/api/recent')
+        button=self.page.locator('#btn-source-fold');self.assertFalse(button.is_disabled())
+        self.page.route('**/api/doc?document_id=missing*',lambda route:route.abort())
+        failed=self.page.evaluate('async()=>{try{await ReportStudioProgrammatic.open("missing");return false;}catch{return true;}}')
+        self.assertTrue(failed);self.assertFalse(button.is_disabled());self.assertEqual(value(self.page),raw)
+        button.click();self.assertEqual(button.inner_text(),'展开')
+
     def test_08_fold_toggle_tracks_individual_actions_and_visible_topic(self):
         table='| 表头 |\n| --- |\n| 内容 |\n'
         raw='# 第一专题\n\n'+table+'\n'+table.replace('表头','另表')+'\n# 第二专题\n\n'+table+'\n# 无对象\n\n正文\n'

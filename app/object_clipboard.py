@@ -4,7 +4,9 @@ No alternate document model: IDs/ranges come from report_contract. Only actual
 object declarations, parsed references and image destinations are rewritten.
 """
 from __future__ import annotations
-import base64,hashlib,json,re,uuid
+from interface_types import ObjectBundle, require_wire
+from file_io import digest as sha
+import base64,json,re,uuid
 from pathlib import Path
 from urllib.parse import unquote,urlsplit
 from report_contract import analyze,ANY_IMAGE,ASSET
@@ -15,7 +17,6 @@ from asset_paths import normalize_asset, asset_file
 FORMAT='hrs-object-clipboard-v1'
 MAX_TOTAL=30*1024*1024
 
-def sha(data):return hashlib.sha256(data).hexdigest()
 def char_index(text,offset):
     raw=text.encode('utf-16-le');return len(raw[:offset*2].decode('utf-16-le'))
 
@@ -54,7 +55,7 @@ def local_path(folder,url):
     if path.is_relative_to(root) and not is_link(path) and path.is_file():return path
     return None
 
-def copy_bundle(text,roots,source_key,operation='copy',source_folder=None):
+def copy_bundle(text,roots,source_key,operation='copy',source_folder=None) -> ObjectBundle:
     ir=_fragment(text);files={};total=0
     for resource in ir['assets']:
         name=resource.removeprefix('assets/');data=_read(name,roots);total+=len(data)
@@ -134,8 +135,9 @@ def rewrite(text,ir,ids,paths,anonymous_equations=None):
         if local:edits.append((a,b,_patch(raw,local)))
     return _patch(text,edits)
 
-def paste_bundle(bundle,target_text,roots,target_key,check_image,local_files=None,source_folder=None):
+def paste_bundle(bundle: ObjectBundle,target_text,roots,target_key,check_image,local_files=None,source_folder=None):
     if not isinstance(bundle,dict) or bundle.get('format')!=FORMAT:raise ValueError('剪贴板格式无效')
+    require_wire(bundle, ObjectBundle)
     text=bundle.get('markdown');ir=_fragment(text);target=analyze(target_text)
     supplied=bundle.get('assets',{});prepared={};total=0
     if not isinstance(supplied,dict) or len(supplied)>100:raise ValueError('剪贴板附件清单无效')

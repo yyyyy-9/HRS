@@ -25,6 +25,9 @@ from release_info import load_release
 CATALOG=ROOT/'docs/MODULE_CATALOG.json'
 # Names verified from source, not guessed reflection values.
 DEFS=[
+ ('file_io','file_io.py','storage-primitives','standard-library digest, atomic replacement, exclusive new outputs and JSON writes; callers own locks and authorization', ['digest','atomic_write','write_new','write_json'],'bytes and authorized destination','atomic bytes / digest; failed new outputs cleaned or reported','explicit caller-owned file write','not-semantic'),
+ ('asset_validation','asset_validation.py','resource-validation','existing image signatures, SVG normalization and attachment validation without service imports', ['check_image','clean_asset_name','normalize_svg','guard_svg'],'declared image bytes / names','validated resource / safe SVG','no IO or service state','not-semantic'),
+ ('interface_types','interface_types.py','transport-contract','Python wire shapes and generated browser declarations; Markdown semantics stay with original owners', ['ApiResponse','SaveResponse','SourceSnapshot','ObjectBundle','WordBrowserModel','WorkspaceStatus','require_wire'],'JSON transport','typed fields; compatible extra fields preserved','no persistence','not-semantic'),
  ('formula_editor', 'web/formula_editor.js', 'source-ui', 'Offline visual/LaTeX draft with one bounded session history; original range commit remains in app', ['open', 'load'], 'one formula and source snapshot', 'edited TeX or cancel', 'dialog-only until apply', 'never-source-of-truth'),
  ('section_ranges', 'section_operations.py', 'source-range', 'Unique heading path and section body range over original IR', ['sections', 'locate', 'edit'], 'report_contract IR and declared text', 'UTF-16 scoped candidate range', 'read-only', 'primary'),
  ('browser_sections', 'web/section_operations.js', 'source-range', 'Section ranges and single editor transactions over SourceMap', ['index', 'move', 'locate', 'edit'], 'current source map', 'scoped move or edit', 'no direct persistence', 'never-source-of-truth'),
@@ -53,7 +56,7 @@ DEFS=[
    ['choose','createJob'],'source-bound topic choices and recoverable reports','explicit lifecycle/selection and progress','explicit owned report actions; original project unchanged','never-source-of-truth'),
  ('source_projection','web/source_projection.js','source-projection','CodeMirror same-document visible range, hidden-note protection and footnote boundary hints',
    ['attach'],'existing editor and SourceMap UTF-16 ranges','display decorations and guarded native transactions','same source buffer; no persistence','secondary'),
- ('view_controls','web/view_controls.js','local-view-preferences','Shared source prose font, wrapping, split layout, scope-derived fold state and preview/reading scale without modifying source or output',
+ ('view_controls','web/view_controls.js','local-view-preferences','Shared source prose font, wrapping, split layout, scope-derived fold state and preview/reading scale; availability follows shared UI leases',
    ['attach'],'canonical view catalog, local storage and original scroll anchors','local display controls and measured scale stage','local preferences and DOM only; no source transaction','not-semantic'),
  ('notebook_view','web/notebook_view.js','source-projection','H1 topics, extra blank-line gaps and standalone definition closure over the existing lexer/source map',
    ['index','title'],'full source/Marked tokens/SourceMap','read-only topic ranges and independently compilable excerpts','source unchanged','secondary'),
@@ -122,7 +125,7 @@ DEFS=[
  ('markdown_import','markdown_import.py','local-import','reads an explicitly selected MD and adapts existing IR/assets into a complete draft payload',
    ['prepare_markdown_import'],'one native-selected MD and its relative images','existing rewritten Markdown and validated asset payload','read-only original','indirect'),
  ('studio_http','studio.py','local-api','local document server, assets, validation, drafts, save and export',
-   ['StudioServer','Handler','normalize_svg','check_image'],'browser HTTP requests','JSON API / binary resources','reads/writes projects and drafts','do-not-import'),
+   ['StudioServer','Handler'],'browser HTTP requests','JSON API / binary resources','reads/writes projects and drafts','do-not-import'),
  ('native_picker','native_picker.py','windows-navigation','Common Item Dialog with per-action successful-directory memory; history never grants file access',
    ['PickerHistory','configure','choose'],'explicit native dialog action','selected path or cancellation','user selection and navigation preferences','exclude'),
  ('word_export','word_export.py','word-export-adapter','native-selected templates and offline Bridge/WPS subprocess; no duplicate compiler',
@@ -232,7 +235,13 @@ def inventory()->dict:
         raw=path.read_bytes()
         if path.suffix=='.py':
             tree=ast.parse(raw.decode('utf-8'),filename=rel)
+            allowed_service={'StudioServer','Handler','pick_browser','audit_export'}
+            for node in ast.walk(tree):
+                if isinstance(node,ast.ImportFrom) and node.module=='studio':
+                    if any(item.name not in allowed_service for item in node.names):
+                        raise ValueError(rel+' imports a primitive from studio instead of its owning module')
             symbols={n.name for n in tree.body if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef,ast.ClassDef))}
+            symbols.update(n.target.id for n in tree.body if isinstance(n,ast.AnnAssign) and isinstance(n.target,ast.Name))
             # AST exports are top-level only; Handler methods are exposed through the class.
             missing=[name for name in entry if name not in symbols]
         elif path.suffix=='.js':
@@ -252,6 +261,24 @@ def inventory()->dict:
             'items':modules}
 
 
+def component_copies(write=False):
+    """Source checkouts derive their browser adapter from the pinned component."""
+    declaration=ROOT.parent/'components/SOURCES.json'
+    if not declaration.is_file():return  # Installed App has no component sources.
+    catalog=json.loads(declaration.read_text('utf8'))
+    if catalog.get('schema')!='hrs-component-sources-v1':raise ValueError('Unknown component sources')
+    for item in catalog['generated_copies']:
+        source=ROOT.parent/item['source'];target=ROOT.parent/item['target']
+        if (item['rule']!='byte-identical' or source.is_symlink() or target.is_symlink()
+                or not source.resolve().is_relative_to(ROOT.parent.resolve())
+                or not target.resolve().is_relative_to(ROOT.resolve())):
+            raise ValueError('Invalid generated component path')
+        raw=source.read_bytes()
+        if write:target.write_bytes(raw)
+        elif not target.is_file() or target.read_bytes()!=raw:
+            raise ValueError('Generated component copy differs: '+item['target'])
+
+
 def main()->int:
     parser=argparse.ArgumentParser()
     options=parser.add_mutually_exclusive_group(required=True)
@@ -259,7 +286,11 @@ def main()->int:
     options.add_argument('--check',action='store_true')
     options.add_argument('--json',action='store_true')
     args=parser.parse_args()
-    try:actual=inventory()
+    try:
+        from build_interface_types import update
+        update(write=args.write)
+        component_copies(write=args.write)
+        actual=inventory()
     except (SyntaxError,UnicodeError,ValueError,OSError) as err:
         parser.exit(2,'审查失败：'+str(err)+'\n')
     if args.write:

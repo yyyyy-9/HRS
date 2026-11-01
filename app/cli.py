@@ -39,6 +39,8 @@ def capabilities():
 
 
 def main(argv=None):
+    for stream in (sys.stdout,sys.stderr):
+        if hasattr(stream,'reconfigure'):stream.reconfigure(encoding='utf8')
     # Legacy modules already share this application directory in the portable
     # build. Keep that same boundary in the installed CLI, with no server on import.
     if str(APP) not in sys.path:
@@ -59,7 +61,8 @@ def main(argv=None):
             if command in ('plan','apply'):argv.insert(0,command)
             return module.main(argv)
         except (OSError,ValueError,ImportError) as error:
-            print(json.dumps({'ok':False,'operation':command,'code':'COMMAND_UNAVAILABLE','error':str(error)},ensure_ascii=False));return 1
+            code='COMMAND_UNAVAILABLE' if isinstance(error,ImportError) else getattr(error,'code','COMMAND_FAILED')
+            print(json.dumps({'ok':False,'operation':command,'code':code,'error':str(error)},ensure_ascii=False));return 1
     parser = argparse.ArgumentParser(description='HRS local editor and snapshot-bound commands (127.0.0.1 only)',
         epilog='Data commands: hrs read ACTION SOURCE | hrs check SOURCE | hrs plan ... | hrs apply ... | hrs html export/recover ... | hrs capabilities. Use COMMAND --help for options.')
     parser.add_argument('--version', action='version', version=identity['release'])

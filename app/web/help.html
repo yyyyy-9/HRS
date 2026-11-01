@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用手册 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="b2273c7592e6daf5df148bc140966ee84445ce053f3325ea3b3dd7155b1bd7d5"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用手册 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="ac52a4191ca825e5c3384204513e11a4c843a0315de4a321387f11946e9986eb"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -641,7 +641,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.3.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">先看这一页：五分钟完成第一份报告</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.4.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">先看这一页：五分钟完成第一份报告</a>
 <a class="level2" href="#section-3">直接编辑已有 Markdown</a>
 <a class="level2" href="#section-4">从预览复制Markdown与处理行首缩进</a>
 <a class="level2" href="#section-5">Windows桌面运行</a>
@@ -727,7 +727,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <p>插入块公式后直接选中 TeX，块内各行有浅底范围标记，不自动折叠。<code>$$...$$</code> 与 <code>\[...\]</code> 共用对象链；整块复制粘贴创建新 ID，同片段引用随之映射，在公式正文中粘贴则保持字面输入。旧稿 <code>\tag{2}</code> 在 Markdown 保留，屏幕和导出 HTML 只显示 HRS 的数学字形编号；关掉公式编号则不显示号。新稿和 AI 生成内容不要手写 <code>\tag</code> 或公式号。Word 仍以本次工程稿“公式编号”选项决定是否编号。</p>
 <p>公式结构按钮用数学小样例展示结果。“分段函数”是左大括号加表达式/条件两列；“多行等号对齐”让两行的等号对齐；矩阵以两行两列开始。点击后填写占位内容，源码模板可用Tab切换填写位置。数学中的普通空格通常不显示，可用“窄空格”（<code>\,</code>）或“宽空格”（<code>\quad</code>）插在当前光标处。“新增一行”用于已有多行结构：可视区先点其中一格，源码中则在该行光标处插入<code>\\</code>。上下标、分子分母内部不在源码中直接加行；普通行间公式先用“转为多行”，保留完整原式并增加可填写的第二行，不自动拆等号。<code>&amp;</code>代表列对齐位置，<code>\quad</code>只增加横向间距，源码中的普通Enter不等于数学换行。行内公式保持单行，多行工具在行间公式中使用。下方“文稿中的排版效果”使用原正文渲染器核对结果。</p>
 <p>公式窗口标题栏提供“撤销／重做”，可视公式、LaTeX源码、结构按钮和间距/换行操作共用本次窗口的历史。Ctrl+Z撤销，Ctrl+Y或Ctrl+Shift+Z重做；连续输入合并为一步，移动光标、换编辑侧或点结构工具后另起一步，最多保留最近100步。撤销也能恢复未完成的LaTeX和填写选区；撤销后新输入会清除重做分支。取消丢弃窗口内修改，应用后在主编辑器中仍可一次撤销整次公式修改。</p>
-<p>源码栏可调整<strong>正文/标题字号</strong>，标题层级继续保留；图表、公式、HTML及代码源块、行号与折叠卡片保持原字号。单个“折叠／展开”按钮作用于当前查看范围：全部折叠后显示“展开”，展开或部分折叠时显示“折叠”；没有可折叠块时禁用。单独展开对象或切换专题时，按钮按实际状态更新。“自动折行”放在左侧目录栏、保留连续空行旁，只改变屏幕上的折行，不改Markdown。预览标题栏的显示比例可在100%、125%、150%、175%、200%间切换，预览与阅读共用；放大后可横向滚动。字号、折行和显示比例记在当前浏览器本机偏好中，不进入文稿撤销、不修改工程显示配置，也不改变HTML/PDF/Word输出。</p>
+<p>源码栏可调整<strong>正文/标题字号</strong>，标题层级继续保留；图表、公式、HTML及代码源块、行号与折叠卡片保持原字号。单个“折叠／展开”按钮作用于当前查看范围：全部折叠后显示“展开”，展开或部分折叠时显示“折叠”；没有可折叠块时禁用。载入文稿期间暂时禁用，完成后自动恢复为当前文稿的可用状态。单独展开对象或切换专题时，按钮按实际状态更新。“自动折行”放在左侧目录栏、保留连续空行旁，只改变屏幕上的折行，不改Markdown。预览标题栏的显示比例可在100%、125%、150%、175%、200%间切换，预览与阅读共用；放大后可横向滚动。字号、折行和显示比例记在当前浏览器本机偏好中，不进入文稿撤销、不修改工程显示配置，也不改变HTML/PDF/Word输出。</p>
 <p>左侧目录按标题层级嵌套，可点箭头单独展开，或选择显示至 H1—H6。点标题定位；按住右侧 <code>≡</code> 拖到同级标题前后，整节连同下级标题和对象一起移动。拖柄聚焦时 Alt+↑／↓ 也可同级移动。移动保留 ID 与标题级别，派生编号重新显示，Ctrl+Z 整次撤销；不同级别或过期拖动会提示重新操作。聚焦专题时保留该专题边界，要调整专题间顺序先返回全部专题。</p>
 <p>源码栏“片段 / 快速记录”（Ctrl+Alt+Q）可直接写文字，或保存常用 Markdown。<code>{{field:样品}}</code> 生成填写项，<code>{{date}}</code> 插入本机日期，<code>{{cursor}}</code> 指定插入后的光标位置。可插到当前选区或指定章节末尾。保存/删除片段只影响应用数据区，不修改文稿；应用插入是一笔可撤销事务，已有附件与对象身份走原粘贴规则。片段不运行 Python、JavaScript 或表达式，其他 <code>{{...}}</code> 按普通文字保留。</p>
 <p>章节、图表、公式及脚注引用继续通过原链接定位目标；不再显示目标源码悬浮窗或“查看引用位置”窗口。引用目标重名或缺失时请先做文档检查。代码、数学和链接目标中的字面示例不当作正文引用。</p>
@@ -1075,6 +1075,7 @@ exportgraphics(fig, &quot;result.pdf&quot;, ContentType=&quot;vector&quot;);
 <li><strong>Ctrl+S /顶部「保存」：</strong> 更新工程里的 <code>report.md</code> 与所需附件。</li>
 <li><strong>「保存」旁「▾ → 保存草稿并退出」：</strong> 等草稿备份确认后关闭，<strong>不会替你执行正式保存</strong>。</li>
 </ul>
+<p>看到“正文已保存 · 有附带事项待处理”时，正文已写入，提示会说明显示设置、旧草稿清理或界面刷新哪一项未完成。保留提示中的待处理事项，之后可继续保存；它与“正式保存失败”不同。打开另一份文稿失败时，当前文稿和保存位置保持原样。</p>
 <h3 id="section-49">导出 HTML：两组设置互不影响</h3>
 <table>
 <thead>

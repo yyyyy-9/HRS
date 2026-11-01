@@ -106,6 +106,8 @@ def analyze_file(file: Path, *, assets: Path | None = None) -> dict:
 
 
 def main(argv=None):
+    for stream in (sys.stdout,sys.stderr):
+        if hasattr(stream,'reconfigure'):stream.reconfigure(encoding='utf8')
     parser = argparse.ArgumentParser(description='Read-only object and reference inspection; stdout JSON only')
     parser.add_argument('action', choices=('summary','objects','references','diagnostics','get','outline','get-block'))
     parser.add_argument('source', type=Path, help='UTF-8 report.md or containing project folder')

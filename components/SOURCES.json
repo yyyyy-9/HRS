@@ -1,0 +1,33 @@
+{
+  "schema": "hrs-component-sources-v1",
+  "repository": "https://github.com/yyyyy-9/HRS",
+  "selection": "Explicit HRS source snapshot recorded by Git and release SHA-256 manifests; no automatic upstream update.",
+  "engines": [
+    {
+      "id": "bridge",
+      "source": "components/hrs-wps-bridge/hrs_bridge",
+      "installed": "bridge/hrs_bridge",
+      "suffixes": [".py", ".js", ".cjs"],
+      "version_file": "__init__.py",
+      "version_symbol": "__version__",
+      "contracts": ["hrs-word-browser-model-v1", "hrs-block-plan-v1", "engineering-report-ir-v1"]
+    },
+    {
+      "id": "wps",
+      "source": "template-tool/src/wps_pipeline",
+      "installed": "wps/src/wps_pipeline",
+      "suffixes": [".py"],
+      "version_file": "scan_docx.py",
+      "version_symbol": "VERSION",
+      "contracts": ["DOCX scan / recognition / assembly", "template body slot and native numbering"]
+    }
+  ],
+  "resources": [
+    {"source": "template-tool/config.json", "installed": "wps/config.json"},
+    {"source": "template-tool/templates/target_template.docx", "installed": "wps/templates/target_template.docx"},
+    {"source": "template-tool/templates/cover_template_v0311.docx", "installed": "wps/templates/cover_template_v0311.docx"}
+  ],
+  "generated_copies": [
+    {"source": "components/hrs-wps-bridge/hrs_bridge/browser_model.js", "target": "app/web/bridge_model.js", "rule": "byte-identical"}
+  ]
+}

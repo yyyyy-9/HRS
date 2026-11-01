@@ -5,6 +5,7 @@ This parser deliberately validates the engineering extensions rather than claimi
 complete CommonMark/GFM AST. Markdown paragraphs remain exact source ranges.
 """
 from __future__ import annotations
+from interface_types import SourceSnapshot
 import argparse
 from collections import Counter
 from dataclasses import dataclass
@@ -522,10 +523,12 @@ def analyze(markdown: str, assets: Path | None = None) -> dict:
         entry['referencedBy']=[{'kind':ref['kind'],'start':ref['start'],'end':ref['end']}
                                 for ref in references if ref['target']==oid]
         entries.append(entry)
+    snapshot: SourceSnapshot = {
+        'text_utf8_sha256': hashlib.sha256(markdown.encode('utf-8')).hexdigest(),
+        'utf16_length': len(markdown.encode('utf-16-le'))//2,
+        'newline_mode': 'preserved', 'bom_preserved': markdown.startswith('\ufeff')}
     return {'schema':IR_VERSION,'source_format':FORMAT,'offset_unit':'utf16',
-            'source_snapshot':{'text_utf8_sha256':hashlib.sha256(markdown.encode('utf-8')).hexdigest(),
-                'utf16_length':len(markdown.encode('utf-16-le'))//2,'newline_mode':'preserved',
-                'bom_preserved':markdown.startswith('\ufeff')},'blocks':blocks,
+            'source_snapshot':snapshot,'blocks':blocks,
             'objects':{'ids':ids,'entries':entries},'references':references,
             'assets':sorted(set(item[0] for item in assets_used)),'list_styles':styled_lists,
             'diagnostics':diagnostics,'ok':not any(d['severity']=='error' for d in diagnostics),

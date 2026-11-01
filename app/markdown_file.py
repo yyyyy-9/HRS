@@ -3,6 +3,7 @@
 The selected file is the only source. Preferences, locks and backups live in
 application data; HTTP callers use registered IDs, never arbitrary paths.
 """
+from file_io import write_json
 from pathlib import Path
 import json,re,uuid
 from project_workspace import SAFE_ID,is_link
@@ -73,7 +74,6 @@ class MarkdownFiles:
         return folder
 
     def register(self,path):
-        from studio import write_json
         from render_profile import new_options
         path=_source(path)
         try:text=path.read_bytes().decode('utf-8-sig')

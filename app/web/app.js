@@ -183,14 +183,19 @@ async function load(documentId='new',template='engineering',{recover=true,draftI
  $('problems-panel').hidden=true;$('problem-list').replaceChildren();$('problems-summary').textContent='';
  $('bottom-left').textContent='实时预览 · 草稿自动恢复 · Ctrl+S 正式保存';$('bottom-left').title='';
  $('bottom-right').textContent='离线渲染 · 无 CDN';
+ let activated=false;
  try{
-  const data=await api('/api/doc?document_id='+encodeURIComponent(documentId)+'&template='+encodeURIComponent(template));
+  const data=/** @type {HrsDocumentResponse} */(await api('/api/doc?document_id='+encodeURIComponent(documentId)+'&template='+encodeURIComponent(template)));
+  if(session!==state.session)return;
+  // Prepare the asynchronous dependency before changing the active document.
+  // A failed stylesheet must leave the old source and its save identity together.
+  const colorTheme=await ReportTheme.apply(document,urlColorTheme||data.color_theme);
   if(session!==state.session)return;
   clearDocumentRenderCaches();sourceProjection.set(null);
   acceptedHeadingSnapshot=null;state.md=data.markdown;state.savedMd=data.markdown;state.revision=data.revision;state.documentId=data.document_id;
   state.renderProfile=ReportProfile.normalize(data.render_profile);state.renderOptions=ReportProfile.normalizeOptions(data.render_options);$("render-profile").value=state.renderProfile;syncRenderControls();
   state.hasNumberPreference=data.document_id!=='new';state.reportWorkspace=data.report_workspace||null;syncReportWorkspace();
-  await setColorTheme(urlColorTheme||data.color_theme);
+  state.colorTheme=colorTheme;$('color-theme').value=colorTheme;
    state.template=data.template;state.theme=data.theme;state.projectPath=data.project_path||null;state.externalProject=!!data.external_project;state.markdownFile=data.markdown_file||null;state.dirty=false;state.saving=false;state.draftError=false;
   $('btn-markdown-project').hidden=!state.markdownFile;operations.setDisabled($('btn-project-migrate'),!!state.markdownFile);
   if(state.markdownFile){$('bottom-left').textContent='直接编辑 Markdown · Ctrl+S 保存原文件 · HTML/PDF 导出同目录';$('bottom-left').title=state.markdownFile;}
@@ -198,9 +203,15 @@ async function load(documentId='new',template='engineering',{recover=true,draftI
   checks=null;checkSequence++;$('problems-panel').hidden=true;clearPreviewHighlight();
   editor.value=state.md;editor.resetObjects();editor.setSelectionRange(state.md.length);editor.scrollTop=0;$('project-label').textContent=data.project;
   document.body.dataset.reportTheme=data.theme;
+  activated=true;state.rendering++;renderedKey=null;positionMap=null;lastTOC=[];
+  preview.replaceChildren();$('toc').replaceChildren();documentSearch?.invalidate();
   resetHistory();updateDirty();await render();await refreshRecent();
   if(recover&&documentId!=='new')await recoverDocumentDraft(documentId,{draftId,session});
- }catch(e){status('error','无法加载');toast(e.message);throw e;}finally{release();}
+ }catch(e){
+  status('error',activated?'文稿已载入 · 预览未完成':'文档未切换 · 载入失败');
+  if(state.dirty)scheduleDraft();
+  toast(e.message);throw e;
+ }finally{release();}
 }
 async function refreshRecent(){
  const host=$('recent-list');
@@ -484,6 +495,7 @@ async function save(force=false){
  const pendingDraft=state.markdownFile&&state.dirty&&state.draftSnapshot?.markdown!==state.md?queueDraft():state.draftQueue;
  state.saving=true;const release=operations.acquire({nodes:document.querySelectorAll('[data-insert]'),editing:true});
  updateDirty();
+ let acknowledged=false,notices=[];
  try{
   await pendingDraft; // Never race a draft write against the official commit and cleanup.
   const md=state.md,docId=state.documentId,did=state.draftId;
@@ -491,6 +503,7 @@ async function save(force=false){
    draft_id:did,template:state.template,render_profile:state.renderProfile,render_options:state.renderOptions,color_theme:state.colorTheme,...(selected?{selection_token:selected.selection_token}:{})});
   const canonical=state.markdownFile&&typeof res.markdown==='string'?res.markdown:md;
   state.documentId=res.document_id;state.revision=res.revision;state.savedMd=canonical;state.draftError=false;
+  acknowledged=true;notices=Array.isArray(res.warnings)?res.warnings.filter(item=>typeof item==='string'):[];
   if(canonical!==state.md)acceptSavedMarkdown(canonical);
   state.draftId=freshID();state.draftSeq=0;state.draftQueue=Promise.resolve();state.draftSnapshot=null;history.lastKind=null;
   if(selected){state.projectPath=selected.target_path;state.externalProject=true;}
@@ -500,12 +513,18 @@ async function save(force=false){
    for(const node of preview.querySelectorAll('img[src],a[href]')){const attr=node.tagName==='IMG'?'src':'href',url=new URL(node.getAttribute(attr),location.href);if(url.origin===location.origin&&url.pathname.startsWith('/assets/')){url.searchParams.set('document_id',state.documentId);url.searchParams.set('draft_id',state.draftId);node.setAttribute(attr,url.href);}}
    renderedKey=documentViewKey();restorePreviewViewport(anchor);previewImages?.committed();
   }else await render();
- }catch(e){state.draftError=e.status===409?false:state.draftError;
-  status('error',e.status===409?'正式稿冲突 · 草稿仍在':'正式保存失败');
-  if(e.status===409)toast('正式文件已被另一程序修改；保留恢复草稿。请检查后再提交，不能覆盖外部变更。');
-  throw e;
+ }catch(e){
+  if(acknowledged)notices.push('保存后的界面刷新未完成：'+e.message);
+  else{
+   state.draftError=e.status===409?false:state.draftError;
+   status('error',e.status===409?'正式稿冲突 · 草稿仍在':'正式保存失败');
+   if(e.status===409)toast('正式文件已被另一程序修改；保留恢复草稿。请检查后再提交，不能覆盖外部变更。');
+   throw e;
+  }
  }finally{state.saving=false;release();
-  if(!state.draftError&&state.md===state.savedMd)updateDirty();}
+  if(!state.draftError&&state.md===state.savedMd)updateDirty();
+  if(acknowledged&&notices.length){status('draft','正文已保存 · 有附带事项待处理');toast(notices.join('；'));}
+ }
 }
 async function promptRecovery(){
  try{
@@ -2013,7 +2032,7 @@ async function editReference(element){
 // Display preferences never insert line breaks or edit the source document.
 function initEditorLayout(){
  viewControls=ReportViewControls.attach({editor,preview,capture:previewViewportAnchor,restore:restorePreviewViewport,
-  getSourceMap:currentSourceMap,getSourceRange:()=>sourceProjection.range,suspend:()=>scrollFollow?.suspend(),committed:()=>previewImages?.committed()});
+  getSourceMap:currentSourceMap,setDisabled:operations.setDisabled,getSourceRange:()=>sourceProjection.range,suspend:()=>scrollFollow?.suspend(),committed:()=>previewImages?.committed()});
 }
 function initScrollFollow(){
  initEditorLayout();

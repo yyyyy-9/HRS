@@ -3,12 +3,12 @@
 Selections remain native user actions. History is navigation convenience, never
 filesystem authority or a way for HTTP callers to supply arbitrary paths.
 """
+from file_io import write_json
 import ctypes
 from ctypes import wintypes
 import json
 import os
 from pathlib import Path
-import secrets
 import threading
 import uuid
 
@@ -37,11 +37,7 @@ class PickerHistory:
         if not directory.is_dir():raise ValueError('所选路径不是现有目录')
         with self.guard:
             value=self._load();value[purpose]=str(directory)
-            temporary=self.path.with_name(self.path.name+'.'+secrets.token_hex(6)+'.tmp')
-            try:
-                temporary.write_bytes((json.dumps(value,ensure_ascii=False,indent=2)+'\n').encode('utf8'))
-                os.replace(temporary,self.path)
-            finally:temporary.unlink(missing_ok=True)
+            write_json(self.path, value)
 
 
 _history=None

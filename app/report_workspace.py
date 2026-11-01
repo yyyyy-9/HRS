@@ -1,4 +1,6 @@
 """Owned report-workspace metadata, reversible lifecycle and bounded copy jobs."""
+from interface_types import WorkspaceStatus
+from file_io import atomic_write
 from pathlib import Path
 import hashlib
 import json
@@ -78,7 +80,6 @@ def list_reports(workspace,document_id,draft_id=None,*,offset=0,limit=30,
 
 def lifecycle(workspace,document_id,action,expected_revision):
     """Only internal report workspaces; recycle is a rename, never a deletion."""
-    from studio import atomic_write
     workspace=Path(workspace).resolve()
     if not isinstance(document_id,str) or not ID.fullmatch(document_id):raise ValueError('临时稿 ID 无效')
     trash=workspace/'.report-workspace-trash'
@@ -169,7 +170,7 @@ class WorkspaceJobs:
         thread=threading.Thread(target=run,name='hrs-workspace-copy',daemon=True);job['thread']=thread;thread.start()
         return token
 
-    def status(self,token,owner,cancel=False):
+    def status(self,token,owner,cancel=False) -> WorkspaceStatus:
         with self.lock:
             job=self.jobs.get(token)
             if job is None or job['owner']!=owner:raise ValueError('工作页任务不存在或不属于当前来源')
@@ -302,7 +303,6 @@ def _sync_candidate(project,origin,descriptor,request,asset_roots):
 
 
 def plan_sync(project,origin,descriptor,request,asset_roots):
-    from studio import atomic_write
     plan,_,_=_sync_candidate(project,origin,descriptor,request,asset_roots)
     folder=Path(project)/'.sync-plans'
     if is_link(folder):raise ValueError('同步计划目录不能是链接')
@@ -317,7 +317,6 @@ def plan_sync(project,origin,descriptor,request,asset_roots):
 
 def apply_sync(project,origin,descriptor,request,asset_roots,*,after_commit=None):
     from project_commit import report_lock,commit_report_locked
-    from studio import atomic_write
     import tempfile
     project,origin=Path(project),Path(origin)
     token=request.get('plan_id')

@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Word 数据交接 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="bc2c817e9f15a55e8c9f0d71edc0883c9ffe44fb1771105dcc50abe3c0bb2b41"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Word 数据交接 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="79b107a7cae6f8d74726be3fb93b38cf7a9bb1290a13c6cf6134ded085f8dc33"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -641,7 +641,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.3.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">输出模式与模板角色</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.4.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">输出模式与模板角色</a>
 <a class="level2" href="#section-3">编辑入口与源稿提交</a>
 <a class="level2" href="#section-4">笔记降级边界</a>
 <a class="level2" href="#section-5">项目分工与内容来源</a>
@@ -680,6 +680,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 python block_cli.py apply D:\Reports\section-plan.json --expect-plan-sha256 &lt;plan返回的SHA-256&gt;
 </code></pre>
 <p><code>--section</code> 可重复形成精确标题路径；唯一短标题也可。操作可用 append、prepend 或 replace-body。章节正文包含其下级标题，replace-body 保留当前标题；已有 ID、数字与技术内容由提供的 Markdown 决定，不自动猜改。Agent 可在已授权任务内完成读取、生成候选、检查差异及显式提交，不要求人逐段确认。</p>
+<p>保存调用须区分提交与附带事项：<code>/api/save</code>成功回执的revision对应已保存正文，可选warnings描述显示设置或旧草稿清理未完成。下一次修改使用返回的revision，不因警告拿旧摘要重试。CLI plan与HTML输出只创建新路径；失败后清理本次产物，无法清理时非零退出并返回<code>OUTPUT_INCOMPLETE</code>及<code>incomplete_outputs</code>路径。HTML恢复已交付新工程后的临时清理警告仍以ok=true返回。apply的源、候选、资源及审查摘要保护不变，旧快照不会被当作可重复提交。</p>
 <h2 id="section-6">当前可调用的读取入口</h2>
 <p>在解压包的 <code>app/</code> 目录运行，示例路径替换成真实完整工程：</p>
 <pre><code class="language-powershell">python report_contract.py validate D:\Reports\demo\report.md --json

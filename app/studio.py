@@ -5,6 +5,7 @@ Requires only Python standard library. PDF generation uses an installed Edge/Chr
 Chromium browser if available (fallback: browser print-to-PDF).
 """
 from __future__ import annotations
+from interface_types import ApiError, DraftResponse, SaveResponse
 
 import argparse
 import base64
@@ -17,23 +18,23 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, quote, unquote, urlsplit
 import uuid
 import webbrowser
-import xml.etree.ElementTree as ET
 import zipfile
 from report_contract import analyze as analyze_report_contract
 from agent_readonly import project as project_contract, BLOCKED_DIAGNOSTICS
 from project_workspace import ProjectRegistry,pick_project_parent,pick_import_file,copy_project_tree,_trusted_project_directory,is_link,validate_project_name
 from clipboard_graphics import ClipboardGraphic, read_windows_graphic, emf_to_png, validate_emf
-from svg_prolog import safe_svg_prolog
 from pdf_graphics import validate_pdf, png_dimensions, render_pdf_preview
 from reading_pack import ReadBundle, ReadPackManager, MIME as READER_MIME, MAX_ZIP_BYTES, MAX_IMAGE as READER_MAX_IMAGE, MAX_PDF as READER_MAX_PDF
 from asset_housekeeping import AssetHousekeeper
+from file_io import atomic_write, digest, write_json
+from asset_validation import (LIMIT_IMAGE, ALLOWED_IMAGE, ALLOWED_ASSET, normalize_svg,
+    guard_svg, check_image, clean_asset_name)
 from asset_paths import normalize_asset, asset_file
 from word_export import WordExport
 from word_import import WordImport
@@ -48,11 +49,8 @@ RELEASE = _identity['release']
 WEB = HERE / 'web'
 DEFAULT = HERE / 'projects' / 'demo'   # v0.1 compatibility; never auto-open on new UI launch
 LIMIT_JSON = 45 * 1024 * 1024
-LIMIT_IMAGE = 12 * 1024 * 1024
 DOC_ID = re.compile(r'^[a-f0-9]{32}$')
 DRAFT_ID = DOC_ID
-ALLOWED_IMAGE = {'.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.gif':'image/gif', '.webp':'image/webp', '.svg':'image/svg+xml'}
-ALLOWED_ASSET = {**ALLOWED_IMAGE,'.emf':'application/octet-stream','.pdf':'application/pdf'}
 # Byte-exact first-party reader scripts shipped by earlier releases, so HTML
 # already exported to output/ by them can still pass the delivery audit.
 LEGACY_READER_SHA256 = {'144e3ee2de81669c83ce3497796f2f7e62d35a9f2ebe044ecfb820e9b79b04d8','81e304255c212aae1ef28dd2e8cb51fc97580aac0c43a601054fcbd23e8958cd','1275a6830b70fb59cf07ac16be15e2dc5ce9c87b2af2345db2c3d2bf27dbeee8','4386a8a446949233a9e5170f96e453eb58e962b876451e4de88501084e0252db','43c2ccdad84ddf525d2b5f4a6bba651c37b94c53d9c65ac28dcd5c8317a3330a','4f06e316f1bdd62d20e5173f56af0ade63b8d9e326918d2b55e3e76ad96e4036','6feb1c196b0f5f231ce9fb11d68642fecd0f810ddf035284902f8778bb4b93b4','764f4333c55c29de9affc2cf53e5322f48443d400ab6cc212e6124812eb74219','782a99c76ee2b047239bc460cca74fc2895e9c275f415f3e967e40eb20a25bde','7f217047cc92ebc99211c63201762a3f89050564c20d5b5b38fb927d77ec74c3','8769a7ce7557c2c68b62c9ac1ec6e03c60c34b65e6757f3cd6121ca080bfe833','906c8d3447b0ccda8b7e71055e3bf7ef66e064506a27d33d05ad5e701a322473','949267a8c0f7b6615f723176597cc68baddfd689f3f964e8715d74d3c6dcc0c5','bb6ecd6c41f23bd618bbf109377f2895ec3fe35fa22c4d96b65da4ea818cb577','bd7ed68acf2f5d849a16142cece55b3bd5efa8dd033cb70ea7fb5d6d6a7344a3','c8ac801ae44f87fd341b1243654f33b8e867f0592e72e95435c35653fae26a97','dc69801f4091638ea113c99e29156ebac1c24ee6711f78d16b28af766f6a32c0','e311b36e32036747723d519fd7d15d341e8d69a494d5642dfa1bccefc035ff1f','e995e95d01162d97e254b75f17d34f9e460c332ef81cf40619091a91db3bc2d5','f478329753af6f59b00426e060dc2c12f95cb0000652433a861d09b0b5cce7ec','f85efdc2182e7b211fec5b39e7a840d3cefdf7ac9bbf03f1b219161ce139d144','302c3ad5d40c53a881a3d1e22d89abc3a01e738157d7e549634e8e2fb260dbc7'}
@@ -173,197 +171,6 @@ TEMPLATES = {
 
 def native_clipboard_available() -> bool:
     return os.name=='nt'
-
-
-def digest(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
-
-
-def atomic_write(path: Path, data: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd, tempname = tempfile.mkstemp(prefix='.tmp_', dir=path.parent)
-    try:
-        with os.fdopen(fd, 'wb') as file:
-            file.write(data)
-            file.flush()
-            os.fsync(file.fileno())
-        os.replace(tempname, path)
-    finally:
-        if os.path.exists(tempname): os.unlink(tempname)
-
-
-def write_json(path: Path, obj: dict) -> None:
-    atomic_write(path, (json.dumps(obj, ensure_ascii=False, indent=2) + '\n').encode('utf-8'))
-
-
-def normalize_svg(blob: bytes, *, linked_assets: dict[str, bytes] | None=None,
-                  warnings: list[str] | None=None) -> bytes:
-    """Validate offline SVG and inline explicitly supplied referenced raster files.
-
-    Never follows SVG file/http URLs. Relative image references can only resolve
-    against browser-selected bytes supplied in linked_assets. Ordinary local
-    defs/use and local hyperlinks remain intact; outbound hyperlinks are removed
-    while retaining their visible shapes (no network dependency in exported HTML).
-    """
-    from pathlib import PurePosixPath
-    blob=safe_svg_prolog(blob,warnings=warnings)
-    original=blob
-    try:root=ET.fromstring(blob)
-    except ET.ParseError as exc:raise ValueError('SVG XML 无效，可能使用了未定义实体') from exc
-    if root.tag.split('}')[-1].lower()!='svg':raise ValueError('不是 SVG 文件')
-    # Never look up a path, load an external URL, or allow uncontrolled entities.
-    # A file picker provides only basenames; require unique, bounded explicitly
-    # supplied bitmap bytes. The image file itself is inlined as a data URI.
-    supplied={}
-    total=0
-    if linked_assets is not None:
-        if not isinstance(linked_assets,dict) or len(linked_assets)>32:
-            raise ValueError('SVG 附属图片数量无效')
-        for name,data in linked_assets.items():
-            if not isinstance(name,str) or not re.fullmatch(r'[A-Za-z0-9_ .()\-]{1,150}\.(png|jpe?g|gif|webp)',name,re.I):
-                raise ValueError('SVG 附属图片名称不合法')
-            if not isinstance(data,bytes):raise ValueError('SVG 附属图片内容无效')
-            total+=len(data)
-            if total>24*1024*1024:raise ValueError('SVG 附属图片总大小超过 24 MB')
-            check_image('.'+name.rsplit('.',1)[1].lower(),data)
-            lowered=name.casefold()
-            if lowered in supplied:raise ValueError('SVG 附属图片有重名文件')
-            supplied[lowered]=(name,data)
-    disallowed={'script','foreignobject','iframe','object','embed',
-                'animate','animatetransform','animatemotion','set',
-                'audio','video','feimage'}
-    ids=set();references=[];modified=False
-    removed=[]
-    def strip_unsafe(parent):
-        nonlocal modified
-        for child in list(parent):
-            tag=child.tag.split('}')[-1].lower() if isinstance(child.tag,str) else ''
-            if tag in disallowed:
-                parent.remove(child);removed.append(tag);modified=True
-            else:strip_unsafe(child)
-    strip_unsafe(root)
-    # Matplotlib/Inkscape place descriptive RDF / DC metadata here; URI values
-    # (e.g. http://purl.org/...) are *identifiers*, not render-time fetches.
-    # Dropping the entire non-rendered subtree avoids false external-resource
-    # errors without relaxing URLs on actual SVG image/style/use elements.
-    removed_metadata=[]
-    def strip_metadata(parent):
-        nonlocal modified
-        for child in list(parent):
-            if not isinstance(child.tag,str):continue
-            local=child.tag.split('}')[-1].lower()
-            ns=child.tag.split('}')[0][1:] if '}' in child.tag else ''
-            if local=='metadata' or ns in {'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
-                                           'http://purl.org/dc/elements/1.1/',
-                                           'http://creativecommons.org/ns#'}:
-                parent.remove(child);modified=True;removed_metadata.append(local)
-            else:strip_metadata(child)
-    strip_metadata(root)
-    if removed_metadata and warnings is not None:
-        warnings.append('已移除不参与绘图的 SVG/RDF 元数据，不访问元数据网址')
-    if removed and warnings is not None:
-        warnings.append('SVG 中的不安全/动态元素已移除：'+', '.join(sorted(set(removed))))
-    # Do not create a silently blank image after removing a script-only graph.
-    visible={'path','rect','circle','ellipse','line','polyline','polygon','text','image','use'}
-    if removed and not any(isinstance(n.tag,str) and n.tag.split('}')[-1].lower() in visible for n in root.iter()):
-        raise ValueError('SVG 图形完全依赖脚本或动态对象，无法安全保留；请导出静态 SVG')
-    for node in root.iter():
-        name=node.tag.split('}')[-1].lower() if isinstance(node.tag,str) else '' 
-        if name=='style':
-            css=''.join(node.itertext())
-            if re.search(r'@import|expression\s*\(|url\s*\(\s*(?!["\']?\s*#)',css,re.I):
-                raise ValueError('SVG 样式包含非本地资源（不自动加载网络文件）')
-            for m in re.finditer(r'url\s*\(\s*([^)]+)\)',css,re.I):
-                references.append(m[1].strip().strip('"\'').strip()[1:])
-        for key,value in list(node.attrib.items()):
-            attr=key.split('}')[-1].lower()
-            if attr=='id':ids.add(value)
-            if attr.startswith('on') or attr in {'src','base','action','formaction'}:
-                del node.attrib[key];modified=True
-                if warnings is not None:warnings.append('SVG 事件或外部资源属性已移除：'+attr)
-                continue
-            if re.search(r'@import|expression\s*\(',value,re.I):
-                raise ValueError('SVG 包含危险 CSS 内容')
-            for m in re.finditer(r'url\s*\(\s*([^)]+)\)',value,re.I):
-                destination=m[1].strip().strip('"\'').strip()
-                if not destination.startswith('#') or not re.fullmatch(r'#[A-Za-z_][\w.-]*',destination):
-                    raise ValueError('SVG 包含外部 CSS 资源')
-                references.append(destination[1:])
-            if attr=='href':
-                if name in {'use','textpath','lineargradient','radialgradient','pattern',
-                            'filter','mask','clippath','symbol'}:
-                    if not re.fullmatch(r'#[A-Za-z_][\w.-]*',value):
-                        raise ValueError('SVG 内部图形引用必须为 #id')
-                    references.append(value[1:])
-                elif name=='image':
-                    m=re.fullmatch(r'data:image/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/=]+)',value,re.I)
-                    if m:
-                        try:embedded=base64.b64decode(m[2],validate=True)
-                        except Exception as exc:raise ValueError('SVG 内嵌图片 Base64 错误') from exc
-                        ext={b'png':'.png',b'jpeg':'.jpeg',b'gif':'.gif',b'webp':'.webp'}[m[1].encode('ascii').lower()]
-                        check_image(ext,embedded)
-                    else:
-                        url=urlsplit(value)
-                        if url.scheme.lower() in {'javascript','data','ftp','blob'}:
-                            raise ValueError('SVG 包含不安全图片协议：'+value[:100])
-                        if url.scheme and url.scheme.lower() not in {'https','http','file'}:
-                            raise ValueError('SVG 图片协议未受支持：'+value[:100])
-                        # The source file may contain file:///... emitted by Origin.
-                        # Only its basename is used to match a user-selected file.
-                        path=unquote(url.path if url.scheme.lower() in {'file','http','https'} else value).replace('\\','/')
-                        parts=PurePosixPath(path).parts
-                        if not parts or path.endswith('/') or '..' in parts or (url.scheme.lower() not in {'http','https','file'} and ('?' in path or '#' in path)):
-                            raise ValueError('SVG 图片路径无效：'+value[:110])
-                        lookup=parts[-1].casefold()
-                        if lookup not in supplied:
-                            raise ValueError('SVG 引用了本地图片「'+parts[-1]+'」，请同时选中 SVG 和该图片文件导入')
-                        fname,data=supplied[lookup]
-                        mime={'png':'png','jpg':'jpeg','jpeg':'jpeg','gif':'gif','webp':'webp'}[fname.rsplit('.',1)[1].lower()]
-                        node.attrib[key]='data:image/'+mime+';base64,'+base64.b64encode(data).decode('ascii')
-                        modified=True
-                        if warnings is not None:warnings.append('已将 SVG 引用图片「'+fname+'」内嵌，不依赖原路径')
-                elif name=='a':
-                    if re.fullmatch(r'#[A-Za-z_][\w.-]*',value):references.append(value[1:])
-                    elif value.startswith('#'):
-                        del node.attrib[key];modified=True
-                    else:
-                        # External *hyperlinks* aren't image dependencies. Make
-                        # the SVG readable offline without click-through URLs.
-                        del node.attrib[key];modified=True
-                        if warnings is not None:warnings.append('SVG 中的外部超链接已去除，图形内容保留')
-                else:raise ValueError('SVG 含不允许的链接属性')
-            if attr!='href' and re.search(r'(?:https?:|file:|javascript:|//)',value,re.I):
-                raise ValueError('SVG 包含外部资源或脚本协议')
-    missing=set(references)-ids
-    if missing:raise ValueError('SVG 内部引用不存在：'+next(iter(sorted(missing))))
-    if modified:
-        ET.register_namespace('', 'http://www.w3.org/2000/svg')
-        ET.register_namespace('xlink','http://www.w3.org/1999/xlink')
-        blob=ET.tostring(root,encoding='utf-8',xml_declaration=True)
-        if len(blob)>LIMIT_IMAGE:raise ValueError('引用图片内嵌后 SVG 超过 12 MB')
-    return blob
-
-
-def guard_svg(blob: bytes) -> None:
-    normalize_svg(blob)
-
-
-def check_image(ext: str, blob: bytes, limit: int = LIMIT_IMAGE) -> None:
-    if len(blob)>limit: raise ValueError(f'图片超过 {limit//(1024*1024)} MB')
-    if ext=='.png' and not blob.startswith(b'\x89PNG\r\n\x1a\n'):raise ValueError('PNG 格式不匹配')
-    if ext in {'.jpg','.jpeg'} and not blob.startswith(b'\xff\xd8\xff'):raise ValueError('JPEG 格式不匹配')
-    if ext=='.gif' and blob[:6] not in (b'GIF87a',b'GIF89a'):raise ValueError('GIF 格式不匹配')
-    if ext=='.webp' and not(blob[:4]==b'RIFF' and blob[8:12]==b'WEBP'):raise ValueError('WEBP 格式不匹配')
-    if ext=='.svg':guard_svg(blob)
-    if ext=='.emf':validate_emf(blob)
-    if ext=='.pdf':validate_pdf(blob)
-
-
-def clean_asset_name(name: str) -> str:
-    if not isinstance(name,str) or normalize_asset('assets/'+name,originals=True)!='assets/'+name:
-        raise ValueError('附件名不合法')
-    if Path(name).suffix.lower() not in ALLOWED_ASSET:raise ValueError('附件格式不受支持')
-    return name
 
 
 EXTERNAL_CSS=re.compile(r'@import\s+|url\s*\(\s*["\']?\s*(?:https?://|//|file:|javascript:)',re.I)
@@ -660,7 +467,9 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers();self.wfile.write(data)
     def resp(self,obj,status=200):
         self.bytes(json.dumps(obj,ensure_ascii=False).encode('utf-8'),'application/json; charset=utf-8',status)
-    def fail(self,message,status=400):self.resp({'ok':False,'error':str(message)},status)
+    def fail(self, message: str, status: int = 400):
+        payload: ApiError = {'ok': False, 'error': str(message)}
+        self.resp(payload, status)
     def _origin_ok(self):
         host=self.headers.get('Host','')
         if not re.fullmatch(r'(127\.0\.0\.1|localhost)(:\d+)?',host):return False
@@ -719,7 +528,8 @@ class Handler(BaseHTTPRequestHandler):
         try:previous=self.server.read_draft(did)
         except ValueError:previous=None
         if previous and seq<=previous['seq']:
-            return self.resp({'ok':True,'accepted':False,'seq':previous['seq'],'markdown_sha256':digest(previous['markdown'].encode('utf-8'))})
+            reply: DraftResponse = {'ok':True,'accepted':False,'seq':previous['seq'],'markdown_sha256':digest(previous['markdown'].encode('utf-8'))}
+            return self.resp(reply)
         profile=normalize_profile(req.get('render_profile',(previous or {}).get('render_profile')))
         folder.mkdir(exist_ok=True)
         write_json(folder/'state.json',{'format':'html-report-studio-draft-v1','draft_id':did,
@@ -960,6 +770,19 @@ class Handler(BaseHTTPRequestHandler):
               'color_theme':normalize_color_theme(color_theme if color_theme is not None else existing.get('color_theme')),
               'created':existing.get('created',now),'updated':now}
         write_json(path,info)
+    def _save_followups(self,p,doc_id,text,template,theme,req):
+        # The source has committed. Metadata and obsolete-draft cleanup cannot
+        # turn that acknowledged revision into a failed save or a stale retry.
+        warnings=[]
+        try:
+            self._store_meta(p,doc_id,text,template,theme,req.get('render_profile'),req.get('render_options'),req.get('color_theme'))
+        except (OSError,ValueError) as error:
+            warnings.append('正文已保存，显示设置更新未完成：'+str(error))
+        if req.get('draft_id'):
+            try:self._clear_draft(req['draft_id'])
+            except OSError as error:
+                warnings.append('正文已保存，旧恢复草稿清理未完成：'+str(error))
+        return warnings
     def do_GET(self):
         if not self._origin_ok():return self.fail('仅允许本机访问',403)
         p=unquote(urlsplit(self.path).path)
@@ -1657,17 +1480,17 @@ class Handler(BaseHTTPRequestHandler):
         if not self._check_revision(req,old):return
         if is_file:
             if req.get('draft_id'):self._verify_draft_owner(req['draft_id'],doc_id)
+            source_path=str(self.server.source_path(doc_id))
             try:raw=self.server.markdown_files.save(doc_id,text,digest(old))
             except ValueError as exc:
                 if str(exc).startswith(('STALE_SNAPSHOT','WRITE_BUSY')):return self.fail(str(exc),409)
                 raise
             text=raw.decode('utf-8-sig')
-            self._store_meta(p,doc_id,text,template,theme,req.get('render_profile',read_profile(p)),req.get('render_options',read_options(p)),req.get('color_theme',read_color_theme(p)))
-            if req.get('draft_id'):
-                self._clear_draft(req['draft_id'])
-            return self.resp({'ok':True,'document_id':doc_id,'revision':digest(raw),'saved':raw!=old,
-                'title':document_title(text),'theme':theme,'markdown_file':str(self.server.source_path(doc_id)),
-                'markdown':text})
+            warnings=self._save_followups(p,doc_id,text,template,theme,req)
+            reply: SaveResponse = {'ok':True,'document_id':doc_id,'revision':digest(raw),'saved':raw!=old,
+                'title':document_title(text),'theme':theme,'markdown_file':source_path,
+                'markdown':text,'warnings':warnings}
+            return self.resp(reply)
         assets=self._retain_draft_assets(req,p,self._asset_preflight(req,ir['assets'],p))
         raw=text.encode('utf-8')
         if p is None:
@@ -1690,13 +1513,10 @@ class Handler(BaseHTTPRequestHandler):
                 except ValueError as error:
                     if str(error).startswith(('STALE_SNAPSHOT','WRITE_BUSY')):return self.fail(str(error),409)
                     raise
-            if updated or not (p/'meta.json').exists():self._store_meta(p,doc_id,text,template,theme)
-        if req.get('draft_id'):
-            self._clear_draft(req['draft_id'])
-        if 'render_profile' in req or 'render_options' in req:
-            self._store_meta(p,doc_id,text,template,theme,req.get('render_profile',read_profile(p)),req.get('render_options',read_options(p)),req.get('color_theme',read_color_theme(p)))
-        self.resp({'ok':True,'document_id':doc_id,'revision':digest(raw),'saved':updated,
-                   'title':document_title(text),'theme':theme})
+        warnings=self._save_followups(p,doc_id,text,template,theme,req)
+        reply: SaveResponse = {'ok':True,'document_id':doc_id,'revision':digest(raw),'saved':updated,
+                   'title':document_title(text),'theme':theme,'warnings':warnings}
+        self.resp(reply)
     def _native_origin_ok(self):
         # Prevent an arbitrary site from reading the local Windows clipboard
         # through the localhost service. A custom header forces CORS preflight

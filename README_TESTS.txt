@@ -92,3 +92,8 @@ A0只读，plan只出候选，只有显式apply可以写源；命令/前置摘�
 2.0统一编号专项：--groups numbering（文档开关、匿名Markdown表/公式/流程图及引用），Word数学粘贴/编译需显式report_word和匹配组件/Pandoc。原旧版本反例继续保留，涉及已批准编号变化的预期按2.0契约更新；默认组不暗中要求原生Word环境。
 
 Mermaid语法/Pele渲染专项：--groups mermaid，沿原真实服务夹具核对源码、真实鼠标拖动/取消、连线箭头、旧位置、改字、撤销/保存重开/自动布局、阅读/归档、主题布局缓存、图内MathJax、独立SVG/PDF/Word PNG及资源/边数拒绝；Node核对位置注释保真与范围拒绝。原生DOCX出口另选word或report_word；测试不把生成SVG视为办公软件页面验收。
+开发期接口检查（不增加产品测试用例，也不生成运行代码）：
+  python app/tools/audit_modules.py --check
+  npm exec --yes --package=typescript@5.9.3 -- tsc -p jsconfig.json
+类型源为app/interface_types.py，浏览器声明由原audit_modules.py --write生成。
+TypeScript仅在开发/CI使用；普通运行、离线HTML和便携包不需要它。

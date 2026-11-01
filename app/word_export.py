@@ -5,7 +5,9 @@ Bridge/WPS component with embedded Python; the open HRS page supplies its model.
 No duplicate parser, style mapping or numbering system lives here.
 """
 from __future__ import annotations
-import hashlib
+from file_io import write_json
+from interface_types import WordBrowserModel, require_wire
+from file_io import digest as sha
 import json
 import os
 from pathlib import Path
@@ -20,8 +22,6 @@ sys.path.insert(0,str(Path(__file__).resolve().parent))
 from project_workspace import is_link
 
 
-def sha(raw):
-    return hashlib.sha256(raw).hexdigest()
 
 
 def runtime_paths(root,app=None):
@@ -78,11 +78,7 @@ class WordExport:
         self.selections={};self.results={};self.jobs={};self.guard=threading.RLock();self.running=threading.Lock()
 
     def _save(self):
-        temporary=self.config.with_name(self.config.name+'.'+secrets.token_hex(6)+'.tmp')
-        try:
-            temporary.write_bytes((json.dumps(self.settings,ensure_ascii=False,indent=2)+'\n').encode('utf8'))
-            os.replace(temporary,self.config)
-        finally:temporary.unlink(missing_ok=True)
+        write_json(self.config, self.settings)
 
     def runtime(self):
         candidates=[]
@@ -273,7 +269,9 @@ class WordExport:
             job=self.jobs.get(token)
             if job and job['key']==key:self.jobs.pop(token)['temporary'].cleanup()
 
-    def convert(self,job,output,model):
+    def convert(self,job,output,model: WordBrowserModel | None):
+        if model is not None:
+            require_wire(model, WordBrowserModel)
         return self._worker(Path(job['temporary'].name)/'snapshot',job['template'],job['template_sha'],
                             job['request'].get('accept_numbered_headings') is True,action='convert',output=output,model=model,options=job['request'].get('word_options'))
 

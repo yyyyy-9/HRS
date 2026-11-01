@@ -1,9 +1,69 @@
 {
   "catalog_format": "hrs-module-catalog-v1",
-  "app_baseline": "2.3.0 R4",
+  "app_baseline": "2.4.0 R1",
   "scope": "source tree only; no external report files are opened",
   "caveat": "This is an interface index, not a Python import dependency graph or a DOCX compiler.",
   "items": [
+    {
+      "id": "file_io",
+      "path": "file_io.py",
+      "layer": "storage-primitives",
+      "responsibility": "standard-library digest, atomic replacement, exclusive new outputs and JSON writes; callers own locks and authorization",
+      "entrypoints": [
+        "digest",
+        "atomic_write",
+        "write_new",
+        "write_json"
+      ],
+      "input": "bytes and authorized destination",
+      "output": "atomic bytes / digest; failed new outputs cleaned or reported",
+      "side_effects": "explicit caller-owned file write",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 1758,
+      "sha256": "d391796067cb8d7230215ddf753f2a19d72dd9d3b35c5d4a9290b1edaa31f751",
+      "review_flags": []
+    },
+    {
+      "id": "asset_validation",
+      "path": "asset_validation.py",
+      "layer": "resource-validation",
+      "responsibility": "existing image signatures, SVG normalization and attachment validation without service imports",
+      "entrypoints": [
+        "check_image",
+        "clean_asset_name",
+        "normalize_svg",
+        "guard_svg"
+      ],
+      "input": "declared image bytes / names",
+      "output": "validated resource / safe SVG",
+      "side_effects": "no IO or service state",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 11310,
+      "sha256": "1071bdaa47c3f3799c31fa3c95854ce41f931c07dfa2ce016b86242424148d9d",
+      "review_flags": []
+    },
+    {
+      "id": "interface_types",
+      "path": "interface_types.py",
+      "layer": "transport-contract",
+      "responsibility": "Python wire shapes and generated browser declarations; Markdown semantics stay with original owners",
+      "entrypoints": [
+        "ApiResponse",
+        "SaveResponse",
+        "SourceSnapshot",
+        "ObjectBundle",
+        "WordBrowserModel",
+        "WorkspaceStatus",
+        "require_wire"
+      ],
+      "input": "JSON transport",
+      "output": "typed fields; compatible extra fields preserved",
+      "side_effects": "no persistence",
+      "word_pipeline_role": "not-semantic",
+      "bytes": 4356,
+      "sha256": "d55f3c58e48597eae0c860da646ca65f9c295eeaa088118ae1bac1e8567b1bfb",
+      "review_flags": []
+    },
     {
       "id": "formula_editor",
       "path": "web/formula_editor.js",
@@ -88,8 +148,8 @@
       "output": "persistent snippets with SHA revision",
       "side_effects": "explicit atomic user-settings write",
       "word_pipeline_role": "not-semantic",
-      "bytes": 1776,
-      "sha256": "827b74713b7b86a6ee73575baea6ad29d20c438a72e7b0ded4f5a2b0a6a8346c",
+      "bytes": 1773,
+      "sha256": "1cbbcddfb02e29ec7de77a7fcd8732320464b4a73c99421c8904cf8880535f4b",
       "review_flags": []
     },
     {
@@ -125,8 +185,8 @@
       "output": "registered file identity, canonical newline bytes and guarded native commit",
       "side_effects": "explicit save or project conversion; shared atomic commit",
       "word_pipeline_role": "not-semantic",
-      "bytes": 4808,
-      "sha256": "cb7635309b37e7ed9d08be57359085d1f4d4fe780f58bf538b06340dbef5cd9d",
+      "bytes": 4801,
+      "sha256": "f2c14aa192d513acd57b2e8cd269ba204289d8b52c1cd816bc6871ffea9b29aa",
       "review_flags": []
     },
     {
@@ -228,8 +288,8 @@
       "output": "owned leases/structured request errors",
       "side_effects": "temporary UI only",
       "word_pipeline_role": "not-semantic",
-      "bytes": 2536,
-      "sha256": "d599a9e6c8c518ff7c485ec217e0cdaa4b266666eedf92fa5cc449b62492e777",
+      "bytes": 3454,
+      "sha256": "247031eb4a6bb939b878c74ee5c7a79acc57836b5742baf546a37feecd082011",
       "review_flags": []
     },
     {
@@ -265,8 +325,8 @@
       "output": "validated temporary report state/jobs",
       "side_effects": "owned lifecycle only; creation reuses Handler atomic transaction",
       "word_pipeline_role": "not-semantic",
-      "bytes": 21124,
-      "sha256": "417154cb851f078b022a046cfecfa9de90c6bcbc8deb95ea7178124d1336940e",
+      "bytes": 21112,
+      "sha256": "aa9c700e88fa67cf3b9f4c345cc3da5317f30675d8866ab7dcdb1e6755f1f683",
       "review_flags": []
     },
     {
@@ -306,7 +366,7 @@
       "id": "view_controls",
       "path": "web/view_controls.js",
       "layer": "local-view-preferences",
-      "responsibility": "Shared source prose font, wrapping, split layout, scope-derived fold state and preview/reading scale without modifying source or output",
+      "responsibility": "Shared source prose font, wrapping, split layout, scope-derived fold state and preview/reading scale; availability follows shared UI leases",
       "entrypoints": [
         "attach"
       ],
@@ -314,8 +374,8 @@
       "output": "local display controls and measured scale stage",
       "side_effects": "local preferences and DOM only; no source transaction",
       "word_pipeline_role": "not-semantic",
-      "bytes": 9136,
-      "sha256": "b4ef9a7678517178d09cb6482078f4d77cee0b1f4172076939234cd7e23745c5",
+      "bytes": 9328,
+      "sha256": "f1e9bff39f833f55b96cfcc07dc14f46d55725cb3f2f4cc53f2c3db71348ead0",
       "review_flags": []
     },
     {
@@ -382,8 +442,8 @@
       "output": "local host lifecycle or read-only identity/license",
       "side_effects": "start/stop only after explicit action",
       "word_pipeline_role": "not-semantic",
-      "bytes": 4673,
-      "sha256": "4a5d24bc335e50611a443058bd354fea4b4778e77aa8f695466f5acac2993769",
+      "bytes": 4892,
+      "sha256": "22e6e25db762d494d110642fd0cf5137aa885bb5664fd37a67653a07143406a6",
       "review_flags": []
     },
     {
@@ -513,8 +573,8 @@
       "output": "validated new source and draft assets",
       "side_effects": "writes draft assets after candidate validation",
       "word_pipeline_role": "indirect",
-      "bytes": 11357,
-      "sha256": "bb39f505fed45417e14c1243a6ad299229a3fd5fc09cedc96e099dda32eae9c3",
+      "bytes": 11453,
+      "sha256": "472d0b17cf3558ae6ba1371f17892cb48408951419958d0e34e2d3a8b9b994e5",
       "review_flags": []
     },
     {
@@ -618,8 +678,8 @@
       "output": "backup path and committed report",
       "side_effects": "writes original only inside explicit commit",
       "word_pipeline_role": "primary",
-      "bytes": 2793,
-      "sha256": "2db0b8f0e7a9b4da16e6291f27d2ede35d402a2ef6db675b9adecb466e91ee87",
+      "bytes": 2748,
+      "sha256": "bc87731238fcb21cf3e36c7ce2bd061f678948de05d4369cd6fee4ae25fb6f6d",
       "review_flags": []
     },
     {
@@ -637,8 +697,8 @@
       "output": "candidate, diff or explicit commit receipt",
       "side_effects": "plan new files; apply original with shared backup/atomic save",
       "word_pipeline_role": "primary",
-      "bytes": 9881,
-      "sha256": "b6ec8abbca4a087bb12b66882e23039ccbaed2bb5f30f28f7d661506045a56aa",
+      "bytes": 10505,
+      "sha256": "7c225af1b925115b5229b90d2709fe05ab24ff1814d7672e21c3dc80656100a5",
       "review_flags": []
     },
     {
@@ -696,8 +756,8 @@
       "output": "UTF-8 JSON receipt and new HTML/project",
       "side_effects": "temporary local service/browser; writes explicit new output only",
       "word_pipeline_role": "primary",
-      "bytes": 15720,
-      "sha256": "86a5673339591cd857a6a9505c4c23fe89a9bd023d5518a77dfc41f1cfa634b4",
+      "bytes": 16163,
+      "sha256": "1057f6b74068da3a249b7c857bc86abf136df8a3035c379670b2d950d7983141",
       "review_flags": []
     },
     {
@@ -750,8 +810,8 @@
       "output": "hrs-agent-read-v1 stdout JSON",
       "side_effects": "read-only; no project writes or HTTP RPC",
       "word_pipeline_role": "primary",
-      "bytes": 7933,
-      "sha256": "a8bad46ce1619db2b37c37856d5195adc19f15cbbda1178c360189cab3d7d437",
+      "bytes": 8053,
+      "sha256": "466f46877f0b31f0c50fdb1dda0f89ac1944346664cf6d65e9ffdf0ea5873080",
       "review_flags": []
     },
     {
@@ -829,8 +889,8 @@
       "output": "JSON IR, errors, dependencies",
       "side_effects": "read-only",
       "word_pipeline_role": "primary",
-      "bytes": 35863,
-      "sha256": "ff8f31dc801c28163e571fd8b021b802910e089eb947fef4f26af22c987fe286",
+      "bytes": 35944,
+      "sha256": "931ab6bd0013f5aef2a1b8cb48a03736fdf7b9795a4edfcbf8b53dcb64937072",
       "review_flags": []
     },
     {
@@ -845,8 +905,8 @@
       "output": "asset groups and reversible project-local trash batches",
       "side_effects": "project writes only after user confirmation",
       "word_pipeline_role": "exclude",
-      "bytes": 17746,
-      "sha256": "32e0016b3e62d80e247d2e0161f298dd4809352e79f01f9cc9824eeecdc76f17",
+      "bytes": 17385,
+      "sha256": "b99f26a46c6064d15a21bc0e1f75e04f68d7c776dfdf1b38209b6fd1e288a5e3",
       "review_flags": []
     },
     {
@@ -866,8 +926,8 @@
       "output": "project location / registry",
       "side_effects": "writes only on explicit operation",
       "word_pipeline_role": "indirect",
-      "bytes": 10005,
-      "sha256": "af2f948c47a4645bd38acb9de667c7714394180c38e5bac892fdbc2f8dcee089",
+      "bytes": 9681,
+      "sha256": "10b5643c32bd1df5f1558e076e0420db2c9eb9e9a9281a29215823c79b19c58a",
       "review_flags": []
     },
     {
@@ -893,16 +953,14 @@
       "responsibility": "local document server, assets, validation, drafts, save and export",
       "entrypoints": [
         "StudioServer",
-        "Handler",
-        "normalize_svg",
-        "check_image"
+        "Handler"
       ],
       "input": "browser HTTP requests",
       "output": "JSON API / binary resources",
       "side_effects": "reads/writes projects and drafts",
       "word_pipeline_role": "do-not-import",
-      "bytes": 124724,
-      "sha256": "d027385c714bf5ea3481388b7ece3fa076d079bc0247b909a9297d56fc8300a9",
+      "bytes": 113775,
+      "sha256": "41c9417c2d00b67b47c2d7d2c9ae3a15b94b3f33b19fb4493d302ce30d98d437",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -921,8 +979,8 @@
       "output": "selected path or cancellation",
       "side_effects": "user selection and navigation preferences",
       "word_pipeline_role": "exclude",
-      "bytes": 6064,
-      "sha256": "ab452d87591b3dccc077cbd6b5973955251b064da8c4bae456de1c48b0127e77",
+      "bytes": 5805,
+      "sha256": "073035893397a60c5724d67371993eb016673b792fecbd22070e2e3bab79d75d",
       "review_flags": []
     },
     {
@@ -939,8 +997,8 @@
       "output": "DOCX and existing Bridge provenance",
       "side_effects": "explicit output and local preference writes",
       "word_pipeline_role": "delegates",
-      "bytes": 20246,
-      "sha256": "0690c150d976e81d099c8120ccbeee718dd5d99efaeacd468ff56ebb965580bd",
+      "bytes": 20140,
+      "sha256": "31b8b89c3801c3b2867ed82f55f065274951e84969124ccff4694fa7f2309ddc",
       "review_flags": []
     },
     {
@@ -973,8 +1031,8 @@
       "output": "new HRS project, source receipt and recognition diagnostics",
       "side_effects": "never overwrites original/current; explicit new destination only",
       "word_pipeline_role": "delegates",
-      "bytes": 22199,
-      "sha256": "8397dff1b87077d6a7ca2945e7d3046c9827c72fa927d9168522100b43b3ac28",
+      "bytes": 22166,
+      "sha256": "b2a480bd49b482f932c65c3982a085de8b30182b2572b848972557d7c31df320",
       "review_flags": []
     },
     {
@@ -1116,8 +1174,8 @@
       "output": "server and browser window",
       "side_effects": "service lifecycle",
       "word_pipeline_role": "exclude",
-      "bytes": 22878,
-      "sha256": "21840a2a7e6c9e3e135c42c73f4ecdb7b70bda0e93a6b7d037adbe4856cdd3aa",
+      "bytes": 22897,
+      "sha256": "03765fcf1e23737e4859e43f35146073cc11fa6ed6ba83fa6e7f2b635e951458",
       "review_flags": []
     },
     {
@@ -1186,8 +1244,8 @@
       "output": "visual preview and UI events",
       "side_effects": "modifies editor state via explicit action",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 250541,
-      "sha256": "9bc2b99d43f20f95d9d2885f59c0496df5a9eb2fed166e07ec33818b703b2fa4",
+      "bytes": 251576,
+      "sha256": "559d33027755792e30efcb46bb48c8a18c9bfa7a67a124355abef2ba150d5058",
       "review_flags": [
         "large-monolithic-module"
       ]

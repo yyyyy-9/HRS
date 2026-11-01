@@ -1,14 +1,14 @@
 {
-  "version": "2.3.0",
-  "package_revision": "R4",
-  "stage": "v2.3.0 R4 app",
-  "generated_utc": "2026-10-31T14:52:28.313845+00:00",
-  "file_count_without_manifest": 199,
+  "version": "2.4.0",
+  "package_revision": "R1",
+  "stage": "v2.4.0 R1 app",
+  "generated_utc": "2026-11-01T14:03:09.759534+00:00",
+  "file_count_without_manifest": 204,
   "files": [
     {
       "path": "CHANGELOG.md",
-      "bytes": 15815,
-      "sha256": "ac7380009e7f7f6d5176f15a0f4c2760f16c5fc4a2547b5dacd4cc197b71daf4"
+      "bytes": 17100,
+      "sha256": "9d26721791f7a14511c6ec8df492b0e113b6c0ce16f2307cc715a6947ae659c4"
     },
     {
       "path": "COPYRIGHT",
@@ -47,13 +47,13 @@
     },
     {
       "path": "agent_readonly.py",
-      "bytes": 7933,
-      "sha256": "a8bad46ce1619db2b37c37856d5195adc19f15cbbda1178c360189cab3d7d437"
+      "bytes": 8053,
+      "sha256": "466f46877f0b31f0c50fdb1dda0f89ac1944346664cf6d65e9ffdf0ea5873080"
     },
     {
       "path": "asset_housekeeping.py",
-      "bytes": 17746,
-      "sha256": "32e0016b3e62d80e247d2e0161f298dd4809352e79f01f9cc9824eeecdc76f17"
+      "bytes": 17385,
+      "sha256": "b99f26a46c6064d15a21bc0e1f75e04f68d7c776dfdf1b38209b6fd1e288a5e3"
     },
     {
       "path": "asset_paths.json",
@@ -66,14 +66,19 @@
       "sha256": "ce55bf46356d8ecf6f31b0e093777b2c3f1d4f5b891c8e18c3f3e7807d47c3c9"
     },
     {
+      "path": "asset_validation.py",
+      "bytes": 11310,
+      "sha256": "1071bdaa47c3f3799c31fa3c95854ce41f931c07dfa2ce016b86242424148d9d"
+    },
+    {
       "path": "block_cli.py",
-      "bytes": 9881,
-      "sha256": "b6ec8abbca4a087bb12b66882e23039ccbaed2bb5f30f28f7d661506045a56aa"
+      "bytes": 10505,
+      "sha256": "7c225af1b925115b5229b90d2709fe05ab24ff1814d7672e21c3dc80656100a5"
     },
     {
       "path": "cli.py",
-      "bytes": 4673,
-      "sha256": "4a5d24bc335e50611a443058bd354fea4b4778e77aa8f695466f5acac2993769"
+      "bytes": 4892,
+      "sha256": "22e6e25db762d494d110642fd0cf5137aa885bb5664fd37a67653a07143406a6"
     },
     {
       "path": "clipboard_document.py",
@@ -97,23 +102,23 @@
     },
     {
       "path": "docs/CHANGELOG_READABLE.html",
-      "bytes": 120711,
-      "sha256": "51edf2ead66866644960abad9f86a1e00e4e7dfca53e49f56cffa85d79d68bcc"
+      "bytes": 121672,
+      "sha256": "738a82a4bf8c78b20589e82943a1377aad4659569631c53ef2e4d2a68306c4ef"
     },
     {
       "path": "docs/CHANGELOG_READABLE.md",
-      "bytes": 11283,
-      "sha256": "a0bb7ed04b80f4097accc8498dad496e6f89c89da12f66a285b4d3281ec76a95"
+      "bytes": 11956,
+      "sha256": "efdaf1d407d53531b458127e9194b8d84e60b17a23f97a8806475590fa6c09d4"
     },
     {
       "path": "docs/CURRENT_STATUS.html",
-      "bytes": 117341,
-      "sha256": "b6db59fdcea06f9d47ba070e08a39c628887e208c4b8c63243ba616940454552"
+      "bytes": 118723,
+      "sha256": "c6f5e253c402a8b5173b5569c687f72318ffa7899fe0ce389902e1f7fc197a5c"
     },
     {
       "path": "docs/CURRENT_STATUS.md",
-      "bytes": 9970,
-      "sha256": "9ce6aae112d4a4d02058fad12c4decaee54e87d683c053228e56f8e614a24f4c"
+      "bytes": 11334,
+      "sha256": "f39aef6f46ddf7e0a9796e643a5e19a9ce1c4fa960f87a602bd78c5d6fe07779"
     },
     {
       "path": "docs/HISTORY_INDEX.md",
@@ -138,7 +143,7 @@
     {
       "path": "docs/LONG_TERM_ROADMAP.html",
       "bytes": 118654,
-      "sha256": "b33cb760220bc5a3eac5a356e76a0592dc5d899564fd4dcb4b833b96bdf4bc7f"
+      "sha256": "1bbea0d3f82da3a9e1008e1932dac5404c4e58858fb2e459d48c5cc78dcec12e"
     },
     {
       "path": "docs/LONG_TERM_ROADMAP.md",
@@ -147,18 +152,18 @@
     },
     {
       "path": "docs/MODULE_CATALOG.json",
-      "bytes": 65432,
-      "sha256": "12f8dc5e275c772878d013a6af7592fe5b4696f93c28d1c96150b02ef7bcaa5a"
+      "bytes": 67570,
+      "sha256": "27e3ddd551adb6cf1bc12b52e3ce167e574aab25afb5d487bf17f3eb6eeca547"
     },
     {
       "path": "docs/MODULE_OVERVIEW.html",
-      "bytes": 132068,
-      "sha256": "8c36adc1c449f5e2cc8f7eb56c29fe2e99b990ff4043308e230c6b1e6e2a2305"
+      "bytes": 133185,
+      "sha256": "e9b5a97d9f9be4402d1a306860463be9f60baaa8e7e129c3b9ef5bd9bc9ceca5"
     },
     {
       "path": "docs/MODULE_OVERVIEW.md",
-      "bytes": 21518,
-      "sha256": "70cd268c3eb471dcc7f0350b6c005a5c08330be71063e5b235019e0e1869d2eb"
+      "bytes": 22546,
+      "sha256": "1e3031f6a59bf5859ee9d4b8b4b4b44ecdfcd6c0069ea6cb443e3f812248522b"
     },
     {
       "path": "docs/PROJECT_GOALS.md",
@@ -167,13 +172,13 @@
     },
     {
       "path": "docs/SHORT_TERM_PLAN.html",
-      "bytes": 107948,
-      "sha256": "70600155234568a1673bdc50248f4e7acf0b2e5484aedc0242cba749d5938ab3"
+      "bytes": 108090,
+      "sha256": "58ee8077f13858cf08d1d3eef52efa0e60e4685be7cd677833e2dd872f21eb61"
     },
     {
       "path": "docs/SHORT_TERM_PLAN.md",
-      "bytes": 1004,
-      "sha256": "3f71d4c811df55f835ed2e5b9b1c38b5afeee86018d447ce054fa1ce913f76f6"
+      "bytes": 1139,
+      "sha256": "70db09153e58fdfe817f1a5315ade1f71a712e336471ecc7284647ee8b056172"
     },
     {
       "path": "docs/TOOLBAR_COMMANDS.json",
@@ -182,13 +187,13 @@
     },
     {
       "path": "docs/USER_GUIDE.html",
-      "bytes": 433610,
-      "sha256": "351523084d190d09e73cde1daa90c4c84062df8060ae6c2debdf7396ed9ef0f4"
+      "bytes": 434039,
+      "sha256": "73b31197374487e47f0b648e0d696b0c2f6614663c0a45d45a6b4b933459f0ed"
     },
     {
       "path": "docs/USER_GUIDE.md",
-      "bytes": 69784,
-      "sha256": "b2273c7592e6daf5df148bc140966ee84445ce053f3325ea3b3dd7155b1bd7d5"
+      "bytes": 70207,
+      "sha256": "ac52a4191ca825e5c3384204513e11a4c843a0315de4a321387f11946e9986eb"
     },
     {
       "path": "docs/USER_GUIDE_START_HERE.md",
@@ -197,18 +202,18 @@
     },
     {
       "path": "docs/WORD_COMPILER_HANDOFF.html",
-      "bytes": 130922,
-      "sha256": "97eafd94a7066ae7461a9100b9b118bb5c2a5203e345cf49a1db2bab8bfd76e5"
+      "bytes": 131536,
+      "sha256": "d3fd5060a494519a96d2b6f062ee0d9344e6e8c5c9ec7f4c7d513e2653a9d673"
     },
     {
       "path": "docs/WORD_COMPILER_HANDOFF.md",
-      "bytes": 21100,
-      "sha256": "bc2c817e9f15a55e8c9f0d71edc0883c9ffe44fb1771105dcc50abe3c0bb2b41"
+      "bytes": 21675,
+      "sha256": "79b107a7cae6f8d74726be3fb93b38cf7a9bb1290a13c6cf6134ded085f8dc33"
     },
     {
       "path": "docs/WORD_IR_HANDOFF.json",
-      "bytes": 19397,
-      "sha256": "c59acd9f050c1248661e406cd0d0444caa2311187819c6890ca85985fb5600ea"
+      "bytes": 20237,
+      "sha256": "b5ede0121f131e97dd6f2f96906c12cfd1bd3a114658adb4e1a74d7a311b89d5"
     },
     {
       "path": "docs/guide-assets/editor-highlighting.png",
@@ -251,6 +256,11 @@
       "sha256": "f66f610fcf6bcc234bc114a6accdc9c94a586a81a64fd0993cac625688d168a9"
     },
     {
+      "path": "file_io.py",
+      "bytes": 1758,
+      "sha256": "d391796067cb8d7230215ddf753f2a19d72dd9d3b35c5d4a9290b1edaa31f751"
+    },
+    {
       "path": "host_capabilities.json",
       "bytes": 68,
       "sha256": "4e7c39c5fa6e770b93470dd2f0388d7bd1d3993cfa3e18fab04e4c07f34bcf3e"
@@ -267,8 +277,13 @@
     },
     {
       "path": "html_cli.py",
-      "bytes": 15720,
-      "sha256": "86a5673339591cd857a6a9505c4c23fe89a9bd023d5518a77dfc41f1cfa634b4"
+      "bytes": 16163,
+      "sha256": "1057f6b74068da3a249b7c857bc86abf136df8a3035c379670b2d950d7983141"
+    },
+    {
+      "path": "interface_types.py",
+      "bytes": 4356,
+      "sha256": "d55f3c58e48597eae0c860da646ca65f9c295eeaa088118ae1bac1e8567b1bfb"
     },
     {
       "path": "legacy_math.py",
@@ -282,8 +297,8 @@
     },
     {
       "path": "markdown_file.py",
-      "bytes": 4808,
-      "sha256": "cb7635309b37e7ed9d08be57359085d1f4d4fe780f58bf538b06340dbef5cd9d"
+      "bytes": 4801,
+      "sha256": "f2c14aa192d513acd57b2e8cd269ba204289d8b52c1cd816bc6871ffea9b29aa"
     },
     {
       "path": "markdown_import.py",
@@ -297,13 +312,13 @@
     },
     {
       "path": "native_picker.py",
-      "bytes": 6064,
-      "sha256": "ab452d87591b3dccc077cbd6b5973955251b064da8c4bae456de1c48b0127e77"
+      "bytes": 5805,
+      "sha256": "073035893397a60c5724d67371993eb016673b792fecbd22070e2e3bab79d75d"
     },
     {
       "path": "object_clipboard.py",
-      "bytes": 11357,
-      "sha256": "bb39f505fed45417e14c1243a6ad299229a3fd5fc09cedc96e099dda32eae9c3"
+      "bytes": 11453,
+      "sha256": "472d0b17cf3558ae6ba1371f17892cb48408951419958d0e34e2d3a8b9b994e5"
     },
     {
       "path": "pdf_graphics.py",
@@ -322,8 +337,8 @@
     },
     {
       "path": "portable_host.py",
-      "bytes": 22878,
-      "sha256": "21840a2a7e6c9e3e135c42c73f4ecdb7b70bda0e93a6b7d037adbe4856cdd3aa"
+      "bytes": 22897,
+      "sha256": "03765fcf1e23737e4859e43f35146073cc11fa6ed6ba83fa6e7f2b635e951458"
     },
     {
       "path": "portable_sessions.py",
@@ -347,13 +362,13 @@
     },
     {
       "path": "project_commit.py",
-      "bytes": 2793,
-      "sha256": "2db0b8f0e7a9b4da16e6291f27d2ede35d402a2ef6db675b9adecb466e91ee87"
+      "bytes": 2748,
+      "sha256": "bc87731238fcb21cf3e36c7ce2bd061f678948de05d4369cd6fee4ae25fb6f6d"
     },
     {
       "path": "project_workspace.py",
-      "bytes": 10005,
-      "sha256": "af2f948c47a4645bd38acb9de667c7714394180c38e5bac892fdbc2f8dcee089"
+      "bytes": 9681,
+      "sha256": "10b5643c32bd1df5f1558e076e0420db2c9eb9e9a9281a29215823c79b19c58a"
     },
     {
       "path": "reading_pack.py",
@@ -368,7 +383,7 @@
     {
       "path": "release.json",
       "bytes": 53,
-      "sha256": "a8cfab7a10a0f889325f5aa83c1e511e290b1acf97e973b71bc2a7eae8cf024c"
+      "sha256": "f06f5332aded724d2b171e71832408377434ab9dea2a4734723b22ddd4c4f166"
     },
     {
       "path": "release_info.py",
@@ -382,13 +397,13 @@
     },
     {
       "path": "report_contract.py",
-      "bytes": 35863,
-      "sha256": "ff8f31dc801c28163e571fd8b021b802910e089eb947fef4f26af22c987fe286"
+      "bytes": 35944,
+      "sha256": "931ab6bd0013f5aef2a1b8cb48a03736fdf7b9795a4edfcbf8b53dcb64937072"
     },
     {
       "path": "report_workspace.py",
-      "bytes": 21124,
-      "sha256": "417154cb851f078b022a046cfecfa9de90c6bcbc8deb95ea7178124d1336940e"
+      "bytes": 21112,
+      "sha256": "aa9c700e88fa67cf3b9f4c345cc3da5317f30675d8866ab7dcdb1e6755f1f683"
     },
     {
       "path": "section_operations.py",
@@ -397,13 +412,13 @@
     },
     {
       "path": "source_format_v1.md",
-      "bytes": 50095,
-      "sha256": "2fd1017926628fb273316c4dd291f2d3ba0fc82bec2754c06cdf5c279c650315"
+      "bytes": 50988,
+      "sha256": "5d0c9a6f84c8ebd120ba6714a7563fd40485b8fdfd1fe17e6ab3199b1678d922"
     },
     {
       "path": "studio.py",
-      "bytes": 124724,
-      "sha256": "d027385c714bf5ea3481388b7ece3fa076d079bc0247b909a9297d56fc8300a9"
+      "bytes": 113775,
+      "sha256": "41c9417c2d00b67b47c2d7d2c9ae3a15b94b3f33b19fb4493d302ce30d98d437"
     },
     {
       "path": "svg_prolog.py",
@@ -412,13 +427,18 @@
     },
     {
       "path": "text_snippets.py",
-      "bytes": 1776,
-      "sha256": "827b74713b7b86a6ee73575baea6ad29d20c438a72e7b0ded4f5a2b0a6a8346c"
+      "bytes": 1773,
+      "sha256": "1cbbcddfb02e29ec7de77a7fcd8732320464b4a73c99421c8904cf8880535f4b"
     },
     {
       "path": "tools/audit_modules.py",
-      "bytes": 34486,
-      "sha256": "9b28985fb35f7566bcfc575e5df1456434dd26efef5be5eedd85edf33b17c8f2"
+      "bytes": 37257,
+      "sha256": "958075ec6a5f96759fa9e2fcf8072dc471d21b5021919be3ce7d8243abf101aa"
+    },
+    {
+      "path": "tools/build_interface_types.py",
+      "bytes": 3077,
+      "sha256": "d25f2998257a9e45630d57705a9d145a3c7d8bf42f0f17714bb845c4daf8ae4f"
     },
     {
       "path": "tools/build_readable_docs.js",
@@ -452,18 +472,18 @@
     },
     {
       "path": "web/CHANGELOG_READABLE.html",
-      "bytes": 120715,
-      "sha256": "45abf0aad623c7204402e6886660dafd7a09017d5b126c5d616cea6bd1d712e6"
+      "bytes": 121676,
+      "sha256": "91b2667fa6b14f3d2cc0d6e957da5d8ab77ed3991e135728a01a84047245aec9"
     },
     {
       "path": "web/MODULE_OVERVIEW.html",
-      "bytes": 132088,
-      "sha256": "dabfc11acdb5be19ccdc27086cc464716a5a08eb9297afc0f3d7bb4b68827fb3"
+      "bytes": 133205,
+      "sha256": "61f69ef84eb4ff888fa1087f739985b3d35cedb014d83c9ef2981685a5236ce0"
     },
     {
       "path": "web/WORD_COMPILER_HANDOFF.html",
-      "bytes": 130932,
-      "sha256": "355bd14bfcd88fff1ca9b56d66c576e9dedb2ea894e6900bfddf574ded06d2f6"
+      "bytes": 131546,
+      "sha256": "9674a8820531f295951e5cb3c7d0da78e0b3dac13327685679c5cb23d9c45438"
     },
     {
       "path": "web/app-icon.ico",
@@ -482,8 +502,8 @@
     },
     {
       "path": "web/app.js",
-      "bytes": 250541,
-      "sha256": "9bc2b99d43f20f95d9d2885f59c0496df5a9eb2fed166e07ec33818b703b2fa4"
+      "bytes": 251576,
+      "sha256": "559d33027755792e30efcb46bb48c8a18c9bfa7a67a124355abef2ba150d5058"
     },
     {
       "path": "web/app.webmanifest",
@@ -572,8 +592,8 @@
     },
     {
       "path": "web/help.html",
-      "bytes": 433604,
-      "sha256": "07d1874672b26941ef8f89bbb0a9735738549f6f6d96c51f1c283bb6f03f6648"
+      "bytes": 434033,
+      "sha256": "39e48bc8cccf4b29e0a7c276afe2fa797cfa807db299639c4df5455bfb57b534"
     },
     {
       "path": "web/index.html",
@@ -584,6 +604,11 @@
       "path": "web/inline_formula.js",
       "bytes": 1024,
       "sha256": "990d81ba0f9f513b895eec0ed25261202abf23c6d78a61e77d9ef88397a25fec"
+    },
+    {
+      "path": "web/interfaces.d.ts",
+      "bytes": 5115,
+      "sha256": "87ea2003edc9d08ff89fb35c85a8ecad9e3b3646c95dcded26f5bb1c6c2e75ac"
     },
     {
       "path": "web/list_styles.js",
@@ -617,8 +642,8 @@
     },
     {
       "path": "web/operations.js",
-      "bytes": 2536,
-      "sha256": "d599a9e6c8c518ff7c485ec217e0cdaa4b266666eedf92fa5cc449b62492e777"
+      "bytes": 3454,
+      "sha256": "247031eb4a6bb939b878c74ee5c7a79acc57836b5742baf546a37feecd082011"
     },
     {
       "path": "web/outline_tree.js",
@@ -977,8 +1002,8 @@
     },
     {
       "path": "web/view_controls.js",
-      "bytes": 9136,
-      "sha256": "b4ef9a7678517178d09cb6482078f4d77cee0b1f4172076939234cd7e23745c5"
+      "bytes": 9328,
+      "sha256": "f1e9bff39f833f55b96cfcc07dc14f46d55725cb3f2f4cc53f2c3db71348ead0"
     },
     {
       "path": "web/word_export.js",
@@ -992,13 +1017,13 @@
     },
     {
       "path": "word_export.py",
-      "bytes": 20246,
-      "sha256": "0690c150d976e81d099c8120ccbeee718dd5d99efaeacd468ff56ebb965580bd"
+      "bytes": 20140,
+      "sha256": "31b8b89c3801c3b2867ed82f55f065274951e84969124ccff4694fa7f2309ddc"
     },
     {
       "path": "word_import.py",
-      "bytes": 22199,
-      "sha256": "8397dff1b87077d6a7ca2945e7d3046c9827c72fa927d9168522100b43b3ac28"
+      "bytes": 22166,
+      "sha256": "b2a480bd49b482f932c65c3982a085de8b30182b2572b848972557d7c31df320"
     }
   ]
 }

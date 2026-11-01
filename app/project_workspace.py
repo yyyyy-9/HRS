@@ -6,6 +6,7 @@ to a short-lived server-side token. Browser JS may request a selection, but
 cannot manufacture or overwrite an arbitrary absolute path.
 """
 from __future__ import annotations
+from file_io import write_json
 from datetime import datetime,timezone
 import hashlib
 import json
@@ -14,7 +15,6 @@ from pathlib import Path
 import re
 import secrets
 import shutil
-import tempfile
 import time
 
 REGISTRY_VERSION=1
@@ -151,13 +151,7 @@ class ProjectRegistry:
             self.mapping=before;raise
 
     def _atomic_json(self,data):
-        encoded=(json.dumps(data,indent=2,ensure_ascii=False)+'\n').encode('utf-8')
-        fd,name=tempfile.mkstemp(prefix='.project_registry_',dir=self.workspace)
-        try:
-            with os.fdopen(fd,'wb') as f:f.write(encoded);f.flush();os.fsync(f.fileno())
-            os.replace(name,self.path)
-        finally:
-            if os.path.exists(name):os.unlink(name)
+        write_json(self.path, data)
 
     def new_selection(self,action:str,doc_id:str,parent:Path,name:str)->dict:
         name=validate_project_name(name)

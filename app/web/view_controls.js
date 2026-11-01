@@ -17,7 +17,7 @@ function preferences(storage){
  persist();
  return {rules,values,set(name,value){values[name]=name==='source_wrap'?!!value:name==='preview_zoom'?(rules.preview_zoom.choices.includes(value)?value:rules.preview_zoom.default):bounded(value,rules[name],name!=='source_ratio');persist();return values[name];}};
 }
-function attach({editor,preview,capture,restore,getSourceMap,getSourceRange=()=>null,suspend=()=>{},committed=()=>{}}){
+function attach({editor,preview,capture,restore,getSourceMap,setDisabled,getSourceRange=()=>null,suspend=()=>{},committed=()=>{}}){
  const doc=preview.ownerDocument,$=id=>doc.getElementById(id);
  let storage;try{storage=root.localStorage;}catch{}
  const prefs=preferences(storage),{rules,values}=prefs,host=editor.view.dom.closest('.source-code-editor');
@@ -39,7 +39,9 @@ function attach({editor,preview,capture,restore,getSourceMap,getSourceRange=()=>
    while(index<folds.length&&folds[index].from<=block.from)coveredTo=Math.max(coveredTo,folds[index++].to);
    return coveredTo>=block.to;
   });
-  foldState={visible,folds,collapsed};foldButton.disabled=!visible.length;
+  // load() releases its UI lease after rendering. Store the desired state in
+  // that same lease; a direct DOM assignment would be replaced by its old value.
+  foldState={visible,folds,collapsed};setDisabled(foldButton,!visible.length);
   foldButton.textContent=collapsed?'展开':'折叠';foldButton.dataset.foldState=!visible.length?'empty':collapsed?'collapsed':folds.length?'mixed':'expanded';
   foldButton.setAttribute('aria-label',(collapsed?'展开':'折叠')+'当前范围源码块');
   foldButton.title=visible.length?(collapsed?'展开':'折叠')+'当前范围的全部源码块':'当前范围没有可折叠的源码块';
@@ -77,9 +79,9 @@ function attach({editor,preview,capture,restore,getSourceMap,getSourceRange=()=>
   if(sourceAnchor){cancelAnimationFrame(sourceRestore);sourceRestore=requestAnimationFrame(()=>{sourceRestore=0;editor.scrollToBlock(sourceAnchor);});}
  }
  function setWrap(value){wrap.checked=prefs.set('source_wrap',value);host.classList.toggle('source-soft-wrap',wrap.checked);$('markdown').style.whiteSpace=wrap.checked?'pre-wrap':'pre';}
- function setFont(value){const size=prefs.set('source_font_size',value);host.style.setProperty('--source-font-size',size+'px');host.style.setProperty('--source-fixed-font-size',rules.source_font_size.default+'px');font.value=size+'px';smaller.disabled=size<=rules.source_font_size.min;larger.disabled=size>=rules.source_font_size.max;}
+ function setFont(value){const size=prefs.set('source_font_size',value);host.style.setProperty('--source-font-size',size+'px');host.style.setProperty('--source-fixed-font-size',rules.source_font_size.default+'px');font.value=size+'px';setDisabled(smaller,size<=rules.source_font_size.min);setDisabled(larger,size>=rules.source_font_size.max);}
  function setRatio(value){const ratio=prefs.set('source_ratio',value);layout.style.setProperty('--source-ratio',ratio+'%');divider.setAttribute('aria-valuenow',String(Math.round(ratio)));}
- function setZoom(value){const current=prefs.set('preview_zoom',value),index=rules.preview_zoom.choices.indexOf(current);zoom.value=String(current);zoomOut.disabled=index===0;zoomIn.disabled=index===rules.preview_zoom.choices.length-1;}
+ function setZoom(value){const current=prefs.set('preview_zoom',value),index=rules.preview_zoom.choices.indexOf(current);zoom.value=String(current);setDisabled(zoomOut,index===0);setDisabled(zoomIn,index===rules.preview_zoom.choices.length-1);}
  for(const value of rules.preview_zoom.choices){const option=doc.createElement('option');option.value=value;option.textContent=value+'%';zoom.append(option);}
  setZoom(values.preview_zoom);
  wrap.onchange=()=>layoutChange(()=>setWrap(wrap.checked),{source:true});

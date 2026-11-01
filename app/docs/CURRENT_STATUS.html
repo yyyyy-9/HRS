@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>当前版本状态 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="9ce6aae112d4a4d02058fad12c4decaee54e87d683c053228e56f8e614a24f4c"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>当前版本状态 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="f39aef6f46ddf7e0a9796e643a5e19a9ce1c4fa960f87a602bd78c5d6fe07779"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -641,13 +641,15 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.3.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">编辑与文稿</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.4.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">编辑与文稿</a>
 <a class="level2" href="#section-3">HTML与Word</a>
 <a class="level2" href="#section-4">程序接口</a>
 <a class="level2" href="#section-5">支持范围</a></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">当前状态</h1>
+<p>基础文件写入、摘要及JSON保存已统一到无服务依赖的模块，图片校验/SVG处理独立持有；原授权、锁、备份和快照保护继续由调用方执行。Python传输类型生成浏览器声明，请求边界提供开发期静态检查；对象片段及Word模型只检查传输字段，原语义/资源校验保持。组件源码、模板与浏览器生成副本沿一份来源声明核对文件集合和字节，升级范围进入原发行清单。运行方式、旧浏览器目标和用户文稿格式保持。</p>
 <p>产品版本和包修订统一读取release.json。HRS提供浏览器形式和标准Python安装，共用同一app核心。Word组件和模板工具的对应源码分别见components与template-tool。</p>
+<p>打开文稿先准备其异步依赖，成功后一起切换源码与保存身份；失败保留原文稿。正文成功提交后，显示设置更新或旧草稿清理未完成以warnings返回当前revision，界面分别提示，不将其视为正文写入失败。直接Markdown仍按原BOM与换行模式返回已保存缓冲。</p>
 <p>公式弹窗提供离线 MathLive 可视输入与 LaTeX 双向同步，分式、上下标、矩阵和对齐等结构可直接编辑；宏定义及不支持的写法保留源码输入。源稿、编号和输出仍由原模型持有，未编辑应用/取消不改写原文。块公式源码范围可见，插入即选择，复制沿统一身份映射。预览及 HTML 旧 tag 不产生重复号，Word 继续遵守工程快照的公式编号开关。</p>
-<p>公式结构有数学样例和中文名称，分段函数/等号对齐使用两行模板；窄/宽空格写入实际TeX，多行结构可新增行，普通行间公式可显式保留原式转为多行。不把普通空格或源码Enter误当数学换行，不静默改变行内公式类型。标题栏撤销/重做统一覆盖源码、可视输入和结构操作，只持有本次窗口最近100步；原稿与窗口历史分离，应用仍是一笔文稿事务。源码正文/标题字号和预览/阅读100%至200%显示比例为本机偏好，受保护源块/折叠卡片字号及文稿/导出排版独立；自动折行在目录栏，折叠/展开为随当前范围实际状态变化的单按钮。左栏直接从最近打开开始，不重复显示静态本机运行卡片。</p>
+<p>公式结构有数学样例和中文名称，分段函数/等号对齐使用两行模板；窄/宽空格写入实际TeX，多行结构可新增行，普通行间公式可显式保留原式转为多行。不把普通空格或源码Enter误当数学换行，不静默改变行内公式类型。标题栏撤销/重做统一覆盖源码、可视输入和结构操作，只持有本次窗口最近100步；原稿与窗口历史分离，应用仍是一笔文稿事务。源码正文/标题字号和预览/阅读100%至200%显示比例为本机偏好，受保护源块/折叠卡片字号及文稿/导出排版独立；自动折行在目录栏，折叠/展开为随当前范围实际状态变化的单按钮。视图控件的可用状态由共享操作管理器保存，载入完成后恢复当前状态。左栏直接从最近打开开始，不重复显示静态本机运行卡片。</p>
 <p>目录提供层级树、快速折叠及同级整节拖动，同级条目有无下级标题占用相同的箭头栏。Markdown 片段支持显式字段/日期/光标和按节追加，保存在应用数据区，不运行代码。引用沿现有链接定位，不提供源码悬浮窗或使用位置窗口。Agent 可按唯一标题路径对章节正文 append/prepend/replace-body，继续使用原 plan/apply 全文摘要、锁、备份、原子提交，范围外字节保持。</p>
 <p>编辑器中的阅读视图只读，图表、公式和题注不打开编辑窗口，任务框与目录移动、文稿撤销/重做不可用；导航、链接、放大和复制保留。可视公式等待字体加载后接受命中操作，字形及选区更清晰；孤立上下标的拖选替换保留其层级，其他结构沿原数学模型。短块公式不再使用固定最小高度，预览与离线HTML共享段距；普通长英文的单词换行保持浏览器行为。</p>
 <h2 id="section-2">编辑与文稿</h2>
@@ -669,6 +671,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <h2 id="section-4">程序接口</h2>
 <p>A0和/api/validate提供源码契约检查，明确preflight.complete=false；完整输出检查使用hrs check或页面预检。源码契约检查不能代替Word编译或领域内容判断。</p>
 <p>plan只产生候选和差异，apply必须显式携带审查摘要，重新核对源稿、范围和资源，复用锁、备份及原子保存。程序不内置模型API客户端，不执行文稿中的代码。</p>
+<p>CLI新输出使用独占创建，写入失败清理自身文件；计划和候选成组清理，无法清理则返回残留路径，旧文件不覆盖。HTML恢复以新工程目录交付为完成点，后续临时清理失败随成功回执提示。成功/失败传输类型分开，保留任务状态的可空error字段。源码与便携发行必须提供对应的组件来源声明。</p>
 <h2 id="section-5">支持范围</h2>
 <p>Windows浏览器便携包使用本地Chromium系浏览器。桌面宿主源码与浏览器共用核心；窗口、剪贴板、打印和办公软件页面按相应集成测试验证。</p>
 <p>任意Word/HTML无损双向转换、跨来源混合合稿和复杂编辑后回编仍按<a href="LONG_TERM_ROADMAP.html">长期路线</a>逐项扩展。浏览器兼容目标保持Chrome112/Edge92；系统剪贴板、办公软件和实际旧系统环境的边界分别验收，不能以DOM复用保证所有硬件上不闪烁。</p>

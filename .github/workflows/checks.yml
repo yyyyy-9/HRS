@@ -20,6 +20,8 @@ jobs:
           python-version: '3.12'
       - name: Install template-test dependency
         run: python -m pip install -r template-tool/requirements.txt
+      - name: Check JavaScript interface types without emitting code
+        run: npm exec --yes --package=typescript@5.9.3 -- tsc -p jsconfig.json
       - name: HRS contracts, Node checks and generated-document gates
         run: python tools/run_checks.py --contracts-only --evidence "${{ runner.temp }}/hrs-contracts"
       - name: Template style tool contracts

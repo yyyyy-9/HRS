@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="70cd268c3eb471dcc7f0350b6c005a5c08330be71063e5b235019e0e1869d2eb"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="1e3031f6a59bf5859ee9d4b8b4b4b44ecdfcd6c0069ea6cb443e3f812248522b"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -641,7 +641,7 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.3.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.4.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="help.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
 <a class="level2" href="#section-3">同源桌面宿主</a>
 <a class="level2" href="#section-4">Word beta 界面适配</a>
 <a class="level2" href="#section-5">渲染与输出配置</a>
@@ -686,6 +686,8 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <p><code>web/external_links.js</code>接管网页链接点击，经同源、显式动作的 <code>/api/external/open</code> 请求由本机系统打开 HTTP／HTTPS。独立离线 Reader 只设置新页面打开，不调用本机服务。<code>app-icon.svg/png/ico</code>及 manifest 复用已有 R 标记。</p>
 <p>离线 MathJax 主包保持 3.2.1，配套本地 <code>vendor/input/tex/extensions/boldsymbol.js</code>显式加载；原 TeX 不替换为 mathbf。许可随既有 MATHJAX-LICENSE 分发。</p>
 <h2 id="section-9">内容真源与处理流程</h2>
+<p>文件基础能力统一在<code>file_io.py</code>：摘要、原子替换、独占新文件写入和JSON落盘；调用方继续负责授权、锁、revision和备份。新输出失败只清理自身文件，无法清理时返回残留路径。<code>asset_validation.py</code>持有原有图片字节校验与SVG规范化，路径规则继续由<code>asset_paths</code>持有。CLI、草稿、配置和正文提交直接调用这些底层实现，不再为基础函数反向导入HTTP服务。</p>
+<p><code>interface_types.py</code>只定义传输字段类型，不解析Markdown或重建IR；成功/失败响应以ok区分，保存回执可带warnings，任务状态保留可空error。<code>web/interfaces.d.ts</code>由同一声明生成，现有模块审计核对其一致性。<code>jsconfig.json</code>对共享请求和操作状态边界做开发期严格检查，不生成运行代码。组件源码及浏览器模型副本的对应关系见源码包<code>components/SOURCES.json</code>，原构建与独立发行核对必须检查声明、文件集合与字节，不能跳过整份缺失的声明。</p>
 <p>正式内容保存为工程中的 <code>report.md</code> 与 <code>assets/</code>，或直接编辑模式中显式选择的原 Markdown 文件。编辑器缓冲区用于本次编辑，草稿用于恢复；IR、预览和导出 HTML 都从内容真源派生，不能分别维护成另一份正文。</p>
 <pre><code class="language-text">Markdown 与 assets
   → Python 结构解析 / 校验 → IR 与 Agent 只读结果

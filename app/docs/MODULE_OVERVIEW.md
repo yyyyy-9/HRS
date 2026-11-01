@@ -56,6 +56,10 @@ report_workspace.js提供范围/恢复/管理选择与任务进度，report_work
 
 ## 内容真源与处理流程
 
+文件基础能力统一在`file_io.py`：摘要、原子替换、独占新文件写入和JSON落盘；调用方继续负责授权、锁、revision和备份。新输出失败只清理自身文件，无法清理时返回残留路径。`asset_validation.py`持有原有图片字节校验与SVG规范化，路径规则继续由`asset_paths`持有。CLI、草稿、配置和正文提交直接调用这些底层实现，不再为基础函数反向导入HTTP服务。
+
+`interface_types.py`只定义传输字段类型，不解析Markdown或重建IR；成功/失败响应以ok区分，保存回执可带warnings，任务状态保留可空error。`web/interfaces.d.ts`由同一声明生成，现有模块审计核对其一致性。`jsconfig.json`对共享请求和操作状态边界做开发期严格检查，不生成运行代码。组件源码及浏览器模型副本的对应关系见源码包`components/SOURCES.json`，原构建与独立发行核对必须检查声明、文件集合与字节，不能跳过整份缺失的声明。
+
 正式内容保存为工程中的 `report.md` 与 `assets/`，或直接编辑模式中显式选择的原 Markdown 文件。编辑器缓冲区用于本次编辑，草稿用于恢复；IR、预览和导出 HTML 都从内容真源派生，不能分别维护成另一份正文。
 
 ```text

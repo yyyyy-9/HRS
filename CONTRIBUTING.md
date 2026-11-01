@@ -8,4 +8,6 @@
 
 身份从app/release.json派生，帮助由Markdown生成，不手改生成HTML。产品改动同步对应规范、帮助和测试，维护者统一生成发行清单。模板工具src是现有WPS实现，避免在GUI或HRS另写样式迁移。
 
+基础IO与资源校验分别归file_io和asset_validation，避免业务模块反向依赖HTTP服务。传输类型从interface_types生成浏览器声明，检查命令见README_TESTS；字段类型不替代原源格式和资源校验。共享组件和生成副本按components/SOURCES.json及当前固定快照维护，原构建核对实际字节，不自动追随其他项目版本。
+
 提交遵守本仓库GPL-3.0-or-later；第三方材料只在有权分发时加入。Issues/PR请说明问题、预期、复现及验证范围，无需提供真实业务报告。

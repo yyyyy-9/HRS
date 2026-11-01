@@ -41,6 +41,8 @@ python block_cli.py apply D:\Reports\section-plan.json --expect-plan-sha256 <pla
 
 `--section` 可重复形成精确标题路径；唯一短标题也可。操作可用 append、prepend 或 replace-body。章节正文包含其下级标题，replace-body 保留当前标题；已有 ID、数字与技术内容由提供的 Markdown 决定，不自动猜改。Agent 可在已授权任务内完成读取、生成候选、检查差异及显式提交，不要求人逐段确认。
 
+保存调用须区分提交与附带事项：`/api/save`成功回执的revision对应已保存正文，可选warnings描述显示设置或旧草稿清理未完成。下一次修改使用返回的revision，不因警告拿旧摘要重试。CLI plan与HTML输出只创建新路径；失败后清理本次产物，无法清理时非零退出并返回`OUTPUT_INCOMPLETE`及`incomplete_outputs`路径。HTML恢复已交付新工程后的临时清理警告仍以ok=true返回。apply的源、候选、资源及审查摘要保护不变，旧快照不会被当作可重复提交。
+
 ## 当前可调用的读取入口
 
 在解压包的 `app/` 目录运行，示例路径替换成真实完整工程：
