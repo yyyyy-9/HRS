@@ -1,7 +1,8 @@
 /* SEARCH-01: non-modal local find bar, using the existing palette. */
-.document-search{flex:0 0 auto;display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:9px 18px;border-bottom:1px solid var(--hrs-line);background:var(--hrs-editor);color:var(--hrs-ink);font-size:12px}
+.document-search{flex:0 0 auto;display:flex;flex-direction:column;align-items:stretch;gap:7px;padding:9px 18px;border-bottom:1px solid var(--hrs-line);background:var(--hrs-editor);color:var(--hrs-ink);font-size:12px}
+.search-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .document-search[hidden]{display:none}
-.document-search input[type=search]{flex:1 1 180px;min-width:100px;max-width:480px;padding:7px 10px;border:1px solid var(--hrs-line);border-radius:6px;background:var(--hrs-paper);color:var(--hrs-ink);font:inherit}
+.document-search input[type=search],.document-search input[type=text]{flex:1 1 180px;min-width:100px;max-width:480px;padding:7px 10px;border:1px solid var(--hrs-line);border-radius:6px;background:var(--hrs-paper);color:var(--hrs-ink);font:inherit}
 .document-search input:focus-visible,.document-search select:focus-visible,.document-search button:focus-visible{outline:2px solid var(--hrs-brand);outline-offset:2px}
 .document-search select,.document-search button{padding:6px 9px;border:1px solid var(--hrs-line);border-radius:6px;background:var(--hrs-paper);color:var(--hrs-ink);font:inherit}
 .document-search button{cursor:pointer}.document-search button:disabled{opacity:.4;cursor:default}

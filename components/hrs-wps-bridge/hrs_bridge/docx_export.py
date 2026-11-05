@@ -761,7 +761,24 @@ class Writer:
                 seen.add(style.style_id);before=style.paragraph_format.space_before;style=style.base_style
             if (before or 0)<gap:p.paragraph_format.space_before=gap
 
+    def prepare_math(self):
+        """Consume the existing page tokens; do not parse source formulas again."""
+        def expressions(value):
+            if isinstance(value,list):
+                for item in value:yield from expressions(item)
+            elif isinstance(value,dict):
+                if value.get('type')=='hrsMath':yield value['tex'],False
+                else:
+                    for key,item in value.items():
+                        if key not in ('raw','text'):yield from expressions(item)
+        requests=list(expressions([self.model['tokens'],self.model['inline'],self.model.get('footnotes',{})]))
+        requests.extend((block['latex'],True) for block in self.ir['blocks'] if block['type']=='equation')
+        if requests:
+            self.math=MathAdapter(self.rt)
+            self.math.prefetch(requests)
+
     def write(self, output):
+        self.prepare_math()
         self.output_numbers = {}
         # Output sequence is a WPS profile concern, never a replacement HRS numbering rule.
         table_number = 0

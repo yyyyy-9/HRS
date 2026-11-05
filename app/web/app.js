@@ -2,13 +2,13 @@
 (() => {
 'use strict';
 const $=x=>document.getElementById(x);
-const RENDER_CONTROLS=[['show-object-numbers','show_object_numbers'],['show-heading-numbers','show_heading_numbers'],['show-equation-numbers','show_equation_numbers'],['preserve-blank-lines','preserve_blank_lines']];
+const RENDER_CONTROLS=[['show-object-numbers','show_object_numbers'],['show-heading-numbers','show_heading_numbers'],['show-equation-numbers','show_equation_numbers'],['preserve-blank-lines','preserve_blank_lines'],['show-timestamps','show_timestamps']];
 // Check bundled scripts before touching any of them, so a missing file shows
 // a readable message instead of a silent ReferenceError on "正在加载".
 const REQUIRED_SCRIPTS=['marked','Flow','ReportClone','ReportTableContent','ReportTables','ReportPipeTables','ReportTableEditor','ReportDialogs','ReportLayout','ReportListStyles','ReportEquations','SourceEditor','ReportSourceProjection','SourceBlocks','SourceActions','ReportObjectClipboard','ReportRichClipboard','SourceMap','ScrollFollow','ReportNotes','ReportLinks','ReportWordExport','ReportWorkspace','ReportBridgeModel'];
 REQUIRED_SCRIPTS.push('ReportDocumentSearch','ReportSettings','ReportProfile','ReportTheme','ReportNotebook','ReportPreviewImages','ReportPreflight','ReportOperations','ReportPreviewCommit','ReportWordImport');
 REQUIRED_SCRIPTS.push('ReportFormulaEditor','ReportSections','ReportOutline','ReportSnippets');
-REQUIRED_SCRIPTS.push('ReportViewControls');
+REQUIRED_SCRIPTS.push('ReportViewControls','ReportTimestamps');
 const missingScripts=REQUIRED_SCRIPTS.filter(name=>typeof window[name]==='undefined');
 if(missingScripts.length){
  const indicator=$('save-indicator');if(indicator){indicator.className='status error';indicator.textContent='本地静态依赖缺失';}
@@ -18,6 +18,7 @@ if(missingScripts.length){
 const cloneReport=ReportClone.clone;
 const editor=window.SourceEditor&&window.SourceBlocks?SourceEditor.attach($('markdown'),{onEdit:editSourceObject,onLocate:position=>locateFromSource(position).catch(e=>toast(e.message))}):$('markdown'), preview=$('preview-content'), indicator=$('save-indicator');
 const sourceProjection=ReportSourceProjection.attach(editor,{onBoundary:toast});
+const sourceTimestamps=ReportTimestamps.attach(editor);
 const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const state={projectPath:null,externalProject:false,md:'',savedMd:'',revision:null,documentId:'new',template:'engineering',theme:'engineering',view:'split',saving:false,dirty:false,rendering:0,renderErrors:[],selectedBlock:null,visualFocused:null,visualPending:false,draftId:null,draftSeq:0,draftQueue:Promise.resolve(),draftError:false,draftSnapshot:null,exiting:false,exitReady:false,session:0};
 state.renderProfile=ReportProfile.normalize();state.renderOptions=ReportProfile.normalizeOptions();
@@ -27,14 +28,32 @@ const operations=ReportOperations.create({editor,onEditing:locked=>{$('app').ine
 const urlColorTheme=ReportTheme.fromURL(location.search);
 let acceptedHeadingSnapshot=null,activeHeadingAcceptance=false;
 function syncRenderControls(){document.body.dataset.renderProfile=state.renderProfile;const free=state.renderProfile==='free';$('number-display-options').hidden=false;for(const [control,option] of RENDER_CONTROLS){const field=$(control);field.checked=(!free&&['show_heading_numbers','show_object_numbers'].includes(option))||state.renderOptions[option];operations.setDisabled(field,!free&&['show_heading_numbers','show_object_numbers'].includes(option));}}
+let deferredTimestamps=null;
+function timestampEditing(){return !!state.visualFocused||!!captionEditor||editor.view.composing;}
+function syncTimestamps({preserveScroll=false}={}){
+ if(timestampEditing())return;
+ if(deferredTimestamps){if(deferredTimestamps.source===state.md)sourceTimestamps.set(deferredTimestamps.value);deferredTimestamps=null;}
+ const anchor=preserveScroll&&positionMap?.source===state.md?previewViewportAnchor():null;
+ sourceTimestamps.show(state.renderOptions.show_timestamps);if(state.view!=='source')ReportTimestamps.paint(preview,sourceTimestamps.snapshot,state.renderOptions.show_timestamps);
+ if(anchor)restorePreviewViewport(anchor);
+}
+function acceptTimestamps(value,source){
+ if(!value)return;
+ for(const item of history.items)if(item.md===source)item.timestamps=value;
+ if(state.md===source){
+  // Draft replies must not touch either live editing DOM during composition.
+  if(timestampEditing())deferredTimestamps={value,source};
+  else{sourceTimestamps.set(value);syncTimestamps({preserveScroll:true});}
+ }
+}
 async function setColorTheme(value){state.colorTheme=await ReportTheme.apply(document,value);$('color-theme').value=state.colorTheme;}
 let debounceDraft=null,debounceRender=null,toastTimer=null,mathRecords=new Map();
 let exportPreferences={quality:'standard',sourceMode:'recompilable',includePdfOriginals:false},lastExportStats=null,lastExportRequest=null;
-let positionMap=null,sourceMapCache=null,pipeTableIndex=[],navigationTimer=null,checks=null,checkSequence=0,referenceRecords=new WeakMap(),scrollFollow=null;
+let positionMap=null,pipeTableIndex=[],navigationTimer=null,checks=null,checkSequence=0,referenceRecords=new WeakMap(),scrollFollow=null;
 let documentSearch=null,captionEditor=null,previewImages=null,viewControls=null,activeLinks=null,presentationWait=Promise.resolve();
 const displayChanges=[];
 const portableWindow=window.PortableWindow?.attach();
-const history={items:[],index:0,lastKind:null,lastAt:0,limit:120};
+const history={items:[],index:0,lastKind:null,lastAt:0,limit:120,feedback:0};
 ReportLayout.installMarked(marked);
 ReportListStyles.installMarked(marked);
 ReportEquations.installMarked(marked);
@@ -100,10 +119,11 @@ function persistPresentation(changes,onApplied=async()=>{}){
  presentationWait=task.catch(()=>{});return task;
 }
 function updateDirty(){state.dirty=state.md!==state.savedMd;if(state.draftError){status('error','草稿备份失败 · 请重试或手动保存');return;}if(state.exiting){status('','正在备份草稿并退出…');return;}if(state.saving){status('','正在保存正式文档…');return;}if(state.dirty){status('draft',state.draftSnapshot?.markdown===state.md?'未正式保存 · 草稿已备份':'未正式保存 · 草稿备份中…');return;}status('saved',state.documentId==='new'?'新文档 · 尚未创建正式文件':'已保存');}
-function snapshot(){return {md:state.md,start:editor.selectionStart,end:editor.selectionEnd,top:editor.scrollTop,left:editor.scrollLeft};}
+function snapshot(){return {md:state.md,timestamps:sourceTimestamps.snapshot,start:editor.selectionStart,end:editor.selectionEnd,top:editor.scrollTop,left:editor.scrollLeft};}
 function updateHistoryButtons(){operations.setDisabled($('btn-undo'),state.view==='reading'||history.index<=0);operations.setDisabled($('btn-redo'),state.view==='reading'||history.index>=history.items.length-1);}
-function resetHistory(){history.items=[snapshot()];history.index=0;history.lastKind=null;history.lastAt=0;updateHistoryButtons();}
+function resetHistory(){history.feedback++;history.items=[snapshot()];history.index=0;history.lastKind=null;history.lastAt=0;updateHistoryButtons();}
 function recordHistory(kind){
+ history.feedback++;
  const value=snapshot(),now=Date.now();
  if(kind==='saved-newlines'){
   // Disk serialization changes only newline spelling/terminal newline. Keep
@@ -117,32 +137,52 @@ function recordHistory(kind){
  else{history.items.push(value);history.index++;if(history.items.length>history.limit){history.items.shift();history.index--;}}
  history.lastKind=kind;history.lastAt=now;updateHistoryButtons();
 }
-function restoreHistory(entry){
+function restoreHistory(entry,action){
+ const before=state.md,change=SourceMap.changedRange(before,entry.md),ticket=++history.feedback,session=state.session,mode=state.view;
  state.md=entry.md;editor.value=entry.md;
+ sourceTimestamps.set(entry.timestamps);syncTimestamps();
  editor.setSelectionRange(Math.min(entry.start,entry.md.length),Math.min(entry.end,entry.md.length));
  editor.scrollTop=entry.top;editor.scrollLeft=entry.left;
  updateDirty();updateStats();scheduleRender();scheduleDraft();
+ const current=()=>ticket===history.feedback&&session===state.session&&state.md===entry.md&&mode===state.view&&!timestampEditing();
+ (async()=>{
+  if(!current())return;
+  const model=documentModel(entry.md),line=model.map.lineAt(change.start),last=model.map.lineAt(change.end);
+  const range={start:change.start,end:change.end};
+  if(range.start===range.end){range.start=Math.max(0,range.start-1);range.end=Math.min(entry.md.length,range.end+1);}
+  const summary=text=>text?text.slice(0,32).replace(/\r\n?|\n/g,'↵').replace(/\t/g,'⇥').replace(/ /g,'·')+(text.length>32?'…':''):'∅';
+  const detail='已'+action+' · 第'+line+(last>line?'–'+last:'')+'行 · '+summary(before.slice(change.start,change.oldEnd))+' → '+summary(entry.md.slice(change.start,change.end));
+  if(state.view==='source'){
+   if(topicFocus)focusTopic(model.notebook.at(change.start),model);syncTopics(model);
+   sourceProjection.reveal(range.start,range.end);
+  }else{
+   clearTimeout(debounceRender);await render();if(!current())return;
+   await locateRange(range,{origin:'history'});
+  }
+  if(current())toast(detail);
+ })().catch(error=>{if(current())toast('已'+action+'；定位提示未完成：'+error.message);});
 }
-function undo(){if(state.saving||state.view==='reading')return;if(state.visualFocused)commitFocusedVisual();if(history.index<=0)return;history.index--;history.lastKind=null;restoreHistory(history.items[history.index]);updateHistoryButtons();}
-function redo(){if(state.saving||state.view==='reading')return;if(state.visualFocused)commitFocusedVisual();if(history.index>=history.items.length-1)return;history.index++;history.lastKind=null;restoreHistory(history.items[history.index]);updateHistoryButtons();}
+function undo(){if(state.saving||state.view==='reading')return;if(state.visualFocused)commitFocusedVisual();if(history.index<=0)return;history.index--;history.lastKind=null;restoreHistory(history.items[history.index],'撤销');updateHistoryButtons();}
+function redo(){if(state.saving||state.view==='reading')return;if(state.visualFocused)commitFocusedVisual();if(history.index>=history.items.length-1)return;history.index++;history.lastKind=null;restoreHistory(history.items[history.index],'重做');updateHistoryButtons();}
 function clearTimers(){clearTimeout(debounceDraft);clearTimeout(debounceRender);}
 function updateStats(){$('source-stats').textContent=state.md.length.toLocaleString()+' 字符 · '+state.md.split('\n').length+' 行';}
 function scheduleRender(){clearTimeout(debounceRender);debounceRender=setTimeout(()=>{render().catch(e=>toast('预览失败：'+e.message));},200);}
+function needsDraft(){return state.dirty||state.draftSeq>0&&state.draftSnapshot?.markdown!==state.md;}
 function queueDraft(){
- if(!state.dirty||state.saving)return state.draftQueue;
+ if(!needsDraft()||state.saving)return state.draftQueue;
  const args={draft_id:state.draftId,document_id:state.documentId,template:state.template,
-   base_revision:state.revision,seq:++state.draftSeq,markdown:state.md,render_profile:state.renderProfile,render_options:state.renderOptions,color_theme:state.colorTheme};
+   base_revision:state.revision,seq:++state.draftSeq,markdown:state.md,render_profile:state.renderProfile,render_options:state.renderOptions,color_theme:state.colorTheme,...sourceTimestamps.payload()};
  const session=state.session;
  state.draftQueue=state.draftQueue.catch(()=>{}).then(()=>api('/api/draft','POST',args))
   .then(reply=>{if(session===state.session){
-   if(reply.accepted&&reply.seq===args.seq&&args.draft_id===state.draftId)state.draftSnapshot={...args,markdown_sha256:reply.markdown_sha256};
-   state.draftError=false;updateDirty();
+   if(reply.accepted&&reply.seq===args.seq&&args.draft_id===state.draftId){state.draftSnapshot={...args,block_timestamps:reply.block_timestamps,markdown_sha256:reply.markdown_sha256};acceptTimestamps(reply.block_timestamps,args.markdown);}
+   state.draftError=false;updateDirty();if(args.markdown!==state.md)scheduleDraft();
   }})
   .catch(e=>{if(session===state.session){state.draftError=true;updateDirty();toast('恢复草稿保存失败：'+e.message);}});
  return state.draftQueue;
 }
-function scheduleDraft(){clearTimeout(debounceDraft);if(state.dirty)debounceDraft=setTimeout(()=>queueDraft(),1150);}
-async function finishDraftWrites(){clearTimeout(debounceDraft);if(state.dirty)await queueDraft();await state.draftQueue;if(state.draftError)throw Error('草稿备份失败；可以重试手动保存，但请勿在修复前直接关闭页面');}
+function scheduleDraft(){clearTimeout(debounceDraft);if(needsDraft())debounceDraft=setTimeout(()=>queueDraft(),1150);}
+async function finishDraftWrites(){clearTimeout(debounceDraft);if(needsDraft())await queueDraft();await state.draftQueue;if(state.draftError)throw Error('草稿备份失败；可以重试手动保存，但请勿在修复前直接关闭页面');}
 async function prepareWindowExit(){
  await presentationWait;
  if(state.saving||operations.busy){toast('请等待当前操作完成后再退出');return false;}
@@ -179,7 +219,7 @@ async function load(documentId='new',template='engineering',{recover=true,draftI
  scrollFollow?.suspend();
  clearTimers();
  status('','正在载入文档…');
- clearToast();checks=null;checkSequence++;sourceMapCache=null;const session=++state.session;
+ clearToast();checks=null;checkSequence++;const session=++state.session;
  $('problems-panel').hidden=true;$('problem-list').replaceChildren();$('problems-summary').textContent='';
  $('bottom-left').textContent='实时预览 · 草稿自动恢复 · Ctrl+S 正式保存';$('bottom-left').title='';
  $('bottom-right').textContent='离线渲染 · 无 CDN';
@@ -192,6 +232,7 @@ async function load(documentId='new',template='engineering',{recover=true,draftI
   const colorTheme=await ReportTheme.apply(document,urlColorTheme||data.color_theme);
   if(session!==state.session)return;
   clearDocumentRenderCaches();sourceProjection.set(null);
+  deferredTimestamps=null;
   acceptedHeadingSnapshot=null;state.md=data.markdown;state.savedMd=data.markdown;state.revision=data.revision;state.documentId=data.document_id;
   state.renderProfile=ReportProfile.normalize(data.render_profile);state.renderOptions=ReportProfile.normalizeOptions(data.render_options);$("render-profile").value=state.renderProfile;syncRenderControls();
   state.hasNumberPreference=data.document_id!=='new';state.reportWorkspace=data.report_workspace||null;syncReportWorkspace();
@@ -202,6 +243,7 @@ async function load(documentId='new',template='engineering',{recover=true,draftI
   state.selectedBlock=null;state.visualFocused=null;state.visualPending=false;state.draftId=freshID();state.draftSeq=0;state.draftQueue=Promise.resolve();state.draftSnapshot=null;state.exitReady=false;
   checks=null;checkSequence++;$('problems-panel').hidden=true;clearPreviewHighlight();
   editor.value=state.md;editor.resetObjects();editor.setSelectionRange(state.md.length);editor.scrollTop=0;$('project-label').textContent=data.project;
+  sourceTimestamps.set(data.block_timestamps);sourceTimestamps.show(state.renderOptions.show_timestamps);
   document.body.dataset.reportTheme=data.theme;
   activated=true;state.rendering++;renderedKey=null;positionMap=null;lastTOC=[];
   preview.replaceChildren();$('toc').replaceChildren();documentSearch?.invalidate();
@@ -500,9 +542,10 @@ async function save(force=false){
   await pendingDraft; // Never race a draft write against the official commit and cleanup.
   const md=state.md,docId=state.documentId,did=state.draftId;
   const res=await api('/api/save','POST',{markdown:md,revision:state.revision,document_id:docId,
-   draft_id:did,template:state.template,render_profile:state.renderProfile,render_options:state.renderOptions,color_theme:state.colorTheme,...(selected?{selection_token:selected.selection_token}:{})});
+   draft_id:did,template:state.template,render_profile:state.renderProfile,render_options:state.renderOptions,color_theme:state.colorTheme,...sourceTimestamps.payload(),...(selected?{selection_token:selected.selection_token}:{})});
   const canonical=state.markdownFile&&typeof res.markdown==='string'?res.markdown:md;
   state.documentId=res.document_id;state.revision=res.revision;state.savedMd=canonical;state.draftError=false;
+  acceptTimestamps(res.block_timestamps,canonical);
   acknowledged=true;notices=Array.isArray(res.warnings)?res.warnings.filter(item=>typeof item==='string'):[];
   if(canonical!==state.md)acceptSavedMarkdown(canonical);
   state.draftId=freshID();state.draftSeq=0;state.draftQueue=Promise.resolve();state.draftSnapshot=null;history.lastKind=null;
@@ -569,6 +612,7 @@ async function restoreDraft(draft,markdownSha256){
   state.draftId=draft.draft_id;state.draftSeq=draft.seq;state.revision=draft.base_revision;
   state.draftSnapshot={...draft,markdown_sha256:markdownSha256};
   changed(draft.markdown,'restore');
+  acceptTimestamps(draft.block_timestamps,draft.markdown);
   if(draft.markdown===state.savedMd){state.dirty=false;updateDirty();}
   if(officialRevision!==draft.base_revision)toast('注意：正式文件在草稿产生后已变化；保存时会检查冲突，不会覆盖。');
   else toast('已恢复草稿；尚未正式保存。');
@@ -1234,37 +1278,65 @@ function markedBlock(token,offset,sourceRaw){
 function checkTeX(tex){
  if(/\\(?:href|url|require|includegraphics|htmlClass|htmlId|htmlStyle|htmlData|html)\b/i.test(tex)) throw Error('出于离线安全要求，公式不能使用外部链接或 HTML 扩展命令');
 }
-// Rendered formula SVGs keyed by display mode + TeX. Each keystroke re-renders
-// the preview; unchanged formulas are cloned instead of re-typeset by MathJax.
-const mathCache=new Map(),MATH_CACHE_LIMIT=800;
-let mathCacheGeneration=0;
-function clearDocumentRenderCaches(){
- mathCacheGeneration++;mathCache.clear();ReportMermaid.clearCache();previewImages?.clear();parsedDocument=null;topicFocus=null;pendingTopicPosition=null;
-}
-async function formulaSVG(tex,display){
- const key=(display?'D':'I')+tex,generation=mathCacheGeneration;
- let svg=mathCache.get(key);
- if(svg){mathCache.delete(key);mathCache.set(key,svg);return svg;}
- const node=await MathJax.tex2svgPromise(tex,{display});
- if(node.querySelector('merror,[data-mml-node="merror"],[data-mjx-error]'))throw Error('LaTeX 语法错误');
- svg=node.querySelector('svg');if(!svg)throw Error('未生成 SVG');
- // An older asynchronous render must not repopulate the next document's cache.
- if(generation===mathCacheGeneration){
-  mathCache.set(key,svg);
-  if(mathCache.size>MATH_CACHE_LIMIT)mathCache.delete(mathCache.keys().next().value);
+// Protect the current working set before evicting unused results. Both count
+// and serialized size are bounded; switching documents releases the whole set.
+const mathCache=new Map(),MATH_CACHE_LIMIT=4096,MATH_CACHE_BYTES=8*1024*1024,MATH_SLICE_MS=12;
+const mathDefinitions=/\\(?:[egx]?def|let|futurelet|(?:re)?newcommand|providecommand|(?:re)?newenvironment|DeclareMathOperator)\b/;
+let mathCacheGeneration=0,mathCacheBytes=0,mathWorkingSet=new Set(),mathQueue=Promise.resolve();
+const renderYields=[],renderChannel=typeof MessageChannel==='function'?new MessageChannel():null;
+if(renderChannel)renderChannel.port1.onmessage=()=>renderYields.shift()?.();
+function yieldRenderTask(){return new Promise(resolve=>{if(renderChannel){renderYields.push(resolve);renderChannel.port2.postMessage(0);}else setTimeout(resolve,0);});}
+function clearMathCache(){mathCacheGeneration++;mathCache.clear();mathCacheBytes=0;mathWorkingSet.clear();}
+function trimMathCache(){
+ if(mathCache.size<=MATH_CACHE_LIMIT&&mathCacheBytes<=MATH_CACHE_BYTES)return;
+ for(const unusedOnly of [true,false])for(const [key,entry] of mathCache){
+  if(mathCache.size<=MATH_CACHE_LIMIT&&mathCacheBytes<=MATH_CACHE_BYTES)return;
+  if(unusedOnly&&mathWorkingSet.has(key))continue;mathCacheBytes-=entry.bytes;mathCache.delete(key);
  }
- return svg;
 }
-async function typesetMath(root,isCurrent=()=>true){
+function clearDocumentRenderCaches(){
+ clearMathCache();ReportMermaid.clearCache();previewImages?.clear();parsedDocument=null;topicFocus=null;pendingTopicPosition=null;
+}
+async function formulaSVG(tex,display,{cache=true,isCurrent=()=>true}={}){
+ // Definitions can affect later expressions. Do not memoize their side effects.
+ if(mathDefinitions.test(tex)){clearMathCache();cache=false;}
+ const key=(display?'D':'I')+tex,generation=mathCacheGeneration;
+ const cached=cache&&mathCache.get(key);
+ if(cached){mathCache.delete(key);mathCache.set(key,cached);return cached.svg;}
+ // Share one MathJax queue with the formula dialog; stale jobs stop before
+ // conversion and cannot repopulate a newly loaded document's cache.
+ const pending=mathQueue.then(async()=>{
+  if(!isCurrent())return null;
+  const existing=cache&&generation===mathCacheGeneration&&mathCache.get(key);if(existing)return existing.svg;
+  const node=await MathJax.tex2svgPromise(tex,{display});
+  if(node.querySelector('merror,[data-mml-node="merror"],[data-mjx-error]'))throw Error('LaTeX 语法错误');
+  const svg=node.querySelector('svg');if(!svg)throw Error('未生成 SVG');
+  if(cache&&isCurrent()&&generation===mathCacheGeneration){
+   const bytes=(svg.outerHTML.length+key.length)*2;
+   if(bytes<=MATH_CACHE_BYTES){mathCache.set(key,{svg,bytes});mathCacheBytes+=bytes;trimMathCache();}
+  }
+  return svg;
+ });
+ mathQueue=pending.then(()=>{},()=>{});return pending;
+}
+async function typesetMath(root,isCurrent=()=>true,{cache=true}={}){
  await (window.MathJax?.startup?.promise||Promise.reject(Error('MathJax 尚未加载')));
- let failures=[];
- for (const span of root.querySelectorAll('.markdown-math,.equation-number[data-number-tex]')){
+ const spans=[...root.querySelectorAll('.markdown-math,.equation-number[data-number-tex]')];
+ if(!isCurrent())return [];
+ mathWorkingSet=new Set(spans.filter(span=>!span.hidden).map(span=>{
+  const display=span.dataset.display==='1',raw=span.dataset.tex||span.dataset.numberTex;
+  return (display?'D':'I')+(display?ReportEquations.presentation(raw).tex:raw);
+ }));trimMathCache();
+ let failures=[],deadline=performance.now()+MATH_SLICE_MS;
+ for (const span of spans){
    if(!isCurrent())break;
+   if(performance.now()>=deadline){await yieldRenderTask();if(!isCurrent())break;deadline=performance.now()+MATH_SLICE_MS;}
+   if(span._reuseSVG||span.closest('.doc-block')?._reuseMath)continue;
    const number=span.classList.contains('equation-number');if(number&&span.hidden)continue;
    const raw=span.dataset.tex||span.dataset.numberTex,display=span.dataset.display==='1',tex=display?ReportEquations.presentation(raw).tex:raw;
    try{
      checkTeX(tex);
-     const svg=await formulaSVG(tex,display);
+     const svg=await formulaSVG(tex,display,{cache,isCurrent});if(!svg||!isCurrent())break;
      const rendered=svg.cloneNode(true);
      if(number){rendered.setAttribute('aria-hidden','true');span.dataset.typeset='1';span.append(rendered);}
      else{span.textContent='';span.appendChild(rendered);}
@@ -1317,11 +1389,14 @@ function currentTopic(model){
  }
  return model.notebook.topics.find(t=>t.key===topicFocus?.key)||null;
 }
-function documentViewKey(){return JSON.stringify([state.md,state.view,state.renderProfile,state.renderOptions,state.colorTheme,state.documentId,state.draftId,currentTopic(documentModel(state.md))?.key]);}
+function contentOptionsKey(){return JSON.stringify(Object.fromEntries(Object.entries(state.renderOptions).filter(([key])=>ReportSettings.render_options[key]?.content_rendering!==false)));}
+function documentViewKey(){return JSON.stringify([state.md,state.view,state.renderProfile,contentOptionsKey(),state.colorTheme,state.documentId,state.draftId,currentTopic(documentModel(state.md))?.key]);}
 function syncSourceNotes(model,topic){
  sourceProjection.setNotes(Array.from(model.notes.definitionRecords.values()).flat().sort((a,b)=>a.start-b.start));
  sourceProjection.setEquations(model.map.blocks.filter(record=>record.type==='reportEquation'));
- const panel=$('source-notes'),list=$('source-notes-list'),used=new Set(Array.from(preview.querySelectorAll('[data-hrs-note-key]'),n=>n.dataset.hrsNoteKey));
+ const panel=$('source-notes'),list=$('source-notes-list');
+ const used=topic&&state.view==='source'?new Set(ReportNotes.prepare(marked,[],{source:model.source,records:model.notebook.presentation(topic.key).records,catalog:model.catalog,map:model.map}).numbers.keys()):
+  new Set(Array.from(preview.querySelectorAll('[data-hrs-note-key]'),n=>n.dataset.hrsNoteKey));
  const previous=new Map(Array.from(list.children,n=>[n.dataset.rowKey,n])),nodes=[];
  for(const [key,records] of model.notes.definitionRecords){
   if(topic&&!used.has(key))continue;
@@ -1362,7 +1437,7 @@ function syncTopics(model){
  // non-space token traps the caret at a folded end object after every render.
  select.value=topic?.key||'';sourceProjection.set(topic);syncSourceNotes(model,topic);
 }
-async function buildDocumentView(source,{focus=null,isCurrent=()=>true,reuse=new Map()}={}){
+async function buildDocumentView(source,{focus=null,isCurrent=()=>true,reuse=new Map(),reuseMath=false}={}){
  const previousErrors=state.renderErrors,previousMath=mathRecords,previousReferences=referenceRecords,previousLinks=activeLinks;
  state.renderErrors=[];mathRecords=new Map();referenceRecords=new WeakMap();
  let stagedResult,nextMapResult,modelResult,headingsResult,pipeResult,profileResult,notesMath,references,errors;
@@ -1467,31 +1542,45 @@ async function buildDocumentView(source,{focus=null,isCurrent=()=>true,reuse=new
   stagedResult=staged;nextMapResult=nextMap;modelResult=model;headingsResult=headings;pipeResult=nextPipeIndex;profileResult=profilePlan;
   notesMath=nextMath;references=nextReferences;errors=state.renderErrors;
  }finally{state.renderErrors=previousErrors;mathRecords=previousMath;referenceRecords=previousReferences;activeLinks=previousLinks;}
+ const cacheMath=!mathDefinitions.test(source);
+ ReportPreviewCommit.prepareMath(preview,stagedResult,reuseMath&&cacheMath);
  const diagramFailures=await ReportMermaid.renderAll(stagedResult,isCurrent);if(!isCurrent())return null;
- errors.push(...diagramFailures);errors.push(...await typesetMath(stagedResult,isCurrent));if(!isCurrent())return null;
+ errors.push(...diagramFailures);errors.push(...await typesetMath(stagedResult,isCurrent,{cache:cacheMath}));if(!isCurrent())return null;
  return {article:stagedResult,map:nextMapResult,model:modelResult,headings:headingsResult,pipe:pipeResult,profile:profileResult,math:notesMath,references,errors};
+}
+function updateOutline(model,profile){
+ const numbers=new Map(profile.headings.map(h=>[h.start,h.number]));
+ lastTOC=profile.headings.map(h=>model.map.blocks[h.index]).map(r=>({level:r.token.depth,text:(numbers.get(r.start)?numbers.get(r.start)+' ':'')+ReportNotebook.title(r.token),start:r.start,end:r.end,id:'docblock-'+r.index}));
+ buildTOC(lastTOC);
 }
 async function render(){
  if(state.visualFocused||captionEditor)return;
  const began=performance.now();
  clearTimeout(debounceRender);
  const sourceSnapshot=state.md,model=documentModel(sourceSnapshot),topic=currentTopic(model);
+ const run=++state.rendering;
+ if(state.view==='source'){
+  const records=topic?model.notebook.presentation(topic.key).records:model.map.blocks;
+  updateOutline(model,ReportProfile.plan(sourceSnapshot,state.renderProfile,records,state.renderOptions));
+  syncTopics(model);updateStats();syncTimestamps();viewControls?.refresh();documentSearch?.refresh();
+  $('bottom-right').textContent='源码视图 · 预览按需更新';return;
+ }
  const key=documentViewKey();
  // Undo or an external replacement can return to the displayed text after
  // CodeMirror mapped its decorations through intervening changes.
- if(renderedKey===key&&positionMap?.source===sourceSnapshot){syncTopics(model);return;}
- documentSearch?.invalidate();scrollFollow?.suspend();const run=++state.rendering;
- const context=JSON.stringify([state.view,state.renderProfile,state.renderOptions,state.documentId,state.draftId,state.session,mathCacheGeneration,topic?.key]);
+ if(renderedKey===key&&positionMap?.source===sourceSnapshot){syncTopics(model);syncTimestamps();return;}
+ documentSearch?.invalidate();scrollFollow?.suspend();
+ const context=JSON.stringify([state.view,state.renderProfile,contentOptionsKey(),state.documentId,state.draftId,state.session,mathCacheGeneration,topic?.key]);
  const reuse=ReportPreviewCommit.reusable(preview,model,positionMap,context===renderContext);
- const view=await buildDocumentView(sourceSnapshot,{focus:topic?.key,isCurrent:()=>run===state.rendering,reuse});
- if(!view||run!==state.rendering||sourceSnapshot!==state.md||state.visualFocused||captionEditor)return;
+ const session=state.session,mode=state.view,profile=state.renderProfile,optionsKey=contentOptionsKey();
+ const isCurrent=()=>run===state.rendering&&session===state.session&&sourceSnapshot===state.md&&mode===state.view&&profile===state.renderProfile&&optionsKey===contentOptionsKey()&&!state.visualFocused&&!captionEditor;
+ const view=await buildDocumentView(sourceSnapshot,{focus:topic?.key,isCurrent,reuse,reuseMath:context===renderContext});
+ if(!view||!isCurrent())return;
  const anchor=previewViewportAnchor(),staged=view.article;
  const reused=ReportPreviewCommit.commit(preview,staged,{resources:context===renderContext});renderContext=context;preview._sourceObjectCatalog=staged._sourceObjectCatalog;
  preview.dataset.hrsRenderProfile=staged.dataset.hrsRenderProfile;preview.dataset.hrsShowObjectNumbers=staged.dataset.hrsShowObjectNumbers;preview.dataset.hrsShowEquationNumbers=staged.dataset.hrsShowEquationNumbers;
- positionMap=view.map;sourceMapCache=null;pipeTableIndex=view.pipe;referenceRecords=view.references;mathRecords=view.math;state.renderErrors=view.errors;
- const headingNumbers=new Map(view.profile.headings.map(h=>[h.start,h.number]));
- lastTOC=view.profile.headings.map(h=>view.model.map.blocks[h.index]).map(r=>({level:r.token.depth,text:(headingNumbers.get(r.start)?headingNumbers.get(r.start)+' ':'')+ReportNotebook.title(r.token),start:r.start,end:r.end,id:'docblock-'+r.index}));
- renderedKey=key;buildTOC(lastTOC);syncTopics(view.model);updateStats();prepareVisualBlocks();viewControls?.refresh();restorePreviewViewport(anchor);previewImages?.committed();
+ positionMap=view.map;pipeTableIndex=view.pipe;referenceRecords=view.references;mathRecords=view.math;state.renderErrors=view.errors;
+ renderedKey=key;updateOutline(view.model,view.profile);syncTopics(view.model);updateStats();prepareVisualBlocks();syncTimestamps();viewControls?.refresh();restorePreviewViewport(anchor);previewImages?.committed();
  $('bottom-right').title=view.profile.diagnostics.map(d=>d.message).join('；');
  $('bottom-right').textContent=state.renderErrors.length?'⚠ '+state.renderErrors.length+' 处需要处理':view.profile.diagnostics.length?'⚠ '+view.profile.diagnostics.length+' 项工程输出提醒（文档检查可查看）':'离线渲染 · 无 CDN · '+preview.querySelectorAll('svg').length+' 个 SVG';
  $('preview-hint').textContent=state.view==='reading'?(topic?'只读 · 当前专题：'+topic.title:'只读阅读；图表可查看，引用可跳转'):topic?'当前专题：'+topic.title:'单击定位源码；双击正文或对象编辑';
@@ -1549,7 +1638,12 @@ async function locateRange(range,{origin='problem',detail=''}={}){
  outlineView?.reveal(range.start);
  scrollFollow?.suspend();
  const snapshot=state.md;
- if((['problem','source'].includes(origin)||origin==='toc'&&state.view!=='reading')&&state.view!=='split')switchView('split');
+ if((['problem','source'].includes(origin)||origin==='toc'&&state.view!=='reading')&&state.view!=='split')await switchView('split');
+ if(state.view==='source'&&origin==='reference'){
+  SourceMap.assertRange(state.md,range,null,snapshot);const record=currentSourceMap().at(range.start);
+  if(record?.type==='hrsFootnoteDef'&&sourceProjection.range)revealSourceNote(record);
+  else sourceProjection.reveal(range.start,range.end,{select:false});return;
+ }
  if(positionMap?.source!==state.md){if(state.visualFocused)commitFocusedVisual();await render();}
  SourceMap.assertRange(state.md,range,null,snapshot);
  if(positionMap?.source!==state.md)throw Error('预览正在更新，请稍候定位');
@@ -1563,7 +1657,7 @@ async function locateRange(range,{origin='problem',detail=''}={}){
  if(state.view!=='reading'){
   const limit=sourceProjection.range;
   if(isNote&&limit)revealSourceNote(sourceRecord);
-  else editor.highlightRange(range.start,range.end,{select:!['preview','reference'].includes(origin)});
+  else sourceProjection.reveal(range.start,range.end,{select:!['preview','reference'].includes(origin)});
  }
  clearPreviewHighlight();if(block){
   block.classList.add('navigation-highlight');
@@ -1589,7 +1683,7 @@ function toMDInline(node){
  if(node.nodeType===Node.TEXT_NODE)return (node.nodeValue||'').replace(/([\\*_`[\]])/g,'\\$1');
  if(node.nodeType!==Node.ELEMENT_NODE)return '';
  const e=node,tag=e.tagName;
- if(e.classList.contains('hrs-heading-number'))return '';
+ if(e.classList.contains('hrs-heading-number')||e.classList.contains('hrs-block-times'))return '';
  if(tag==='INPUT'&&e.type==='checkbox')return '';
  if(tag==='SUP'&&e.querySelector('[data-hrs-footnote-ref]'))return '[^'+e.querySelector('[data-hrs-footnote-ref]').dataset.hrsFootnoteRef+']';
  const reference=referenceRecords.get(e);if(reference)return reference.raw;
@@ -1623,9 +1717,7 @@ function currentBlockRange(block,map=null){
 }
 function currentSourceMap(){
  if(positionMap?.source===state.md)return positionMap;
- if(sourceMapCache?.source===state.md&&sourceMapCache.profile===state.renderProfile)return sourceMapCache.map;
- const map=SourceMap.create(state.md,marked.lexer(SourceBlocks.normalized(state.md).text));
- sourceMapCache={source:state.md,profile:state.renderProfile,map};return map;
+ return documentModel(state.md).map;
 }
 function rebaseDisplayedRange(snapshot,range,raw){
  if(snapshot===state.md)return SourceMap.assertRange(state.md,range,raw,snapshot);
@@ -1671,7 +1763,7 @@ function prepareVisualBlocks(){
   const frames=SourceMap.listFrames(state.md,record,marked),items=[...block.querySelectorAll('li')];
   if(frames.length!==items.length)continue;
   items.forEach((item,index)=>{
-   let target=item.querySelector(':scope > p');
+   let target=item.querySelector(':scope > p,:scope > .list-inline-editor');
    if(!target){target=document.createElement('span');target.className='list-inline-editor';
     const nodes=[];for(const node of [...item.childNodes]){if(['UL','OL'].includes(node.nodeName))break;if(node.nodeName!=='INPUT')nodes.push(node);}
     target.append(...nodes);item.insertBefore(target,item.querySelector(':scope > ul,:scope > ol'));
@@ -1686,8 +1778,11 @@ function prepareVisualBlocks(){
   const level=target.dataset.headingLevel||target.tagName.match(/^H([1-6])$/)?.[1],frame=target._listFrame?{prefix:'',body:target._listFrame.body,suffix:'',newline:state.md.includes('\r\n')?'\r\n':'\n'}:SourceMap.textFrame(block._sourceRaw,level?+level:null);
   const serialized=Array.from(target.childNodes).map(toMDInline).join('');
   if(!frame||serialized!==frame.body){target.removeAttribute('data-block-editor');block.dataset.editable='0';block.title='双击编辑原始 Markdown 块';continue;}
-  target._visualFrame=frame;target._visualHTML=target.innerHTML;target.classList.add('preview-text-editor');target.tabIndex=0;
-  target.contentEditable='false';target.title='双击编辑文字；修改写回同一份 Markdown';
+  target._visualFrame=frame;target._visualHTML=target.innerHTML;
+  if(!target.classList.contains('preview-text-editor'))target.classList.add('preview-text-editor');
+  if(target.tabIndex!==0)target.tabIndex=0;
+  if(target.contentEditable!=='false')target.contentEditable='false';
+  if(target.title!=='双击编辑文字；修改写回同一份 Markdown')target.title='双击编辑文字；修改写回同一份 Markdown';
   if(target._hrsVisualBound)continue;target._hrsVisualBound=true;
   target.addEventListener('focus',()=>{if(target.isContentEditable&&!state.saving)beginVisual(block,false,target);});
   target.addEventListener('input',event=>{state.visualPending=true;if(!event.isComposing&&!block._composing)commitVisual(block,{typing:true});});
@@ -2192,12 +2287,14 @@ function bindPreview(){
   preview.addEventListener('keyup',()=>{if(!captionEditor)syncPreviewSelection();});
   document.addEventListener('selectionchange',()=>{if(!captionEditor)syncPreviewSelection();});
   preview.addEventListener('contextmenu',event=>{
+   if(event.target.closest('.hrs-block-times'))return;
    if(state.view==='reading'||event.target.closest('input,textarea,[contenteditable="true"]'))return;
    const block=event.target.closest('.doc-block');if(!block||!block.querySelector('.report-figure-wrap,.report-table-wrap,.report-equation,.mermaid-card'))return;
    if(!window.getSelection()?.isCollapsed)return;
    if(selectPreviewObject(block))sourceActions.showMenu(event);
   });
   preview.addEventListener('dblclick',ev=>{
+  if(ev.target.closest('.hrs-block-times'))return;
   if(ev.target._taskRange)return;
   if(ev.target.closest('.hrs-heading-number')){ev.preventDefault();return;}
   clearTimeout(referenceTimer);
@@ -2214,6 +2311,7 @@ function bindPreview(){
    const block=ev.target.closest('.doc-block');if(block){ev.preventDefault();const target=ev.target.closest('[data-block-editor]');if(target)beginVisual(block,true,target);else editBlockSource(block);}
  });
  preview.addEventListener('click',async e=>{
+  if(e.target.closest('.hrs-block-times'))return;
   const note=e.target.closest('.hrs-footnotes li[data-map-index]');
   if(note&&!e.target.closest('a,button')&&state.view!=='reading'){locateRange({start:+note.dataset.start,end:+note.dataset.end},{origin:'preview'}).catch(e=>toast(e.message));return;}
   if(e.target._taskRange)return;
@@ -2346,7 +2444,7 @@ function displayedAssetNames(article=preview){
  return [...new Set(found)].sort();
 }
 const exportRequest=(md,mode='recompilable',includePdfOriginals=false,article=preview)=>({markdown:md,document_id:state.documentId,draft_id:state.draftId,
- revision:state.revision,template:state.template,render_profile:state.renderProfile,render_options:state.renderOptions,accept_numbered_headings:activeHeadingAcceptance,source_mode:mode,...(mode==='reading'?{display_assets:[...new Set([...displayedAssetNames(article),...(includePdfOriginals?[...article.querySelectorAll('[data-pdf-asset]')].map(e=>e.dataset.pdfAsset):[])])]}:{})});
+ revision:state.revision,template:state.template,render_profile:state.renderProfile,render_options:state.renderOptions,...sourceTimestamps.payload(),accept_numbered_headings:activeHeadingAcceptance,source_mode:mode,...(mode==='reading'?{display_assets:[...new Set([...displayedAssetNames(article),...(includePdfOriginals?[...article.querySelectorAll('[data-pdf-asset]')].map(e=>e.dataset.pdfAsset):[])])]}:{})});
 function figureWidthMm(img){
  const group=img.closest('.image-group-grid');
  const count=group?Number(group.style.getPropertyValue('--group-columns'))||2:1;
@@ -2355,6 +2453,7 @@ function figureWidthMm(img){
 }
 async function buildExport(preferences={quality:'standard',sourceMode:'reading'}){
  await presentationWait;
+ commitSource();commitFocusedVisual();await finishDraftWrites();
  const previous=state.renderProfile,previousOptions=state.renderOptions,active=ReportProfile.normalize(preferences.renderProfile??previous);
  state.renderProfile=active;state.renderOptions=ReportProfile.normalizeOptions(preferences.renderOptions??previousOptions);
  try{
@@ -2377,7 +2476,12 @@ async function buildExport(preferences={quality:'standard',sourceMode:'reading'}
   }
   if(state.md!==source||state.session!==session)throw Error('文稿已变化，请重新导出');
   return await buildExportCurrent(preferences,exportSource);
- }finally{activeHeadingAcceptance=false;state.renderOptions=previousOptions;if(state.renderProfile===active){state.renderProfile=previous;if(previous!==active||preferences.renderOptions)await render();}}
+ }finally{activeHeadingAcceptance=false;state.renderOptions=previousOptions;if(state.renderProfile===active){
+  state.renderProfile=previous;
+  // Export owns a temporary presentation context. If it cancelled a pending
+  // preview, catch up after restoring the editor's context, including on failure.
+  if(previous!==active||preferences.renderOptions||state.view!=='source'&&renderedKey!==documentViewKey())await render();
+ }}
 
 }
 async function buildExportCurrent(preferences,exportSource=state.md){
@@ -2409,6 +2513,16 @@ async function buildExportCurrent(preferences,exportSource=state.md){
  }
  requireSame();
  const clone=exportView.article.cloneNode(true);
+ if(state.renderProfile==='free'){
+  const notebook=exportView.model.notebook;
+  clone.dataset.hrsNotebookTopics=JSON.stringify(notebook.topics.map(({key,title})=>({key,title})));
+  let key=notebook.topics[0]?.key||'';
+  for(const block of clone.children){
+   if(block.hasAttribute('data-start'))key=notebook.at(Number(block.dataset.start)).key;
+   if(block.classList.contains('doc-block')||block.classList.contains('hrs-blank-space'))block.dataset.hrsTopicKey=key;
+  }
+ }
+ ReportTimestamps.paint(clone,preflight.block_timestamps,state.renderOptions.show_timestamps);
  ReportMermaid.freezeTheme(clone,{liveTheme:true});
  // Archive state always comes from Markdown. Optional free-reader state is
  // separate and bound to this source snapshot and original task position.
@@ -2498,9 +2612,10 @@ async function buildExportCurrent(preferences,exportSource=state.md){
  const readerJS=await readerScript.text();
  const title=(exportView.headings[0]?.text||'离线技术报告').replace(/<[^>]+>/g,'');
  const payload=await archive.buildArchive({md:freeze.exportSource,assetRecords:assets,domRefs,opts:options,
-  template:state.template,theme:state.theme,renderProfile:state.renderProfile,renderOptions:state.renderOptions,colorTheme:state.colorTheme,savedMd:state.savedMd,projectRevision:state.revision});
+  template:state.template,theme:state.theme,renderProfile:state.renderProfile,renderOptions:state.renderOptions,colorTheme:state.colorTheme,blockTimestamps:preflight.block_timestamps,savedMd:state.savedMd,projectRevision:state.revision});
  const source=archive.safeJson(payload),pdfData=Object.keys(pdfOriginals).length?'<script type="application/json" id="hrs-pdf-originals">'+archive.safeJson(pdfOriginals)+'</script>':'';
- const html='<!doctype html>\n<!-- HRS render-profile: '+state.renderProfile+' -->\n<html lang="zh-CN" data-hrs-offline-themes="1" data-hrs-render-profile="'+state.renderProfile+'" data-hrs-color-theme="'+state.colorTheme+'"><head><meta charset="utf-8"><meta name="hrs-render-profile" content="'+state.renderProfile+'"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+escapeHTML(title)+'</title><style>'+colorCSS+'\n'+css+'\n'+readerCSS+'\n'+designCSS+'\n'+surfaceCSS+'</style></head>\n<body class="theme-'+escapeHTML(state.theme)+' hrs-profile-'+state.renderProfile+'" data-render-profile="'+state.renderProfile+'"><main data-hrs-reader-root="1" data-hrs-render-profile="'+state.renderProfile+'" data-hrs-task-snapshot="'+preflight.markdown_sha256+'" data-hrs-show-object-numbers="'+(clone.dataset.hrsShowObjectNumbers||'1')+'" data-hrs-show-equation-numbers="'+(clone.dataset.hrsShowEquationNumbers||'0')+'">'+clone.innerHTML+'</main><footer class="report-footer"></footer><script type="application/json" id="report-source">'+source+'</script>'+pdfData+'<script id="hrs-reader-runtime">'+readerJS+'</script></body></html>';
+ const notebookAttribute=clone.dataset.hrsNotebookTopics?' data-hrs-notebook-topics="'+escapeHTML(clone.dataset.hrsNotebookTopics)+'"':'';
+ const html='<!doctype html>\n<!-- HRS render-profile: '+state.renderProfile+' -->\n<html lang="zh-CN" data-hrs-offline-themes="1" data-hrs-render-profile="'+state.renderProfile+'" data-hrs-color-theme="'+state.colorTheme+'"><head><meta charset="utf-8"><meta name="hrs-render-profile" content="'+state.renderProfile+'"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+escapeHTML(title)+'</title><style>'+colorCSS+'\n'+css+'\n'+readerCSS+'\n'+designCSS+'\n'+surfaceCSS+'</style></head>\n<body class="theme-'+escapeHTML(state.theme)+' hrs-profile-'+state.renderProfile+'" data-render-profile="'+state.renderProfile+'"><main data-hrs-reader-root="1" data-hrs-render-profile="'+state.renderProfile+'" data-hrs-show-timestamps="'+(clone.dataset.hrsShowTimestamps||'0')+'" data-hrs-task-snapshot="'+preflight.markdown_sha256+'" data-hrs-show-object-numbers="'+(clone.dataset.hrsShowObjectNumbers||'1')+'" data-hrs-show-equation-numbers="'+(clone.dataset.hrsShowEquationNumbers||'0')+'"'+notebookAttribute+'>'+clone.innerHTML+'</main><footer class="report-footer"></footer><script type="application/json" id="report-source">'+source+'</script>'+pdfData+'<script id="hrs-reader-runtime">'+readerJS+'</script></body></html>';
  const totalBytes=new TextEncoder().encode(html).byteLength;
  if(totalBytes>archive.MAX_HTML)throw Error('导出 HTML 超过 36 MiB 兼容上限。请改用纯阅读或较低图像质量，完整工程可单独备份');
  requireSame();
@@ -2517,6 +2632,7 @@ function downloadBlob(blob,filename){
 async function exportModules(keys,preferences){
  await presentationWait;
  commitSource();commitFocusedVisual();
+ await finishDraftWrites();
  if(state.renderProfile!=='free')throw Error('专题分册只适用于自由笔记');
  const source=state.md,session=state.session,model=documentModel(source),selected=model.notebook.topics.filter(t=>keys.includes(t.key));
  if(!selected.length||selected.length!==new Set(keys).size)throw Error('请选择有效专题');
@@ -2844,7 +2960,7 @@ async function importFile(file,{prepared=null}={}){
     md=restored.markdown;assets=restored.assets;
    }else throw Error('HTML 源数据版本不兼容');
    sourceTemplate=['engineering','academic','brief','blank'].includes(payload.template)?payload.template:'engineering';
-   file._hrsRenderProfile=ReportProfile.normalize(payload.renderProfile);file._hrsRenderOptions=ReportProfile.normalizeOptions(payload.renderOptions);file._hrsColorTheme=ReportTheme.normalize(payload.colorTheme);
+   file._hrsRenderProfile=ReportProfile.normalize(payload.renderProfile);file._hrsRenderOptions=ReportProfile.normalizeOptions(payload.renderOptions);file._hrsColorTheme=ReportTheme.normalize(payload.colorTheme);file._hrsBlockTimestamps=payload.blockTimestamps;
   }else{
    if(!await askLeave())return;
    md=await file.text();await load('new',sourceTemplate);
@@ -2854,11 +2970,11 @@ async function importFile(file,{prepared=null}={}){
   }
   if(!await askLeave())return;
   const did=freshID();
-  const res=await api('/api/draft-import','POST',{draft_id:did,document_id:'new',template:sourceTemplate,markdown:md,assets,archive_version:archiveVersion,render_profile:file._hrsRenderProfile||'free',render_options:file._hrsRenderOptions,color_theme:file._hrsColorTheme});
+  const res=await api('/api/draft-import','POST',{draft_id:did,document_id:'new',template:sourceTemplate,markdown:md,assets,archive_version:archiveVersion,render_profile:file._hrsRenderProfile||'free',render_options:file._hrsRenderOptions,color_theme:file._hrsColorTheme,block_timestamps:file._hrsBlockTimestamps});
   await load('new',sourceTemplate);
   state.draftId=did;state.draftSeq=res.seq;state.renderProfile=file._hrsRenderProfile||'free';state.renderOptions=ReportProfile.normalizeOptions(file._hrsRenderOptions);$('render-profile').value=state.renderProfile;syncRenderControls();
   await setColorTheme(ReportTheme.normalize(file._hrsColorTheme));
-  changed(md,'import');await render();
+  changed(md,'import');acceptTimestamps(res.block_timestamps,md);await render();
   toast('已导入为未保存草稿；按 Ctrl+S 才创建正式报告。');
  }catch(e){toast('导入失败：'+e.message);}
 }
@@ -2961,8 +3077,8 @@ function init(){
  window.addEventListener('pagehide',()=>{
   if(state.exitReady){portableWindow?.leave(null);return;}
   commitSource();commitFocusedVisual();
-  const payload=state.dirty&&!state.saving&&state.draftId?{draft_id:state.draftId,document_id:state.documentId,template:state.template,
-   base_revision:state.revision,seq:++state.draftSeq,markdown:state.md,render_profile:state.renderProfile,render_options:state.renderOptions,color_theme:state.colorTheme}:null;
+  const payload=needsDraft()&&!state.saving&&state.draftId?{draft_id:state.draftId,document_id:state.documentId,template:state.template,
+   base_revision:state.revision,seq:++state.draftSeq,markdown:state.md,render_profile:state.renderProfile,render_options:state.renderOptions,color_theme:state.colorTheme,...sourceTimestamps.payload()}:null;
   if(portableWindow?.leave(payload,state.draftSnapshot))return;
   if(!payload)return;
   try{
@@ -3107,14 +3223,24 @@ function init(){
   commitSource();commitFocusedVisual();
   const previous=state.renderOptions,session=state.session;state.renderOptions={...state.renderOptions,[option]:$(control).checked};
   state.hasNumberPreference=true;
-  try{await persistPresentation({},async()=>{await render();await queueDraft();});}
+  try{await persistPresentation({},async()=>{if(option==='show_timestamps')syncTimestamps({preserveScroll:true});else await render();await queueDraft();});}
   catch(error){if(session===state.session){state.renderOptions=previous;syncRenderControls();toast(error.message);}}
  });
   previewImages=ReportPreviewImages.attach({preview,scroller:preview.closest('.page-scroll'),capture:previewViewportAnchor,restore:restorePreviewViewport});
   $('topic-select').onchange=async()=>{try{commitSource();commitFocusedVisual();const model=documentModel(state.md),topic=model.notebook.topics.find(t=>t.key===$('topic-select').value);focusTopic(topic,model);await render();if(topic)await locateRange({start:topic.start,end:topic.start},{origin:'reference'});else preview.closest('.page-scroll').scrollTop=0;}catch(error){toast(error.message);}};
   initScrollFollow();bindPreview();
-  documentSearch=ReportDocumentSearch.attach({panel:$('document-search'),button:$('btn-search'),editor,preview,
+  documentSearch=ReportDocumentSearch.attach({panel:$('document-search'),editor,preview,
    getSource:()=>state.md,getView:()=>state.view,onError:toast,
+   getRange:scope=>{const topic=scope==='topic'?currentTopic(documentModel(state.md)):null;return topic?{start:topic.start,end:topic.end}:{start:0,end:state.md.length};},
+   canReplace:()=>state.view!=='reading'&&!state.saving&&!operations.editing,
+   replace:async({source,matches,text,all,range,scope})=>{
+    commitFocusedVisual();if(state.md!==source||state.saving||state.view==='reading'||operations.editing)throw Error('文稿或编辑状态已变化，请重新查找');
+    if(matches.some(m=>m.start<range.start||m.end>range.end))throw Error('替换超出选定范围');
+    if(scope==='all'&&topicFocus)focusTopic(null);
+    const {external,EditorSelection}=SourceEditor.extensionAPI,changes=matches.map(m=>({from:m.start,to:m.end,insert:text}));
+    editor.view.dispatch({changes,selection:EditorSelection.cursor(matches[0].start+text.length),annotations:external.of(true)});
+    changed(editor.value,all?'replace-all':'replace',true);await render();
+   },
    canOpen:()=>!state.exiting&&$('modal-layer').hidden&&!ReportDialogs.isOpen()&&$('reader-overlay').hidden,
    prepare:async scope=>{
     commitFocusedVisual();scrollFollow?.suspend();

@@ -11,6 +11,25 @@ interface HrsApiError {
   code?: string;
 }
 
+interface HrsBlockTimeRecord {
+  key: string;
+  kind: "heading" | "figure" | "image-group" | "table" | "mermaid";
+  id: string | null;
+  start: number;
+  end: number;
+  own_sha256: string;
+  content_sha256: string;
+  created: string | null;
+  modified: string | null;
+  pending?: boolean;
+}
+
+interface HrsBlockTimestamps {
+  schema: "hrs-block-times-v1";
+  source_sha256: string;
+  records: Array<HrsBlockTimeRecord>;
+}
+
 interface HrsSaveResponse {
   ok: true;
   document_id: string;
@@ -21,6 +40,7 @@ interface HrsSaveResponse {
   warnings?: Array<string>;
   markdown?: string;
   markdown_file?: string;
+  block_timestamps?: HrsBlockTimestamps;
 }
 
 interface HrsSourceSnapshot {
@@ -39,6 +59,7 @@ interface HrsDocumentResponse {
   render_profile?: string;
   render_options?: Record<string, string | number | number | boolean | null | Array<string | number | number | boolean | null | Array<HrsJsonValue> | Record<string, HrsJsonValue>> | Record<string, string | number | number | boolean | null | Array<HrsJsonValue> | Record<string, HrsJsonValue>>>;
   project_path?: string | null;
+  block_timestamps?: HrsBlockTimestamps;
 }
 
 interface HrsDraftResponse {
@@ -46,6 +67,7 @@ interface HrsDraftResponse {
   accepted: boolean;
   seq: number;
   markdown_sha256: string;
+  block_timestamps?: HrsBlockTimestamps;
 }
 
 interface HrsClipboardAsset {

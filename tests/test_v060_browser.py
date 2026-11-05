@@ -41,7 +41,23 @@ $$\boldsymbol{x}=1$$
 
 [^theme]: 配色不改变来源。
 '''
-  source(self.page,text)
+  # UX-2.5: dates are metadata, kept through palettes and the inert archive.
+  import document_timestamps as times
+  baseline=times.reconcile(text,fresh=True,now='2020-01-01T00:00+00:00')
+  (self.project/'report.md').write_bytes(text.encode('utf8'));times.store(self.project,baseline)
+  self.page.evaluate("async()=>await ReportStudioProgrammatic.open('legacy')")
+  self.page.wait_for_selector('#preview-content .hrs-block-times')
+  self.assertEqual(self.page.locator('#preview-content .hrs-block-times').count(),len(baseline['records']))
+  self.assertIn('2020-01-01',self.page.locator('#preview-content .hrs-block-times').first.inner_text())
+  self.assertTrue(self.page.locator('.cm-block-times').first.evaluate("e=>getComputedStyle(e,'::after').content.includes('2020-01-01')"))
+  # Editing a heading prefix must retain its creation identity, just as a
+  # heading-level action does; undo restores both dates.
+  with self.page.expect_response(lambda r:r.url.endswith('/api/draft') and r.request.post_data_json.get('markdown','').startswith('## 表格稿')) as updated:
+   self.page.evaluate("()=>{const e=document.querySelector('#markdown').sourceEditor;e.view.dispatch({changes:{from:0,to:0,insert:'#'}})}")
+  changed_times=updated.value.json()['block_timestamps']
+  self.assertEqual(changed_times['records'][0]['key'],baseline['records'][0]['key'])
+  self.assertEqual(changed_times['records'][0]['created'],baseline['records'][0]['created'])
+  self.page.locator('#btn-undo').click();self.assertEqual(value(self.page),text)
   self.page.locator('#color-theme').select_option('celadon')
   self.page.wait_for_function("document.documentElement.dataset.colorTheme==='celadon'")
   html=self.export()
@@ -51,6 +67,20 @@ $$\boldsymbol{x}=1$$
   choices=json.loads((Path(__file__).resolve().parents[1]/'app/product_settings.json').read_text('utf8'))['color_themes']['choices']
   self.assertEqual(reader.locator('.hrs-reader-theme-select option').evaluate_all('xs=>xs.map(x=>({id:x.value,label:x.textContent}))'),[{'id':c['id'],'label':c['label']} for c in choices])
   original=reader.locator('#report-source').text_content()
+  self.page.evaluate("window.timestampMathNode=document.querySelector('#preview-content .markdown-math svg')")
+  for show in (False,True):
+   self.page.locator('#show-timestamps').set_checked(show)
+   self.page.wait_for_function("show=>document.querySelector('#preview-content').dataset.hrsShowTimestamps===(show?'1':'0')",arg=show)
+   self.assertTrue(self.page.evaluate("timestampMathNode===document.querySelector('#preview-content .markdown-math svg')"))
+  self.assertEqual(json.loads((self.project/'meta.json').read_text('utf8'))['block_timestamps'],baseline)
+  archived=json.loads(original)
+  self.assertEqual(archived['blockTimestamps'],baseline)
+  self.assertEqual(reader.locator('.hrs-block-times').count(),len(baseline['records']))
+  reader.locator('.hrs-reader-time-toggle input').uncheck()
+  self.assertFalse(reader.locator('.hrs-block-times').first.is_visible())
+  reader.locator('.hrs-reader-time-toggle input').check()
+  self.assertTrue(reader.locator('.hrs-block-times').first.is_visible())
+  self.assertEqual(reader.locator('#report-source').text_content(),original)
   geometry=reader.locator('svg.pele').evaluate('e=>({viewBox:e.getAttribute("viewBox"),nodes:e.innerHTML})')
   saved_image=reader.locator('main img').first.get_attribute('src')
   reader.evaluate('''()=>{window.originalThemeNodes=[document.querySelector('svg.pele'),document.querySelector('main img'),document.querySelector('.markdown-math svg')]}''')

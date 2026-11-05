@@ -61,15 +61,57 @@ class NotebookViews(unittest.TestCase):
             self.assertEqual((doc.project/'report.md').read_text('utf8'),text)
             self.assertEqual(doc.errors,[])
 
+            # READING-HISTORY-2.5: changing an extra blank gap must not remove
+            # the unchanged paragraph that immediately follows a reused node.
+            before='# 空行复现\n\n第一句。\n\n\n第二句。\n\n第三句。\n'
+            after=before.replace('第一句。\n\n\n第二句。','第一句。\n\n  第二句。')
+            for md in (before,after,before,after):
+                source(page,md)
+                page.wait_for_function('md=>document.querySelector("#preview-content .doc-block")?._sourceDocument===md',arg=md)
+                for sentence in ('第一句。','第二句。','第三句。'):
+                    self.assertIn(sentence,page.locator('#preview-content').inner_text())
+
     def test_whole_export_ignores_focus_and_keeps_source(self):
-        text='# One\n\nFirst\n\n# Two\n\nSecond\n'
+        part=lambda title,key: '# '+title+' {#sec-'+key+'}\n\n## '+title+' chapter\n\n### '+title+' detail\n\n'+title+' body[^'+key+']\n\n| Value |\n| --- |\n| 1 |\n: '+title+' table {#tbl-'+key+'}\n\n<!-- hrs:eq id=eq-'+key+' -->\n$$x=1$$\n\n'
+        text=part('One','one')+part('Two','two')+'First and Second: see @tbl:tbl-one.\n\n[^one]: Note one\n\n[^two]: Note two\n'
         with tempfile.TemporaryDirectory() as folder, browser_session() as browser, LiveDocument(browser, Path(folder), text, registered=True) as doc:
+            for control in ('show-object-numbers','show-heading-numbers','show-equation-numbers'):doc.page.locator('#'+control).check()
             doc.page.locator('#topic-select').select_option(label='2 · Two')
             doc.page.wait_for_function("document.querySelectorAll('#preview-content h1').length===1")
             html=doc.export()
             self.assertIn('First',html);self.assertIn('Second',html)
             self.assertEqual(doc.page.locator('#preview-content h1').inner_text(),'Two')
             self.assertEqual(value(doc.page),text)
+            path=Path(folder)/'whole.html';path.write_text(html,encoding='utf8');reader=browser.new_page();reader_errors=[]
+            reader.on('pageerror',lambda error:reader_errors.append(str(error)))
+            try:
+                reader.goto(path.as_uri());reader.wait_for_selector('.hrs-reader-topic-select')
+                archive=reader.locator('#report-source').text_content()
+                first_number=reader.locator('#object-eq-one .equation-number').inner_html()
+                second_number=reader.locator('#object-eq-two .equation-number').inner_html()
+                first_key=reader.locator('.hrs-reader-topic-select option').nth(1).get_attribute('value')
+                reader.locator('.hrs-reader-topic-select').select_option(label='2 · Two')
+                self.assertFalse(reader.locator('h1',has_text='One').is_visible())
+                self.assertTrue(reader.locator('h1',has_text='Two').is_visible())
+                self.assertEqual(reader.locator('h2',has_text='Two chapter').inner_text(),'1 Two chapter')
+                self.assertEqual(reader.locator('#object-eq-two .equation-number').inner_html(),first_number)
+                self.assertIn('表 1',reader.locator('#object-tbl-two caption').inner_text())
+                self.assertFalse(reader.locator('li[data-hrs-note-key=one]').is_visible())
+                self.assertTrue(reader.locator('li[data-hrs-note-key=two]').is_visible())
+                reader.locator('.hrs-reader-depth-select').select_option('2')
+                self.assertFalse(reader.locator('.hrs-reader-links a',has_text='Two detail').is_visible())
+                self.assertTrue(reader.locator('.hrs-reader-links a',has_text='Two chapter').is_visible())
+                link=reader.locator('[data-hrs-reader-root] a.object-xref[href="#object-tbl-one"]')
+                self.assertIn('“One”',link.inner_text());link.click()
+                self.assertEqual(reader.locator('.hrs-reader-topic-select').input_value(),first_key)
+                self.assertTrue(reader.locator('h1',has_text='One').is_visible())
+                reader.locator('.hrs-reader-topic-select').select_option('')
+                self.assertEqual(reader.locator('#object-eq-two .equation-number').inner_html(),second_number)
+                self.assertIn('表 2',reader.locator('#object-tbl-two caption').inner_text())
+                self.assertEqual(reader.locator('#report-source').text_content(),archive)
+                self.assertEqual(reader_errors,[])
+                self.assertEqual(doc.errors,[])
+            finally:reader.close()
 
     def test_module_ui_zip_dependencies_and_real_recovery(self):
         table={'schema':'report-table-v1','id':'tbl-a','caption':'表题[^n]','rows':[[{'text':'内容','rowspan':1,'colspan':1}]]}
@@ -178,7 +220,7 @@ class NotebookViews(unittest.TestCase):
             page.locator('#render-profile').select_option('free');page.wait_for_selector('.hrs-blank-space')
             page.locator('#topic-select').select_option(label='1 · Alpha')
             page.wait_for_function("document.querySelectorAll('#preview-content h1').length===1")
-            page.locator('#btn-search').click();page.locator('#search-scope').select_option('source');page.locator('#search-query').fill('needle')
+            page.evaluate("document.querySelector('#markdown').sourceEditor.focus()");page.keyboard.press('Control+f');page.locator('#search-scope').select_option('source');page.locator('#replace-scope').select_option('all');page.locator('#search-query').fill('needle')
             page.wait_for_function("document.querySelector('#topic-select').selectedOptions[0].textContent.includes('Beta')")
             page.locator('#search-close').click()
             plan=page.evaluate('()=>ReportStudioProgrammatic.topics()')

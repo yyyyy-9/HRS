@@ -9,15 +9,19 @@ from lxml import etree as E
 from .runtime import BridgeError
 
 M='http://schemas.openxmlformats.org/officeDocument/2006/math'
+BATCH_ITEMS=64
+BATCH_TEX_CHARS=64*1024
+PANDOC_TIMEOUT_SECONDS=30
 
 
-def normalize_legacy_roman(tex):
-    r"""Map a group's leading ``\rm`` declaration to scoped ``\mathrm``.
+def normalize_tex_for_pandoc(tex):
+    r"""Adapt scoped old roman declarations and escaped math whitespace.
 
     Only the converter input changes; source/provenance and cache keys retain
-    the original TeX. Bare declarations with uncertain scope remain subject to
-    Pandoc's strict rejection. Escaped braces, comments and text arguments are
-    preserved instead of using a global string replacement.
+    the original TeX. The complete formula is also a bounded math scope.
+    Mid-expression declarations remain subject to strict rejection. Escaped
+    braces, comments and text arguments are preserved. An escaped line end or
+    tab is a TeX control space, not the two-backslash multiline command.
     """
     text_commands={'text','textrm','textnormal','textsf','texttt','textbf',
                    'textit','textsc','mbox','operatorname'}
@@ -55,6 +59,8 @@ def normalize_legacy_roman(tex):
                 parts.append(source[index:end]);index=end;continue
             if char=='\\':
                 end=command_end(source,index);command=source[index+1:end]
+                if command in {'\n','\r','\t'}:
+                    parts.append('\\ ');index=end;continue
                 if command in text_commands:
                     start=end
                     if start<len(source) and source[start]=='*':start+=1
@@ -66,36 +72,69 @@ def normalize_legacy_roman(tex):
                 end=group_end(source,index)
                 if end is None:parts.append(source[index:]);break
                 inner=source[index+1:end]
-                declaration=re.match(r'(\s*)\\rm(?![A-Za-z])\s*',inner)
-                if declaration:
-                    inner=declaration.group(1)+r'\mathrm{'+walk(inner[declaration.end():])+'}'
-                else:inner=walk(inner)
+                inner=scope(inner)
                 parts.append('{'+inner+'}');index=end+1;continue
             parts.append(char);index+=1
         return ''.join(parts)
 
-    return walk(tex)
+    def scope(source):
+        declaration=re.match(r'(\s*)\\rm(?![A-Za-z])\s*',source)
+        if declaration:return declaration.group(1)+r'\mathrm{'+walk(source[declaration.end():])+'}'
+        return walk(source)
+
+    return scope(tex)
 
 
 class MathAdapter:
     def __init__(self,runtime):
         if not runtime.pandoc:raise BridgeError('PANDOC_PATH is required for native TeX/OMML conversion')
         self.exe=runtime.pandoc;self.cache={}
-        r=subprocess.run([self.exe,'-f','markdown','-t','json'],input=b'',capture_output=True,check=True)
+        r=subprocess.run([self.exe,'-f','markdown','-t','json'],input=b'',capture_output=True,check=True,timeout=PANDOC_TIMEOUT_SECONDS)
         self.version=json.loads(r.stdout)['pandoc-api-version']
+
+    def _fill_omml(self,keys,*,speculative=False):
+        blocks=[{'t':'Para','c':[{'t':'Math','c':[{'t':'DisplayMath' if display else 'InlineMath'},normalize_tex_for_pandoc(tex)]}]} for tex,display in keys]
+        ast={'pandoc-api-version':self.version,'meta':{},'blocks':blocks}
+        result=subprocess.run([self.exe,'--fail-if-warnings','-f','json','-t','docx','-o','-'],
+                              input=json.dumps(ast).encode('utf8'),capture_output=True,timeout=PANDOC_TIMEOUT_SECONDS)
+        if result.returncode:
+            # The page model also contains unused definitions. Never make a
+            # rejected speculative batch an export error or cache partial output;
+            # an expression actually emitted still takes the strict path below.
+            if speculative:return
+            raise BridgeError('Native math conversion rejected: '+result.stderr.decode('utf8'))
+        with ZipFile(BytesIO(result.stdout)) as z:doc=E.fromstring(z.read('word/document.xml'))
+        namespaces={'m':M,'w':'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+        paragraphs=doc.xpath('/w:document/w:body/w:p',namespaces=namespaces)
+        if len(paragraphs)!=len(keys):
+            if speculative:return
+            raise BridgeError('Native math conversion changed the number of formula paragraphs')
+        converted={}
+        for key,paragraph in zip(keys,paragraphs):
+            nodes=paragraph.xpath('.//m:oMathPara' if key[1] else './/m:oMath',namespaces=namespaces)
+            if len(nodes)!=1 or len(paragraph.xpath('.//m:oMath',namespaces=namespaces))!=1:
+                if speculative:return
+                raise BridgeError('Expected one native OMML expression per formula')
+            converted[key]=deepcopy(nodes[0])
+        self.cache.update(converted)
+
+    def prefetch(self,expressions):
+        """Warm original (TeX, display) keys in bounded, ordered batches.
+
+        A large individual expression stays whole. Rejected batches are not
+        retried here; the existing strict on-demand conversion remains decisive.
+        """
+        pending=[];chars=0;seen=set(self.cache)
+        for key in expressions:
+            if key in seen:continue
+            if pending and (len(pending)>=BATCH_ITEMS or chars+len(key[0])>BATCH_TEX_CHARS):
+                self._fill_omml(pending,speculative=True);pending=[];chars=0
+            pending.append(key);seen.add(key);chars+=len(key[0])
+        if pending:self._fill_omml(pending,speculative=True)
 
     def omml(self,tex,display=False):
         key=(tex,display)
-        if key not in self.cache:
-            converter_tex=normalize_legacy_roman(tex)
-            ast={'pandoc-api-version':self.version,'meta':{},'blocks':[{'t':'Para','c':[{'t':'Math','c':[{'t':'DisplayMath' if display else 'InlineMath'},converter_tex]}]}]}
-            result=subprocess.run([self.exe,'--fail-if-warnings','-f','json','-t','docx','-o','-'],
-                                  input=json.dumps(ast).encode('utf8'),capture_output=True,timeout=30)
-            if result.returncode:raise BridgeError('Native math conversion rejected: '+result.stderr.decode('utf8'))
-            with ZipFile(BytesIO(result.stdout)) as z:doc=E.fromstring(z.read('word/document.xml'))
-            nodes=doc.xpath('//m:oMathPara' if display else '//m:oMath',namespaces={'m':M})
-            if len(nodes)!=1:raise BridgeError('Expected one native OMML expression')
-            self.cache[key]=nodes[0]
+        if key not in self.cache:self._fill_omml([key])
         return deepcopy(self.cache[key])
 
     def tex(self,omml):
@@ -121,10 +160,10 @@ class MathAdapter:
         doc=Document()
         for omml in expressions:doc.add_paragraph()._p.append(deepcopy(omml))
         data=BytesIO();doc.save(data)
-        result=subprocess.run([self.exe,'--fail-if-warnings','-f','docx','-t','json'],input=data.getvalue(),capture_output=True,timeout=30)
+        result=subprocess.run([self.exe,'--fail-if-warnings','-f','docx','-t','json'],input=data.getvalue(),capture_output=True,timeout=PANDOC_TIMEOUT_SECONDS)
         return self.math_values(result,len(expressions))
 
     def mathml_many(self,expressions):
         body='<!doctype html><html><body>'+''.join('<p>'+x+'</p>' for x in expressions)+'</body></html>'
-        result=subprocess.run([self.exe,'--fail-if-warnings','-f','html','-t','json'],input=body.encode('utf8'),capture_output=True,timeout=30)
+        result=subprocess.run([self.exe,'--fail-if-warnings','-f','html','-t','json'],input=body.encode('utf8'),capture_output=True,timeout=PANDOC_TIMEOUT_SECONDS)
         return self.math_values(result,len(expressions))

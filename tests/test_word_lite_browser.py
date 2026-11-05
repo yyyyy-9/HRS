@@ -25,7 +25,15 @@ class WordLite(ManualService):
         return self.page.locator('#word-export-status').inner_text()
 
     def test_01_formula_is_optional_then_real_omml(self):
-        source(self.page,'# 原生公式\n\n## 计算\n\n向量 $\\boldsymbol{E}=mc^2$。\n\n$$\\frac{a}{b}+x^2$$\n\n```tex\n$not_math$\n```\n')
+        # WORD-MATH-RM-02: the complete formula, a subscript group and a table
+        # cell all have explicit font scope; original TeX stays in provenance.
+        raw='# 原生公式\n\n## 计算\n\n向量 $\\boldsymbol{E}=mc^2$。\n\n$$\\frac{a}{b}+x^2$$\n\n$\\rm pix$ 与 $N_{\\rm pix}+1$。\n\n$$\na\\Rightarrow\\\nb\n$$\n\n| 单位 | 数值 |\n| --- | --- |\n| $\\rm mm\\,s^{-1}$ | 12 |\n\n```tex\n$not_math$\n```\n'
+        # WORD-MATH-PERF-03: cross a batch boundary, preserve each subscript and
+        # keep inline/display arrows in their own native formula containers.
+        raw+='\n'+' '.join('$x_{'+str(i)+'}+'+str(i)+'$' for i in range(70))+'\n\n'
+        for tex in (r'a\Rightarrow b',r'a\Longrightarrow b',r'a\implies b','a⇒b'):
+            raw+='$'+tex+'$\n\n$$\n'+tex+'\n$$\n\n'
+        source(self.page,raw)
         pandoc=Path(os.environ['HRS_WORD_TEST_ENV'])/'pandoc/pandoc.exe';self.assertTrue(pandoc.is_file())
         exporter=self.server.word_export
         # Hide the Full test runner's formula tool until the user selects it.
@@ -39,8 +47,22 @@ class WordLite(ManualService):
                 self.page.wait_for_function("document.querySelector('#word-export-status').textContent==='原生公式转换器已配置。'")
             output=self.compile()
         doc=Document(output);ns={'m':'http://schemas.openxmlformats.org/officeDocument/2006/math'}
-        self.assertEqual(len(doc._element.xpath('//m:oMath')),2)
+        self.assertEqual(len(doc._element.xpath('//m:oMath')),84)
+        texts=[''.join(node.xpath('.//m:t/text()',namespaces=ns)) for node in doc._element.xpath('//m:oMath')]
+        for i in range(70):self.assertIn('x'+str(i)+'+'+str(i),texts)
+        self.assertTrue(all(any(arrow in text for arrow in ('⇒','⟹')) for text in texts[-8:]))
+        self.assertIn('pix',''.join(doc._element.xpath('//m:t/text()')))
+        self.assertEqual(base64.b64decode(json.loads(Path(str(output)+'.hrs-bridge.json').read_text('utf8'))['source_b64']).decode('utf8'),raw)
+        self.assertEqual(value(self.page),raw)
         self.assertTrue(any('$not_math$' in p.text for p in doc.paragraphs))
+        cover=exporter.runtime()['wps']/'templates/cover_template_v0311.docx';before=cover.read_bytes()
+        self.open_word()
+        with patch.object(studio,'pick_import_file',return_value=cover):
+            self.page.locator('#word-pick-template').click()
+            self.page.wait_for_function('path=>document.querySelector("#word-template").value===path',arg=str(cover))
+        covered=self.compile()
+        self.assertEqual(len(Document(covered)._element.xpath('//m:oMath')),84)
+        self.assertEqual(cover.read_bytes(),before);self.assertEqual(value(self.page),raw)
 
     def rich_source(self):
         for name in ('one','two'):(self.project/'assets'/name).mkdir(exist_ok=True)

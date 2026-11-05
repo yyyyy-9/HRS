@@ -6,6 +6,7 @@ drafts, page and server; class resources and failed setup always get cleanup.
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
 import os
+import json
 import sys
 import tempfile
 import threading
@@ -20,6 +21,14 @@ from studio import StudioServer
 
 _shared = None
 SERVER_POLL_SECONDS = 0.05
+
+
+def default_render_options(**changes):
+    """Transport expectations inherit schema defaults; behavior tests own overrides."""
+    catalog=json.loads((ROOT/'app/product_settings.json').read_text('utf8'))['render_options']
+    defaults={key:entry['default'] for key,entry in catalog.items()}
+    if changes.keys()-defaults.keys():raise ValueError('Unknown render option in fixture')
+    return {**defaults,**changes}
 
 
 def artifact_directory(filename, legacy_env=None, prefix='hrs-evidence-'):

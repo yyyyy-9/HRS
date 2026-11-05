@@ -2,12 +2,12 @@
 from pathlib import Path
 from contextlib import contextmanager,redirect_stdout
 import io,time
-import json,os,sys,tempfile,threading,unittest,urllib.request,urllib.error,zipfile
+import json,os,subprocess,sys,tempfile,threading,unittest,urllib.request,urllib.error,zipfile
 from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'app'))
 from studio import StudioServer,Handler,digest
-from word_export import WordExport,check_template,runtime_paths
+from word_export import WordExport,check_template,runtime_paths,WORD_WORKER_TIMEOUT_SECONDS
 from word_import import selected_source
 
 
@@ -76,6 +76,9 @@ class WordBoundaries(unittest.TestCase):
         with self.assertRaises(ValueError):check_template(self.project/'report.md')
 
     def test_missing_runtime_and_revision_fail_without_source_changes(self):
+        # WORD-MATH-PERF-03: Word's advertised HTTP wait must outlive its worker;
+        # a worker timeout remains a failure and cannot alter the source.
+        self.assertGreater(self.post('options')[1]['request_timeout_ms'],WORD_WORKER_TIMEOUT_SECONDS*1000)
         with self.assertRaises(ValueError):runtime_paths(self.root)
         with patch.object(self.server.word_export,'runtime',return_value=None):
             status,result=self.post('prepare');self.assertEqual(status,400);self.assertIn('Word',result['error'])
@@ -84,6 +87,13 @@ class WordBoundaries(unittest.TestCase):
         self.assertFalse(self.server.word_export.running.locked())
         self.assertEqual((self.project/'report.md').read_bytes(),self.raw)
         self.assertEqual(list((self.project/'output').iterdir()),[])
+        exporter=self.server.word_export
+        runtime={'bridge':self.root,'wps':self.root,'libs':None,'python':Path(sys.executable),'root':self.root}
+        with patch.object(exporter,'runtime',return_value=runtime),patch.object(exporter,'pandoc',return_value=None),patch('word_export.subprocess.run',side_effect=subprocess.TimeoutExpired('worker',WORD_WORKER_TIMEOUT_SECONDS)) as invoked:
+            with self.assertRaisesRegex(RuntimeError,'Word 导出超过'):
+                exporter._worker(self.root/'snapshot',None,None,False,action='convert')
+        self.assertEqual(invoked.call_args.kwargs['timeout'],WORD_WORKER_TIMEOUT_SECONDS)
+        self.assertEqual((self.project/'report.md').read_bytes(),self.raw)
 
     def test_word_import_requires_native_selection_origin_and_valid_session(self):
         """WORD-IMPORT-UI-01: browser paths and foreign-origin writes are refused."""

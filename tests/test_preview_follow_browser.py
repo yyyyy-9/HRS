@@ -103,11 +103,17 @@ class PreviewFollow(ManualService):
         self.assertIn('加粗位置插入',value(self.page));self.assertTrue(value(self.page).endswith('与中文😀末尾文字。\n'))
 
     def test_06_pending_composition_is_not_committed_by_scroll_then_follow_resumes(self):
-        raw=self.long_source();target=self.page.locator('#preview-content [data-block-editor]').filter(has_text='段落1，').first
+        raw=self.long_source()+'\n';source(self.page,raw)
+        target=self.page.locator('#preview-content [data-block-editor]').filter(has_text='段落1，').first
         target.dblclick();self.page.keyboard.press('End')
         target.evaluate("n=>n.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true}))")
         self.page.keyboard.insert_text('输入法测试')
         self.assertEqual(value(self.page),raw)
+        # UX-2.5: an autosave/metadata reply during composition must not
+        # replace the live editor DOM or consume the pending selection.
+        self.page.wait_for_function("document.querySelector('#save-indicator').textContent.includes('草稿已备份')")
+        self.assertEqual(value(self.page),raw)
+        self.assertIn('输入法测试',target.inner_text())
         before=self.page.locator('.cm-scroller').evaluate('n=>n.scrollTop');self.preview_wheel(650)
         self.page.wait_for_function('document.querySelector(".page-scroll").scrollTop>500')
         self.assertAlmostEqual(self.page.locator('.cm-scroller').evaluate('n=>n.scrollTop'),before,delta=2)
@@ -120,21 +126,36 @@ class PreviewFollow(ManualService):
         """RENDER-UX-01: reuse live leaves, never a stale source or asset URL."""
         picture=Path(__file__).parent/'fixtures/fp_hartmann/figures/synthetic-1.png'
         for name in ['reuse-a.png','reuse-b.png']:(self.project/'assets'/name).write_bytes(picture.read_bytes())
-        raw='# 保留节点\n\n正文原样。\n\n![图](assets/reuse-a.png)\n\n公式 $x+1$。\n'
+        raw='# 保留节点\n\n正文原样。\n\n![图](assets/reuse-a.png)\n\n公式 $x+1$。\n\n稳定公式 $k+3$。\n\n<!-- hrs:eq id=eq-stable -->\n\\[\na+b\n\\]\n\n- 稳定列表 $m+4$。\n- 后项。\n'
         self.free(raw);self.page.wait_for_function('document.querySelector("#preview-content img")?.complete && document.querySelector("#preview-content .markdown-math svg")')
         self.page.evaluate('window.uxLeaves=[document.querySelector("#preview-content img"),document.querySelector("#preview-content .markdown-math svg")]')
+        self.page.evaluate('window.uxMathBlocks=[...document.querySelectorAll("#preview-content .doc-block")].filter(b=>b.textContent.includes("稳定公式")||b.querySelector(".report-equation")||b.dataset.type==="list")')
         measurements=[]
         for marker in ['甲','乙','丙']:
             source(self.page,raw.replace('正文原样。','正文'+marker+'。').replace('公式 $x+1$','公式'+marker+' $x+1$'))
             self.page.wait_for_function('s=>document.querySelector("#preview-content").textContent.includes(s)',arg='正文'+marker+'。')
             self.assertTrue(self.page.evaluate('uxLeaves[0]===document.querySelector("#preview-content img")'),'Unchanged picture was rebuilt')
             self.assertTrue(self.page.evaluate('uxLeaves[1]===document.querySelector("#preview-content .markdown-math svg")'),'Unchanged equation was rebuilt')
+            self.assertTrue(self.page.evaluate('uxMathBlocks.every(b=>b.isConnected&&b._sourceDocument===document.querySelector("#markdown").sourceEditor.value)'),'Unchanged math blocks lost their current source binding')
             measurements.append(self.page.evaluate('document.querySelector("#preview-content")._hrsRenderStats'))
         if self.evidence:(self.evidence/'node-reuse.json').write_text(json.dumps({'browser':self.browser.version,'samples':measurements},ensure_ascii=False,indent=2)+'\n',encoding='utf8')
         source(self.page,raw.replace('reuse-a.png','reuse-b.png').replace('$x+1$','$y+2$'))
         self.page.wait_for_function('document.querySelector("#preview-content img")?.src.includes("reuse-b.png") && document.querySelector("#preview-content .markdown-math")?.dataset.tex==="y+2"')
         self.assertFalse(self.page.evaluate('uxLeaves[0]===document.querySelector("#preview-content img")'))
         self.assertFalse(self.page.evaluate('uxLeaves[1]===document.querySelector("#preview-content .markdown-math svg")'))
+        # Offsets changed before a retained formula. Its editor must still write
+        # only that formula, and the number display must invalidate reuse.
+        self.page.locator('#preview-content .report-equation .markdown-math').dblclick()
+        field=self.page.locator('[data-formula-source]');field.fill('a+c')
+        self.page.locator('#modal-ok').click()
+        self.page.wait_for_function('document.querySelector("#markdown").sourceEditor.value.includes("a+c")')
+        self.assertIn('稳定公式 $k+3$',value(self.page))
+        self.page.locator('#show-equation-numbers').check()
+        self.page.wait_for_function('document.querySelector("#preview-content .equation-number")?.hidden===false')
+        self.assertFalse(self.page.evaluate('uxMathBlocks[1].isConnected'))
+        item=self.page.locator('#preview-content .list-inline-editor').filter(has_text='稳定列表')
+        self.assertEqual(item.count(),1);item.dblclick();self.page.keyboard.press('End');self.page.keyboard.insert_text('追加')
+        self.assertIn('稳定列表 $m+4$。追加',value(self.page))
 
     def test_08_indented_code_conversion_is_explicit_scoped_and_undoable(self):
         """INDENT-PROSE-01: change only the nominated top-level indented block."""

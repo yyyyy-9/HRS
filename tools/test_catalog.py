@@ -12,7 +12,7 @@ EXPLICIT_FEATURES = {'report_word','desktop_runtime'}
 FEATURES = {
     'equation_outline': ('Equation source/clipboard/visual selection and unified dialog history, read-only reading and structured outline transactions',
                          'equation_outline_browser equation_outline_contract numbering_v2_node block_commit_contract'),
-    'preview_ux': ('Live image/math reuse, view controls and scoped fold state, explicit Markdown copy and editing lifecycle',
+    'preview_ux': ('Bounded math working set, accepted block/resource reuse, hidden-preview deferral, view controls and editing lifecycle',
                    'preview_follow_browser view_controls_browser source_index_node memory_browser'),
     'topic_links': ('Protected heading labels, Mermaid captions, scoped numbering and explicit native path links', 'topic_links_browser local_links_contract notebook_node'),
     'frontend_feedback': ('Native input shortcuts, bounded table sessions and project image path consistency', 'frontend_feedback_browser asset_paths_contract v1_feedback_contract report_workspace_contract block_commit_contract'),
@@ -103,7 +103,7 @@ FEATURES = {
         markdown_file_contract markdown_file_browser
         v061_import_contract v061_import_browser pf1310_import_browser
         rc3_save_contract pf1310_rc3_browser pf1310_rc3_node'''),
-    'search': ('Full-source and rendered search, focus, folds, updates and source fidelity', '''
+    'search': ('Literal source search/replace, explicit topic/full range, read-only rendered search, folds and one-step undo', '''
         document_search_browser table_position_browser'''),
     'word': ('HRS Word boundary, real local compiler, optional math, notes and references', '''
         word_export word_export_browser word_lite_browser word_footnotes_browser native_picker'''),
@@ -113,7 +113,7 @@ FEATURES = {
     'tooling': ('Test outcomes, selection, fixture cleanup, API documentation and release contracts', '''
         pf137_contract run_checks_contract test_system_contract interfaces_contract release_contract'''),
     'lifecycle': ('Window credentials, reconnect generations, request drain and control-frame boundary', 'portable_contract'),
-    'memory': ('Current-document cache reuse, release across project loads and original-source protection', 'memory_browser'),
+    'memory': ('Current-document math reuse, hidden-preview deferral, stale conversion cancellation and cache release across loads', 'memory_browser'),
     'distribution': ('Installed command, generated Conda recipe, shared release identity and separate user state',
                      '''distribution_contract release_contract run_checks_contract test_system_contract
                         doc_layout_contract:DocumentationHTTP

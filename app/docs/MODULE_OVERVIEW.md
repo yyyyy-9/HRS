@@ -1,8 +1,13 @@
 # HTML Report Studio 模块说明
 
+预览提交由preview_commit统一保留节点、清理失效间隔；不能把移入的相邻节点再当成待清理游标。文稿撤销沿原快照与时间元数据，SourceMap提供变化范围，source_projection按CodeMirror测量生命周期定位自身滚动容器，预览独立滚动。离线Reader消费导出时原notebook索引的DOM归属元数据，筛选专题和目录层级；object_catalog同时持有共享的章节/对象编号函数。筛选只改变显示，不增加解析器或改动源归档，公式号码复用原已生成字形，无需携带数学运行库。
 公式编辑由 formula_editor.js 惰性加载离线 MathLive，等待数学字体就绪后显示；双向同步仅存在于弹窗草稿，孤立上下标拖选使用组件公开选区接口保留其容器，原 MathJax 继续负责输出。report_equations.presentation 只处理显示副本的显式 tag。section_operations（Python/JavaScript）各自消费已有 IR/SourceMap，提供章节范围与操作，不新增 Markdown 解析器。outline_tree 只在树结构变化时重建节点，普通输入更新位置与文字；阅读视图不发出移动意图。text_snippets 以受限声明式内容存储在用户数据区，插入复用对象粘贴。引用使用原定位链，不维护额外的前端反向使用索引。
 
 ## 统一定义与派生缓存
+
+document_timestamps消费原report_contract IR和section_operations章节范围，管理可选的源快照绑定时间元数据；日期独立于Markdown，未知历史日期为null。服务草稿、正式保存、CLI受控提交和HTML回编复用同一实现。浏览器document_timestamps只用CodeMirror变更映射已有位置，并渲染对象下方的信息行，不维护第二份正文或时钟规则；显示时间属于不触发内容排版的设置。临时无效对象在原载体仍存在时保留已知时间，真正删除则移除。
+
+pipe_tables持有数学感知的分列、表格范围和序列化，供原Marked表格入口、SourceBlocks折叠及表格窗口共用；Python pipe_table_contract按同一跨语言夹具提供IR。document_search的替换意图由app验证源快照和专题/全文范围后，在原编辑器提交一次事务；阅读和渲染查找没有写入入口。
 
 编辑器字号、自动折行和预览/阅读显示比例归本机视图偏好，与文稿render_options分开；统一选择范围和默认值由product_settings提供。视图适配复用CodeMirror公开扩展、SourceBlocks/SourceMap的原范围和原滚动锚点，字号仅作用正文/标题，缩放层在导出article之外；不改源文、历史、资源、编号或输出模型。公式结构样例复用惰性弹窗与原MathJax缓存，不为每个按钮创建可视编辑器；实际间距/换行仍以TeX进入原公式提交事务。
 
@@ -10,7 +15,7 @@
 
 `product_settings.json`只维护产品级选择目录、中文标签、配色样式文件以及新稿／旧工程显示默认值。`product_settings.py`提供不可变Python视图；`tools/build_settings.js`生成不可变的`web/product_settings.js`，构建和文档门禁检查同源。界面主题颜色仍由theme*.css维护；高亮语义颜色/符号映射由product_settings唯一维护；渲染语义仍归原ReportProfile，归档边界不另写主题目录和默认值。
 
-`SourceMap.create`复用已有tokens，位置/行号二分查找，对象身份索引按实际赋值失效重建。app只缓存一个正在编辑的源快照，不持久化第二份模型；章号和摘要集合在本次渲染建立；preview_commit.js只复用未变安全正文DOM，结构/对象变化不增量猜测语义，目录/定义行更新位置但保持节点。呈现设置写入复用同一请求适配并绑定文稿会话。
+`SourceMap.create`复用已有tokens，位置/行号二分查找，对象身份索引按实际赋值失效重建。app只缓存一个正在编辑的源快照，当前源码映射直接使用该模型；章号和摘要集合由原ReportProfile建立。preview_commit.js在最终提交保留显示签名及上下文一致的安全公式段落，刷新外层范围与数学ID；链接/脚注/复杂对象沿原完整构建及叶节点复用，不增量猜测语义。数学工作集有条数/序列化大小边界，切换文稿清理；宏定义旁路缓存，转换与弹窗共用串行队列。数学排版按时间片让出主线程并核对源/会话，暂存期间不移动当前DOM。Markdown单栏只更新源派生信息，完整导出始终独立构建；目录/定义行更新位置但保持节点。呈现设置写入复用同一请求适配并绑定文稿会话。
 
 源码范围映射同时处理CRLF与Marked行首Tab展开，原文不改写。`rich_clipboard.js`仅适配剪贴板HTML：惰性解析后将正文变成字面文本、图片和表格变成既有对象；`clipboard_document.py`在显式同源粘贴时读取同一Windows快照，优先取得可对应的RTF原图片，或只读取该HTML声明的本地图片。资源校验、身份、草稿暂存与一次源码提交仍由原`object_clipboard`链持有，不另建文稿、编号或保存逻辑。
 

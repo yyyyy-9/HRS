@@ -60,6 +60,12 @@ const data={
       "default": false,
       "new_free": false
     },
+    "show_timestamps": {
+      "label": "显示时间",
+      "content_rendering": false,
+      "default": true,
+      "new_free": true
+    },
     "preserve_blank_lines": {
       "label": "保留连续空行",
       "default": false,

@@ -3,7 +3,7 @@ from pathlib import Path
 import os,sys,tempfile,base64,json
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'app'))
 from html_cli import browser_session,export_html,recover_html,HTMLCommandError
-from browser_support import source,value,select
+from browser_support import source,value,select,default_render_options
 
 def main():
  out=Path(os.environ.get('HRS_RC2_EVIDENCE',tempfile.mkdtemp(prefix='hrs-rc2-policy-')));out.mkdir(parents=True,exist_ok=True)
@@ -49,7 +49,7 @@ def main():
   cases.append('cli-prefix-notice-requires-explicit-snapshot-acceptance')
   (project/'meta.json').write_text(json.dumps({'render_profile':'free','render_options':{'show_object_numbers':False}}),encoding='utf8')
   export_html(project,folder/'free.html');recover_html(folder/'free.html',folder/'recovered')
-  restored=json.loads((folder/'recovered/meta.json').read_text(encoding='utf8'));assert restored['render_options']=={'show_object_numbers':False,'show_heading_numbers':False,'show_equation_numbers':False,'preserve_blank_lines':False}
+  restored=json.loads((folder/'recovered/meta.json').read_text(encoding='utf8'));assert restored['render_options']==default_render_options(show_object_numbers=False,show_heading_numbers=False,show_equation_numbers=False,preserve_blank_lines=False)
   cases.append('cli-export-recovery-retains-display-options')
  (out/'cases.json').write_text(json.dumps(cases,ensure_ascii=False,indent=2),encoding='utf8');print('RC2 import/output focused cases PASS:',len(cases))
 

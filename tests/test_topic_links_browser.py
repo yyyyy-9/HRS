@@ -31,6 +31,16 @@ class TopicLinks(ManualService):
         self.assertIn('Original **title**',value(p),p.locator('#preview-content').inner_text())
         p.wait_for_function("document.querySelector('#preview-content h2')?.textContent.includes('Original')")
         self.assertIn('## Original **title**',value(p))
+        p.wait_for_function("document.querySelector('#toast').textContent.includes('已撤销 · 第')")
+        self.assertIn('Original',p.locator('#preview-content .navigation-highlight').inner_text())
+        self.assertNotIn('定位提示未完成',p.locator('#toast').inner_text())
+        # The same feedback in Markdown-only view must not force split mode.
+        p.locator('[data-view=source]').click();p.locator('#btn-redo').click()
+        p.wait_for_function("document.querySelector('#toast').textContent.includes('已重做 · 第')")
+        self.assertTrue(p.locator('[data-view=source]').evaluate("e=>e.classList.contains('active')"))
+        p.locator('#btn-undo').click()
+        p.wait_for_function("document.querySelector('#toast').textContent.includes('已撤销 · 第')")
+        self.assertIn('## Original **title**',value(p))
 
     def test_plain_mermaid_caption_materializes_one_existing_figure(self):
         p=self.page;diagram='sequenceDiagram\r\n participant A\r\n A->>B: ping'

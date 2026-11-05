@@ -74,6 +74,17 @@ function attach(editor,{onBoundary=()=>{}}={}){
  });
  editor.view.dispatch({effects:StateEffect.appendConfig.of([field,filter,equationMarks,typographyMarks])});
  return {
+  reveal(start,end,{select=true}={}){
+   // Each pane owns its scroll position. Native scrollIntoView may walk
+   // shared ancestors and cancel the preview's simultaneous navigation.
+   editor.highlightRange(start,end,{select,scroll:false});
+   const view=editor.view,doc=view.state.doc,range=view.state.field(field)?.range;
+   const current=()=>{const next=view.state.field(field)?.range;return view.state.doc===doc&&(!range?!next:next?.from===range.from&&next?.to===range.to&&next?.hideTo===range.hideTo);};
+   view.requestMeasure({
+    read:measure=>current()?measure.lineBlockAt(start):null,
+    write:line=>{if(line&&current())editor.scrollTop=Math.max(0,line.top+(line.height-view.scrollDOM.clientHeight)/2);}
+   });
+  },
   set(topic){
    const text=editor.value,range=topic?{from:topic.start,to:topic.end,hideTo:topic.end}:null;
    if(range&&range.hideTo<text.length&&text[range.to-1]==='\n'){range.to--;if(text[range.to-1]==='\r')range.to--;}

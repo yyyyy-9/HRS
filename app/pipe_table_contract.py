@@ -11,6 +11,27 @@ CAPTION=re.compile(r'^ {0,3}:[ \t]+([^\r\n]*?)(?:[ \t]+\{#(tbl-[A-Za-z0-9_-]{1,6
 MAX_ROWS,MAX_COLS=100,30
 
 
+def _math_end(text,start):
+    """Bounded cell math, matching TableContent.tokenize(table=True).
+
+    Only complete delimiters protect pipes. Dollar flanking rejects currency
+    across cells; backslash parity and code spans remain owned by split_cells.
+    """
+    opener=next((v for v in ('$$','$',r'\(',r'\[') if text.startswith(v,start)),None)
+    if not opener:return None
+    if (len(text[:start])-len(text[:start].rstrip('\\')))%2:return None
+    if opener=='$' and (start+1==len(text) or text[start+1].isspace()):return None
+    closer={r'\(':r'\)',r'\[':r'\]'}.get(opener,opener)
+    pos=start+len(opener)
+    while True:
+        end=text.find(closer,pos)
+        if end<0:return None
+        slashes=len(text[:end])-len(text[:end].rstrip('\\'))
+        if slashes%2 or (closer=='$' and (text[end-1:end]=='$' or text[end+1:end+2]=='$' or text[end-1:end].isspace())):
+            pos=end+len(closer);continue
+        return end+len(closer) if text[start+len(opener):end].strip() else None
+
+
 def split_cells(value):
     """Split a GFM row. Escape parity is identical to web/pipe_tables.js.
 
@@ -26,6 +47,10 @@ def split_cells(value):
     cells=[];buffer=[];fence=0;i=0
     while i<len(text):
         ch=text[i]
+        if not fence and (ch=='$' or text.startswith((r'\(',r'\['),i)):
+            end=_math_end(text,i)
+            if end is not None:
+                buffer.append(re.sub(r'(\\+)\|',lambda m:'\\'*(len(m[1])//2)+'|',text[i:end]));i=end;continue
         if ch=='\\':
             j=i+1
             while j<len(text) and text[j]=='\\':j+=1

@@ -59,6 +59,7 @@
   <script src="/web/inline_formula.js" defer></script>
   <script src="/web/vendor/source-editor.js" defer></script>
   <script src="/web/source_projection.js" defer></script>
+  <script src="/web/document_timestamps.js" defer></script>
   <script src="/web/draft_snapshot.js" defer></script>
   <script src="/web/product_settings.js" defer></script>
   <script src="/web/view_controls.js" defer></script>
@@ -138,7 +139,18 @@
         <div class="side-section grow toc-section">
           <div class="section-title">文档目录 <button id="btn-rebuild-toc" title="刷新目录">↻</button></div>
           <div id="topic-controls" hidden><label for="topic-select">查看范围</label><select id="topic-select" aria-label="查看专题"><option value="">全部专题</option></select></div>
-          <div class="source-display-options"><label class="topic-space-option" id="blank-lines-option"><input id="preserve-blank-lines" type="checkbox"><span data-render-option-label="preserve_blank_lines"></span></label><label class="source-wrap-control" title="只在屏幕上折行，不改变 Markdown 源文"><input id="source-wrap" type="checkbox" checked>自动折行</label></div>
+          <div class="sidebar-display-grid">
+            <div class="source-display-options" role="group" aria-label="显示方式"><span class="display-group-title">显示方式</span>
+              <label class="topic-space-option" id="blank-lines-option"><input id="preserve-blank-lines" type="checkbox"><span data-render-option-label="preserve_blank_lines"></span></label>
+              <label class="source-wrap-control" title="只在屏幕上折行，不改变 Markdown 源文"><input id="source-wrap" type="checkbox" checked>自动折行</label>
+              <label title="标题和图表下方显示创建、最后修改时间；Word 不带时间"><input id="show-timestamps" type="checkbox" checked><span data-render-option-label="show_timestamps"></span></label>
+            </div>
+            <div id="number-display-options" class="number-display-options" role="group" aria-label="编号显示"><span class="display-group-title">编号显示</span>
+              <label id="heading-number-option" title="自由笔记按 H2 起自动显示章节号；不改写 Markdown，工程输出始终编号"><input id="show-heading-numbers" type="checkbox"><span data-render-option-label="show_heading_numbers"></span></label>
+              <label id="object-number-option" title="自由笔记的图表编号显示；工程输出始终编号"><input id="show-object-numbers" type="checkbox" checked><span data-render-option-label="show_object_numbers"></span></label>
+              <label id="equation-number-option" title="控制块公式编号；工程报告与自由笔记均可选择"><input id="show-equation-numbers" type="checkbox"><span data-render-option-label="show_equation_numbers"></span></label>
+            </div>
+          </div>
           <nav id="toc" class="toc"><span class="muted">等待载入…</span></nav>
         </div>
         <div class="side-section side-footer">
@@ -222,21 +234,16 @@
           </div>
           <div class="toolbar-end">
             <select id="render-profile" class="tool" aria-label="渲染模式" title="同一源稿的渲染与输出规则"></select>
-            <div id="number-display-options" class="number-display-options">
-              <label id="heading-number-option" title="自由笔记按 H2 起自动显示章节号；不改写 Markdown，工程输出始终编号"><input id="show-heading-numbers" type="checkbox"><span data-render-option-label="show_heading_numbers"></span></label>
-              <label id="object-number-option" title="自由笔记的图表编号显示；工程输出始终编号"><input id="show-object-numbers" type="checkbox" checked><span data-render-option-label="show_object_numbers"></span></label>
-              <label id="equation-number-option" title="控制块公式编号；工程报告与自由笔记均可选择"><input id="show-equation-numbers" type="checkbox"><span data-render-option-label="show_equation_numbers"></span></label>
-            </div>
             <button id="btn-validate" class="tool" title="检查对象 ID、交叉引用和结构错误">✓ 文档检查</button>
-            <button id="btn-search" class="tool" title="全文查找 · Ctrl+F">⌕ 查找</button>
             <div class="view-modes" role="group" aria-label="编辑模式">
-              <button class="view-mode" data-view="reading" title="单栏阅读；目录保持在当前视图，图表仍可打开编辑窗口">阅读</button>
+              <button class="view-mode" data-view="reading" title="单栏只读阅读；目录和引用可跳转">阅读</button>
               <button class="view-mode active" data-view="split">分屏</button>
               <button class="view-mode" data-view="source">Markdown</button>
             </div>
           </div>
         </div>
         <section id="document-search" class="document-search" role="search" aria-label="文档内置查找" hidden>
+          <div class="search-row">
           <input id="search-query" type="search" placeholder="查找全文…" aria-label="查找文字" autocomplete="off" spellcheck="false">
           <select id="search-scope" aria-label="查找范围"><option value="source">Markdown 源码</option><option value="preview">渲染正文</option></select>
           <label title="区分英文字母大小写"><input id="search-case" type="checkbox">Aa</label>
@@ -245,6 +252,13 @@
           <button id="search-next" type="button" title="下一处 · Enter / F3" disabled>↓ 下一处</button>
           <span class="search-help">全文查找，含折叠源码</span>
           <button id="search-close" class="search-close" type="button" title="关闭 · Escape" aria-label="关闭查找">×</button>
+          </div>
+          <div class="search-row replace-row">
+            <input id="replace-query" type="text" placeholder="替换为…（作用于 Markdown 源码）" aria-label="替换文字" autocomplete="off" spellcheck="false">
+            <select id="replace-scope" aria-label="替换范围"><option value="topic">当前专题</option><option value="all">全文</option></select>
+            <button id="replace-current" type="button">替换此处</button><button id="replace-all" type="button">全部替换</button>
+            <span id="replace-status" class="search-help" role="status"></span>
+          </div>
         </section>
         <section id="report-workspace-bar" class="report-workspace-bar" hidden><strong>临时工程工作页</strong><span id="report-workspace-origin"></span><button id="btn-workspace-check" class="tool">检查本稿</button><button id="btn-workspace-export" class="tool">导出 Word</button><button id="btn-workspace-sync" class="tool" disabled>同步回源稿…</button><details class="top-menu" id="menu-workspace"><summary class="tool top-menu-trigger">整理临时稿 ▾</summary><div class="top-menu-list align-right"><button id="btn-workspace-save" class="menu-item"><b>保存为独立工程…</b><small>新建目录与身份，保留原临时稿</small></button><button id="btn-workspace-archive" class="menu-item"><b>归档本稿</b><small>从常用列表收起，可在准备窗口继续</small></button><button id="btn-workspace-trash" class="menu-item"><b>移入回收站</b><small>保留附件和草稿，可恢复</small></button></div></details><button id="btn-workspace-return" class="tool">返回原台账</button></section>
         <div class="edit-layout split" id="edit-layout">

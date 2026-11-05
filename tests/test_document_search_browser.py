@@ -64,7 +64,8 @@ class DocumentSearch(ManualService):
 
     def test_03_literal_case_live_refresh_fallback_and_clean_export(self):
         """No regex inference, no source writes, no search UI in archive output."""
-        self.page.locator('#btn-search').click();self.panel().wait_for(state='visible')
+        self.assertEqual(self.page.locator('#btn-search').count(),0)
+        self.page.keyboard.press('Control+f');self.panel().wait_for(state='visible')
         self.page.locator('#search-scope').select_option('preview')
         self.query('[a.b]')
         self.page.wait_for_function("document.querySelector('#search-count').textContent==='1 / 1'")
@@ -99,10 +100,20 @@ class DocumentSearch(ManualService):
         source(self.page,raw);self.query('😀特殊[点.]')
         self.page.wait_for_function("()=>{const e=document.querySelector('#markdown').sourceEditor;return e.value.slice(e.selectionStart,e.selectionEnd)==='😀特殊[点.]'}")
         self.assertEqual(value(self.page),raw)
+        # UX-2.5: literal source replacement is one undo step, including UTF-16.
+        self.page.locator('#replace-scope').select_option('all')
+        self.page.locator('#replace-query').fill('😀替换$1')
+        self.page.locator('#replace-all').click()
+        self.page.wait_for_function("document.querySelector('#markdown').sourceEditor.value.includes('😀替换$1')")
+        self.assertEqual(value(self.page),raw.replace('😀特殊[点.]','😀替换$1'))
+        self.page.keyboard.press('Escape');self.page.locator('#btn-undo').click()
+        self.assertEqual(value(self.page),raw)
+        self.page.locator('#btn-redo').click()
+        self.assertEqual(value(self.page),raw.replace('😀特殊[点.]','😀替换$1'))
 
     def test_05_search_remains_valid_after_applying_table_settings(self):
         """An open search bar must not hold old DOM ranges through table edits."""
-        self.page.locator('#btn-search').click();self.page.locator('#search-scope').select_option('preview')
+        self.page.keyboard.press('Control+f');self.page.locator('#search-scope').select_option('preview')
         self.query('唯一表题关键字')
         self.page.wait_for_function("document.querySelector('#search-count').textContent==='1 / 1'")
         self.page.locator('#preview-content .report-table-wrap td').first.dblclick()

@@ -535,7 +535,9 @@ mark{color:inherit;padding:0 .08em;box-decoration-break:clone}
 #toast .toast-action:disabled{cursor:wait;opacity:.65}
 #toast .toast-action:focus-visible{outline:2px solid currentColor;outline-offset:3px}
 /* Local view controls: prose scale is separate from source code and output styles. */
-.source-display-options{display:flex;align-items:center;flex-wrap:wrap;gap:7px 12px;margin:9px 0;font-size:11px}
+.sidebar-display-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:8px;margin:10px 0 14px}
+.display-group-title{color:var(--hrs-muted);font-size:10px;margin-bottom:3px}
+.sidebar-display-grid .number-display-options,.source-display-options{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:0;padding:0;font-size:11px;line-height:16px;min-width:0}
 .source-display-options label{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;cursor:pointer}
 .source-display-options input{margin:0;accent-color:var(--primary)}
 .pane-title{flex-shrink:0}

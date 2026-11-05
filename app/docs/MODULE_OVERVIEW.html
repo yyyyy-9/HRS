@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="1e3031f6a59bf5859ee9d4b8b4b4b44ecdfcd6c0069ea6cb443e3f812248522b"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="5f3c604147c5f060875854220c36c643bcb038c3d606fa4f1e68b4b7c0aa6838"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -225,6 +225,9 @@ body.hrs-reader-mode{max-width:none;margin:0;padding:0;background:var(--hrs-bg, 
 .hrs-reader-theme-control{display:flex;grid-column:1/-1;align-items:center;gap:8px;margin:0 0 9px;color:var(--hrs-muted);font-size:12px}
 .hrs-reader-theme-select{flex:1;min-width:0;max-width:100%;padding:6px 8px;border:1px solid var(--hrs-line);border-radius:6px;background:var(--hrs-paper);color:var(--hrs-ink);font:inherit;cursor:pointer}
 .hrs-reader-theme-select:focus-visible{outline:2px solid var(--hrs-brand);outline-offset:2px}
+.hrs-reader-scope-control{display:flex;flex:0 0 100%;width:100%;min-width:0;max-width:100%;align-items:center;gap:8px;white-space:nowrap;color:var(--hrs-muted);font-size:12px}
+.hrs-reader-scope-control select{flex:1 1 0;width:0;min-width:0;max-width:100%;padding:6px 8px;border:1px solid var(--hrs-line);border-radius:6px;background:var(--hrs-paper);color:var(--hrs-ink);font:inherit}
+.hrs-reader-main [data-hrs-topic-hidden]{display:none!important}
 html[data-hrs-offline-themes="1"] .hrs-reader-main,html[data-hrs-offline-themes="1"] body:not(.hrs-reader-mode){background:var(--hrs-paper,#fff)}
 .hrs-reader-tools{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 16px;padding:0 7px;align-items:center}
 .hrs-reader-search{width:100%;padding:8px 11px;min-width:0;border:1px solid var(--hrs-line, #d2ddeb);border-radius:8px;background:#fff;color:var(--hrs-ink, #263c5b);font-size:12px}
@@ -641,7 +644,13 @@ mark{background:var(--hrs-hl-yellow, #fff1a8);color:inherit;padding:0 1px;border
 li.hrs-task-item{list-style-type:none}
 li.hrs-task-item>input[type="checkbox"]:first-child,
 li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1.25em;margin-right:.4em;vertical-align:middle}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.4.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
+
+/* Optional metadata stays outside editable technical content. */
+.hrs-block-times{display:flex;flex-direction:column;align-items:flex-end;gap:1px;margin:5px 0 9px;color:var(--hrs-muted);font-size:11px;font-weight:400;line-height:1.45;text-align:right;font-variant-numeric:tabular-nums;user-select:none}
+.hrs-block-times time{font:inherit}
+[data-hrs-show-timestamps="0"] .hrs-block-times{display:none!important}
+.source-code-editor .cm-block-times::after{content:attr(data-created) "\A" attr(data-modified);display:block;margin:5px 0 8px;color:var(--hrs-muted);font-family:var(--font-ui,"Microsoft YaHei UI",sans-serif);font-size:11px;font-weight:400;line-height:1.45;white-space:pre;text-align:right;user-select:none;pointer-events:none}
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.5.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
 <a class="level2" href="#section-3">同源桌面宿主</a>
 <a class="level2" href="#section-4">Word beta 界面适配</a>
 <a class="level2" href="#section-5">渲染与输出配置</a>
@@ -658,12 +667,15 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <a class="level2" href="#section-16">程序接口与独立下游</a>
 <a class="level2" href="#section-17">产品测试</a>
 <a class="level2" href="#section-18">混合粘贴的数学适配</a></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">HTML Report Studio 模块说明</h1>
-<p>公式编辑由 formula_editor.js 惰性加载离线 MathLive，等待数学字体就绪后显示；双向同步仅存在于弹窗草稿，孤立上下标拖选使用组件公开选区接口保留其容器，原 MathJax 继续负责输出。report_equations.presentation 只处理显示副本的显式 tag。section_operations（Python/JavaScript）各自消费已有 IR/SourceMap，提供章节范围与操作，不新增 Markdown 解析器。outline_tree 只在树结构变化时重建节点，普通输入更新位置与文字；阅读视图不发出移动意图。text_snippets 以受限声明式内容存储在用户数据区，插入复用对象粘贴。引用使用原定位链，不维护额外的前端反向使用索引。</p>
+<p>预览提交由preview_commit统一保留节点、清理失效间隔；不能把移入的相邻节点再当成待清理游标。文稿撤销沿原快照与时间元数据，SourceMap提供变化范围，source_projection按CodeMirror测量生命周期定位自身滚动容器，预览独立滚动。离线Reader消费导出时原notebook索引的DOM归属元数据，筛选专题和目录层级；object_catalog同时持有共享的章节/对象编号函数。筛选只改变显示，不增加解析器或改动源归档，公式号码复用原已生成字形，无需携带数学运行库。
+公式编辑由 formula_editor.js 惰性加载离线 MathLive，等待数学字体就绪后显示；双向同步仅存在于弹窗草稿，孤立上下标拖选使用组件公开选区接口保留其容器，原 MathJax 继续负责输出。report_equations.presentation 只处理显示副本的显式 tag。section_operations（Python/JavaScript）各自消费已有 IR/SourceMap，提供章节范围与操作，不新增 Markdown 解析器。outline_tree 只在树结构变化时重建节点，普通输入更新位置与文字；阅读视图不发出移动意图。text_snippets 以受限声明式内容存储在用户数据区，插入复用对象粘贴。引用使用原定位链，不维护额外的前端反向使用索引。</p>
 <h2 id="section-2">统一定义与派生缓存</h2>
+<p>document_timestamps消费原report_contract IR和section_operations章节范围，管理可选的源快照绑定时间元数据；日期独立于Markdown，未知历史日期为null。服务草稿、正式保存、CLI受控提交和HTML回编复用同一实现。浏览器document_timestamps只用CodeMirror变更映射已有位置，并渲染对象下方的信息行，不维护第二份正文或时钟规则；显示时间属于不触发内容排版的设置。临时无效对象在原载体仍存在时保留已知时间，真正删除则移除。</p>
+<p>pipe_tables持有数学感知的分列、表格范围和序列化，供原Marked表格入口、SourceBlocks折叠及表格窗口共用；Python pipe_table_contract按同一跨语言夹具提供IR。document_search的替换意图由app验证源快照和专题/全文范围后，在原编辑器提交一次事务；阅读和渲染查找没有写入入口。</p>
 <p>编辑器字号、自动折行和预览/阅读显示比例归本机视图偏好，与文稿render_options分开；统一选择范围和默认值由product_settings提供。视图适配复用CodeMirror公开扩展、SourceBlocks/SourceMap的原范围和原滚动锚点，字号仅作用正文/标题，缩放层在导出article之外；不改源文、历史、资源、编号或输出模型。公式结构样例复用惰性弹窗与原MathJax缓存，不为每个按钮创建可视编辑器；实际间距/换行仍以TeX进入原公式提交事务。</p>
 <p><code>release.json</code>只维护产品版本和包修订，<code>release_info.py</code>派生服务、构建与帮助使用的身份；运行界面从health读取同一结果。协议schema和安全信任摘要有独立生命周期，不随产品发布机械变更。</p>
 <p><code>product_settings.json</code>只维护产品级选择目录、中文标签、配色样式文件以及新稿／旧工程显示默认值。<code>product_settings.py</code>提供不可变Python视图；<code>tools/build_settings.js</code>生成不可变的<code>web/product_settings.js</code>，构建和文档门禁检查同源。界面主题颜色仍由theme*.css维护；高亮语义颜色/符号映射由product_settings唯一维护；渲染语义仍归原ReportProfile，归档边界不另写主题目录和默认值。</p>
-<p><code>SourceMap.create</code>复用已有tokens，位置/行号二分查找，对象身份索引按实际赋值失效重建。app只缓存一个正在编辑的源快照，不持久化第二份模型；章号和摘要集合在本次渲染建立；preview_commit.js只复用未变安全正文DOM，结构/对象变化不增量猜测语义，目录/定义行更新位置但保持节点。呈现设置写入复用同一请求适配并绑定文稿会话。</p>
+<p><code>SourceMap.create</code>复用已有tokens，位置/行号二分查找，对象身份索引按实际赋值失效重建。app只缓存一个正在编辑的源快照，当前源码映射直接使用该模型；章号和摘要集合由原ReportProfile建立。preview_commit.js在最终提交保留显示签名及上下文一致的安全公式段落，刷新外层范围与数学ID；链接/脚注/复杂对象沿原完整构建及叶节点复用，不增量猜测语义。数学工作集有条数/序列化大小边界，切换文稿清理；宏定义旁路缓存，转换与弹窗共用串行队列。数学排版按时间片让出主线程并核对源/会话，暂存期间不移动当前DOM。Markdown单栏只更新源派生信息，完整导出始终独立构建；目录/定义行更新位置但保持节点。呈现设置写入复用同一请求适配并绑定文稿会话。</p>
 <p>源码范围映射同时处理CRLF与Marked行首Tab展开，原文不改写。<code>rich_clipboard.js</code>仅适配剪贴板HTML：惰性解析后将正文变成字面文本、图片和表格变成既有对象；<code>clipboard_document.py</code>在显式同源粘贴时读取同一Windows快照，优先取得可对应的RTF原图片，或只读取该HTML声明的本地图片。资源校验、身份、草稿暂存与一次源码提交仍由原<code>object_clipboard</code>链持有，不另建文稿、编号或保存逻辑。</p>
 <h2 id="section-3">同源桌面宿主</h2>
 <p>浏览器与桌面共用同一App；<code>desktop/</code>只维护窗口、私有preload、固定运行库和更新器。<code>host_services.py</code>适配私有PDF和父进程句柄，<code>portable_host/portable_window</code>继续拥有页面租约；窗口关闭共用app的原草稿冲刷，不另存正文。<code>host_capabilities.json</code>定义核心支持的宿主协议，产品版本仍来自release.json。原build_release可由同一冻结负载生成两端，独立verify_desktop核对最终包与Python/Word组件，详见源码安装说明。</p>
@@ -895,6 +907,12 @@ const data={
       "label": "公式编号",
       "default": false,
       "new_free": false
+    },
+    "show_timestamps": {
+      "label": "显示时间",
+      "content_rendering": false,
+      "default": true,
+      "new_free": true
     },
     "preserve_blank_lines": {
       "label": "保留连续空行",
@@ -1159,6 +1177,14 @@ function figureValidate(obj){
 
 // Input order is document order; invalid/duplicate IDs never consume a number.
 // Object sequence is independent of source representation and display settings.
+function headingNumbers(headings,enabled){
+ const counts=[0,0,0,0,0];
+ return headings.map(heading=>{
+  const level=heading.level;let number='';
+  if(enabled&&level>1&&level<=6){counts[level-2]++;counts.fill(0,level-1);number=counts.slice(0,level-1).join('.');}
+  return {...heading,number};
+ });
+}
 function numbering(records){
  const counts={figure:0,table:0,equation:0},seen=new Set(),items=[],byId=new Map();
  for(const input of records){
@@ -1276,9 +1302,9 @@ function objectTitle(entry,show=true,profile='engineering'){
  }
  return node.querySelector(kind==='table'?'caption':'figcaption')?.textContent?.trim()||entry.label||(kind==='table'?'表格':'图');
 }
-function tableChrome(article,profile='engineering',editTable=null){
+function tableChrome(article,profile='engineering',editTable=null,entries=indexDOM(article)){
  const free=profile==='free',show=article.dataset.hrsShowObjectNumbers!=='0';
- for(const entry of indexDOM(article).items){
+ for(const entry of entries.items){
   if(entry.kind!=='table')continue;
   const wrap=entry.node,tools=wrap.querySelector('.hrs-table-tools');if(!tools)continue;
   tools.classList.toggle('hrs-table-mini',free);
@@ -1304,9 +1330,9 @@ function tableChrome(article,profile='engineering',editTable=null){
   }
  }
 }
-function applyDisplay(article,show=true,showEquations=false){
+function applyDisplay(article,show=true,showEquations=false,entries=indexDOM(article)){
  article.dataset.hrsShowEquationNumbers=showEquations?'1':'0';
- const entries=indexDOM(article);article.dataset.hrsShowObjectNumbers=show?'1':'0';
+ article.dataset.hrsShowObjectNumbers=show?'1':'0';
  for(const entry of entries.items){
   if(entry.kind==='equation'){
    entry.node.querySelectorAll('.equation-number').forEach(n=>n.hidden=!showEquations);
@@ -1326,7 +1352,7 @@ function applyDisplay(article,show=true,showEquations=false){
  article.querySelectorAll('.report-table-wrap').forEach(tableHeading);
  return entries;
 }
-const api={tableValidate,figureValidate,validObject,numbering,indexDOM,indexSource,sourceTexts,captionDisplay,tableHeading,tableName,objectTitle,tableChrome,applyDisplay};
+const api={tableValidate,figureValidate,validObject,headingNumbers,numbering,indexDOM,indexSource,sourceTexts,captionDisplay,tableHeading,tableName,objectTitle,tableChrome,applyDisplay};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.ReportObjectCatalog=api;
 })(typeof window!=='undefined'?window:globalThis);
@@ -1342,17 +1368,81 @@ root.ReportObjectCatalog=api;
 const VERSION='hrs-report-reader-v1';
 const MAX_NAV=500;
 const catalog=root.ReportObjectCatalog;
-function headingOutline(article){
+/* Topic ownership is exported from the existing source notebook index. The
+ * reader filters its DOM only; it never parses or rewrites source Markdown. */
+function notebookReader(doc,article,tools,outline,{show,showEquations,onChange}){
+ outline=headingOutline(article,Infinity);
+ let topics;
+ try{topics=JSON.parse(article.dataset.hrsNotebookTopics||'null');}catch{return null;}
+ if(!Array.isArray(topics)||!topics.length||topics.length>20000||topics.some(t=>!t||typeof t.key!=='string'||!/^(?:all|preamble|topic-\d+)$/.test(t.key)||typeof t.title!=='string'))return null;
+ const names=new Map(topics.map(t=>[t.key,t.title]));if(names.size!==topics.length)return null;
+ const control=(label,cls,choices)=>{
+  const row=docElement(doc,'label','hrs-reader-scope-control');row.append(label);
+  const select=docElement(doc,'select',cls);select.setAttribute('aria-label',label);
+  for(const [value,text] of choices){const option=doc.createElement('option');option.value=value;option.textContent=text;select.append(option);}
+  row.append(select);tools.append(row);return select;
+ };
+ const scope=control('查看范围','hrs-reader-topic-select',[['','全部专题'],...topics.map((t,i)=>[t.key,(i+1)+' · '+t.title])]);
+ const depth=control('目录层级','hrs-reader-depth-select',[['all','全部'],...Array.from({length:6},(_,i)=>[String(i+1),'显示至 H'+(i+1)])]);
+ const owner=node=>node?.closest('[data-hrs-topic-key]')?.dataset.hrsTopicKey||'';
+ const full=catalog.indexDOM(article),local=new Map(),numbers=new Map();
+ for(const t of topics){
+  const entries=full.items.filter(e=>owner(e.node)===t.key);
+  for(const entry of catalog.numbering(entries.map(e=>({...e,valid:e.valid&&!e.duplicate}))).items)local.set(entry.node,entry);
+ }
+ for(const entry of full.items)if(entry.kind==='equation'){
+  const number=entry.node.querySelector('.equation-number');
+   if(number){number.dataset.hrsReaderNumber=String(entry.number);if(!numbers.has(entry.number))numbers.set(entry.number,Array.from(number.childNodes,n=>n.cloneNode(true)));}
+ }
+ const originals=new Map(outline.map(h=>[h.node,h.node.querySelector(':scope > .hrs-heading-number')?.textContent||'']));
+ const activeEntries=()=>scope.value?{...full,items:full.items.map(e=>local.get(e.node)||e)}:full;
+ function apply(){
+  const key=scope.value;
+  for(const block of article.querySelectorAll(':scope > [data-hrs-topic-key]'))block.toggleAttribute('data-hrs-topic-hidden',!!key&&owner(block)!==key);
+  const entries=activeEntries();
+  catalog.applyDisplay(article,show,showEquations,entries);catalog.tableChrome(article,'free',null,entries);
+  for(const entry of entries.items)if(entry.kind==='equation'){
+   const number=entry.node.querySelector('.equation-number'),template=numbers.get(entry.number);
+   if(number&&template&&(!key||owner(entry.node)===key)&&number.dataset.hrsReaderNumber!==String(entry.number)){
+    number.replaceChildren(...template.map(n=>n.cloneNode(true)));number.dataset.hrsReaderNumber=String(entry.number);
+   }
+  }
+  const headings=key?catalog.headingNumbers(outline.filter(h=>owner(h.node)===key&&h.node.querySelector(':scope > .hrs-heading-number')),true):[];
+  const numbered=new Map(headings.map(h=>[h.node,h.number]));
+  for(const heading of outline){const prefix=heading.node.querySelector(':scope > .hrs-heading-number');if(prefix){const text=key&&numbered.has(heading.node)?(numbered.get(heading.node)?numbered.get(heading.node)+' ':''):originals.get(heading.node);if(prefix.textContent!==text)prefix.textContent=text;}}
+  for(const link of article.querySelectorAll('a.object-xref')){
+   const id=link.getAttribute('href')?.replace(/^#object-/,'');const target=full.byId.get(id);
+   if(key&&target&&owner(target.node)!==key)link.prepend('“'+(names.get(owner(target.node))||'其他专题')+'” · ');
+  }
+  const used=new Set(Array.from(article.querySelectorAll('[data-hrs-footnote-ref]')).filter(a=>!a.closest('[data-hrs-topic-hidden]')).map(a=>a.getAttribute('href')?.slice(1)));
+  for(const section of article.querySelectorAll('.hrs-footnotes')){
+   const notes=[...section.querySelectorAll('li[data-hrs-note-key]')];
+   for(const note of notes)note.toggleAttribute('data-hrs-topic-hidden',!!key&&!used.has(note.id));
+   section.toggleAttribute('data-hrs-topic-hidden',!!key&&!notes.some(note=>!note.hasAttribute('data-hrs-topic-hidden')));
+  }
+  onChange(entries);
+ }
+ function reveal(hash){
+  let id;try{id=decodeURIComponent(hash.replace(/^#/,''));}catch{return;}
+  const node=doc.getElementById(id),key=owner(node);
+  if(scope.value&&key&&key!==scope.value&&names.has(key)){scope.value=key;apply();}
+ }
+ scope.addEventListener('change',()=>{apply();root.scrollTo({top:0});});depth.addEventListener('change',()=>onChange(activeEntries()));
+ doc.addEventListener('click',event=>{const link=event.target.closest?.('a[href^="#"]');if(link)reveal(link.getAttribute('href'));},{capture:true});
+ root.addEventListener('hashchange',()=>reveal(root.location.hash));
+ return {apply,reveal,allows(node,heading=false){return !!node&&(!scope.value||!owner(node)||owner(node)===scope.value)&&(!heading||depth.value==='all'||+node.tagName.slice(1)<=+depth.value);}};
+}
+function headingOutline(article,limit=MAX_NAV){
  const headings=[...article.querySelectorAll('h1,h2,h3,h4,h5,h6')].filter(node=>!node.closest('pre,code,.report-table-wrap,.report-figure-wrap'));
- return headings.slice(0,MAX_NAV).map((node,index)=>({node,id:node.id||'hrs-section-'+(index+1),title:node.textContent.trim().slice(0,190)||'未命名章节',level:+node.tagName.slice(1)}));
+ return headings.slice(0,limit).map((node,index)=>({node,id:node.id||'hrs-section-'+(index+1),title:node.textContent.trim().slice(0,190)||'未命名章节',level:+node.tagName.slice(1)}));
 }
 /** A single semantic view over figure, table and numbered equation DOM.
  * Nav modes share this array and the same original target anchors.
- * No body reordering, numbering writes or report-source changes.
+ * No body reordering or source-number/report-source changes.
  */
-function objectOutline(article){
+function objectOutline(article,entries=catalog.indexDOM(article)){
  // The same policy powers editor numbers, fold summaries and offline navigation.
- const records=catalog.indexDOM(article).items.slice(0,MAX_NAV);
+ const records=entries.items.slice(0,MAX_NAV);
  return records.map((entry,index)=>{
   const element=entry.node,{kind:type,number}=entry,pipe=entry.sourceKind==='gfm-pipe';
   let title='';
@@ -1612,6 +1702,10 @@ function mount(doc=root.document){
  const result=docElement(doc,'span','hrs-reader-result');result.setAttribute('role','status');result.setAttribute('aria-live','polite');
  const back=makeButton(doc,'↑ 返回顶部','hrs-reader-top','返回报告顶部');
  tools.append(search,result,back);
+ if(!originalDocs&&article.querySelector('.hrs-block-times')){
+  const label=docElement(doc,'label','hrs-reader-time-toggle'),toggle=doc.createElement('input');toggle.type='checkbox';toggle.checked=article.dataset.hrsShowTimestamps!=='0';
+  toggle.addEventListener('change',()=>{article.dataset.hrsShowTimestamps=toggle.checked?'1':'0';});label.append(toggle,' 显示时间');tools.append(label);
+ }
  if(!originalDocs)installThemePicker(doc,article,tools);
  if(originalDocs){const actions=sidebar.querySelector('.docs-actions');if(actions)actions.after(tools);else sidebar.prepend(tools);}
  else sidebar.insertBefore(tools,nav);
@@ -1689,7 +1783,7 @@ function mount(doc=root.document){
     const mode=event.key==='Home'?'order':event.key==='End'?'type':active==='order'?'type':'order';
     switchMode(mode,true);
    });
-   objectNav={objects,tabs,panels,typeGroups,get mode(){return active;},switchMode,refreshSearch:null};
+   objectNav={objects,section,tabs,panels,typeGroups,get mode(){return active;},switchMode,refreshSearch:null};
    switchMode('order');
   }
  }
@@ -1752,13 +1846,14 @@ function mount(doc=root.document){
   releaseClickedTarget(event);
  },{capture:true});
  back.addEventListener('click',()=>{clickedTarget=null;root.scrollTo({top:0,behavior:'smooth'});});
- let priorTypeOpen=null;
+ let priorTypeOpen=null,notebook=null;
  const refreshSearch=()=>{
   const query=search.value.trim().toLocaleLowerCase();
   const active=objectNav?.mode||'order';
   let hits=new Set();
   for(const link of navLinks){
-   const show=!query||link.textContent.toLocaleLowerCase().includes(query);
+   const target=doc.getElementById(link.getAttribute('href').slice(1));
+   const show=(!notebook||notebook.allows(target,link.className.includes('hrs-reader-level-')))&&(!query||link.textContent.toLocaleLowerCase().includes(query));
    link.hidden=!show;
    if(show&&query&&(!link.dataset.readerMode||link.dataset.readerMode===active))hits.add(link.getAttribute('href'));
   }
@@ -1766,7 +1861,7 @@ function mount(doc=root.document){
    if(query&&priorTypeOpen===null)priorTypeOpen=Object.fromEntries(Object.entries(objectNav.typeGroups).map(([name,group])=>[name,group.detail.open]));
    for(const [type,group] of Object.entries(objectNav.typeGroups)){
     const any=[...group.entries.querySelectorAll('a')].some(link=>!link.hidden);
-    group.detail.hidden=!!query&&!any;
+    group.detail.hidden=!any;
     if(query&&any)group.detail.open=true;
     if(!query&&priorTypeOpen!==null)group.detail.open=priorTypeOpen[type];
    }
@@ -1775,13 +1870,31 @@ function mount(doc=root.document){
   result.textContent=query?hits.size+' 个导航匹配 · 回车查正文':'';
  };
  if(objectNav)objectNav.refreshSearch=refreshSearch;
+ if(!originalDocs&&profile==='free'){
+  notebook=notebookReader(doc,article,tools,outline,{show,showEquations,onChange:entries=>{
+   clickedTarget=null;visibleReadingTargets.clear();
+   const titles=new Map(outline.map(h=>[h.id,h.node.textContent.trim()]));
+   if(objectNav){
+    objectNav.objects=objectOutline(article,entries);
+    for(const item of objectNav.objects)titles.set(item.id,item.title);
+    objectNav.section.hidden=!objectNav.objects.some(item=>notebook?.allows(item.element)!==false);
+    for(const [type,group] of Object.entries(objectNav.typeGroups)){
+     const count=objectNav.objects.filter(item=>item.type===type&&notebook?.allows(item.element)!==false).length;
+     group.detail.querySelector('summary').textContent=({figure:'图',table:'表',equation:'公式'}[type])+'（'+count+'）';
+    }
+   }
+   for(const link of navLinks){const title=titles.get(link.getAttribute('href').slice(1));if(title){link.textContent=title;link.title=title;}}
+   refreshSearch();
+  }});
+  notebook?.apply();
+ }
  search.addEventListener('input',refreshSearch);
  search.addEventListener('keydown',event=>{
   if(event.key!=='Enter')return;event.preventDefault();
   const query=search.value.trim().toLocaleLowerCase();if(!query)return;
   const walker=doc.createTreeWalker(article,root.NodeFilter.SHOW_TEXT);let found=null,node;
   while((node=walker.nextNode())){
-   if(node.parentElement?.closest('script,style,svg,.hrs-code-head'))continue;
+   if(node.parentElement?.closest('script,style,svg,.hrs-code-head,.hrs-block-times,[data-hrs-topic-hidden]'))continue;
    const pos=node.textContent.toLocaleLowerCase().indexOf(query);if(pos>=0){found={node,pos};break;}
   }
   if(!found){result.textContent='正文未找到此文字';return;}

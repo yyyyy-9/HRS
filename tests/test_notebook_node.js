@@ -19,6 +19,17 @@ assert.equal(view('# H\n\nA\n\nB').gaps.length,0);
 assert.equal(view('> a\n>\n> b\n\n- a\n\n- b\n').gaps.length,0);
 assert.equal(view('without heading\n').topics.length,1);
 const cross=view('# A\n\n见 @sec:sec-b。\n\n# B {#sec-b}\n\n内容\n');
+// Standard paragraph, hard break and Setext precedence stay owned by Marked.
+assert.equal(marked.lexer('正文\n---\n')[0].type,'heading');
+assert.equal(marked.lexer('正文\n\n---\n').at(-1).type,'hr');
+assert.equal(marked.lexer('甲\n乙')[0].type,'paragraph');
+assert.equal(marked.lexer('甲\n\n  乙').filter(t=>t.type==='paragraph').length,2);
+assert.equal(marked.lexer('甲  \n乙')[0].tokens.some(t=>t.type==='br'),true);
+for(const [before,after] of [['a😀b','a😃b'],['甲\r\n乙','甲\r\n  乙'],['abc',''],['','新增']]){
+ const r=SourceMap.changedRange(before,after);
+ assert.equal(before.slice(0,r.start)+after.slice(r.start,r.end)+before.slice(r.oldEnd),after);
+ assert.equal(/[\uDC00-\uDFFF]/.test(after[r.start]||''),false);
+}
 assert.throws(()=>cross.extract(cross.topics[0].key),/跨专题.*sec-b/);
 const links=view('# A\n\n[链接][ref]\n\n# B\n\n[ref]: https://example.org/ "标题"\n');
 assert.equal(marked.lexer(links.extract(links.topics[0].key).markdown).links.ref.href,'https://example.org/');

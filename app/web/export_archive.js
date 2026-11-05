@@ -78,7 +78,7 @@ function targetSize(width,height,widthMm,opts){
 function guessMime(name){return IMAGE_MIME[name.split('.').at(-1).toLowerCase()]||'';}
 function snapshotProfile(opts){return {quality:opts.quality,targetDpi:opts.dpi,sourceMode:opts.sourceMode};}
 function safeJson(payload){return JSON.stringify(payload).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');}
-async function buildArchive({md,assetRecords,domRefs,opts,template,theme,renderProfile,renderOptions,colorTheme,savedMd,projectRevision}){
+async function buildArchive({md,assetRecords,domRefs,opts,template,theme,renderProfile,renderOptions,colorTheme,blockTimestamps,savedMd,projectRevision}){
  renderProfile=profiles.normalize(renderProfile);renderOptions=profiles.normalizeOptions(renderOptions);colorTheme=themes.normalize(colorTheme);
   const config=options(opts);
  const profile=snapshotProfile(config);
@@ -107,7 +107,7 @@ async function buildArchive({md,assetRecords,domRefs,opts,template,theme,renderP
   }
  }
  const bodyBytes=new TextEncoder().encode(md);
- return {format:'html-report-studio-v2',profile,snapshot:{kind:md===savedMd?'saved':'working-copy',markdownSha256:await hash(bodyBytes),projectRevision:projectRevision||null},markdown:md,template,theme,renderProfile,renderOptions,colorTheme,assetIndex,blobs};
+ return {format:'html-report-studio-v2',profile,snapshot:{kind:md===savedMd?'saved':'working-copy',markdownSha256:await hash(bodyBytes),projectRevision:projectRevision||null},markdown:md,template,theme,renderProfile,renderOptions,colorTheme,blockTimestamps,assetIndex,blobs};
 }
 async function readArchive(payload,doc){
  if(!payload||payload.format!=='html-report-studio-v2')throw Error('HTML 不是 v2 归档');
@@ -155,7 +155,7 @@ async function readArchive(payload,doc){
  if(payload.renderOptions!==undefined&&typeof payload.renderOptions?.show_object_numbers!=='boolean')throw Error('归档显示选项无效');
  const renderOptions=profiles.normalizeOptions(payload.renderOptions),colorTheme=themes.normalize(payload.colorTheme);
  if(payload.colorTheme!==undefined&&payload.colorTheme!==colorTheme)throw Error('归档配色主题无效');
- return {markdown:payload.markdown,assets:data,template:payload.template,colorTheme,renderOptions,...(payload.renderProfile===undefined?{}:{renderProfile:payload.renderProfile})};
+ return {markdown:payload.markdown,assets:data,template:payload.template,colorTheme,renderOptions,blockTimestamps:payload.blockTimestamps,...(payload.renderProfile===undefined?{}:{renderProfile:payload.renderProfile})};
 }
 root.ReportExportArchive={QUALITY,MODE,MAX_HTML,options,targetSize,guessMime,hash,bytesToBase64,base64ToBytes,safeJson,buildArchive,readArchive};
 if(typeof module==='object'&&module.exports)module.exports=root.ReportExportArchive;

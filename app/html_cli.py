@@ -180,6 +180,11 @@ def recover_html(source, output, *, browser=None):
             from render_profile import normalize_options
             from color_theme import normalize as normalize_color
             (staged/'meta.json').write_text(json.dumps({'render_profile':restored['renderProfile'],'render_options':normalize_options(restored.get('renderOptions')),'color_theme':normalize_color(restored.get('colorTheme'))})+'\n',encoding='utf8')
+        if restored.get('blockTimestamps') is not None:
+            import document_timestamps as block_times
+            value=block_times.validate(restored['blockTimestamps'])
+            if value['source_sha256']!=_sha(markdown):raise HTMLCommandError('Timestamp source snapshot differs from recovered Markdown')
+            block_times.store(staged,block_times.reconcile(markdown.decode('utf-8-sig'),value,observed=False))
         for name, encoded in restored['assets'].items():
             clean_asset_name(name)
             data = base64.b64decode(encoded, validate=True)

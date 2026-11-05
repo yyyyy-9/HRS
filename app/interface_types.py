@@ -22,6 +22,25 @@ class ApiError(TypedDict):
 ApiResponse: TypeAlias = ApiSuccess | ApiError
 
 
+class BlockTimeRecord(TypedDict):
+    key: str
+    kind: Literal['heading','figure','image-group','table','mermaid']
+    id: str | None
+    start: int
+    end: int
+    own_sha256: str
+    content_sha256: str
+    created: str | None
+    modified: str | None
+    pending: NotRequired[bool]
+
+
+class BlockTimestamps(TypedDict):
+    schema: Literal['hrs-block-times-v1']
+    source_sha256: str
+    records: list[BlockTimeRecord]
+
+
 class SaveResponse(ApiSuccess):
     document_id: str
     revision: str
@@ -31,6 +50,7 @@ class SaveResponse(ApiSuccess):
     warnings: NotRequired[list[str]]
     markdown: NotRequired[str]
     markdown_file: NotRequired[str]
+    block_timestamps: NotRequired[BlockTimestamps]
 
 
 class SourceSnapshot(TypedDict):
@@ -49,6 +69,7 @@ class DocumentResponse(TypedDict):
     render_profile: NotRequired[str]
     render_options: NotRequired[dict[str, JsonValue]]
     project_path: NotRequired[str | None]
+    block_timestamps: NotRequired[BlockTimestamps]
 
 
 class DraftResponse(TypedDict):
@@ -56,6 +77,7 @@ class DraftResponse(TypedDict):
     accepted: bool
     seq: int
     markdown_sha256: str
+    block_timestamps: NotRequired[BlockTimestamps]
 
 
 class ClipboardAsset(TypedDict):
@@ -94,7 +116,7 @@ class WorkspaceStatus(TypedDict):
     error: str | None
 
 
-WIRE_TYPES = (ApiSuccess, ApiError, SaveResponse, SourceSnapshot, DocumentResponse, DraftResponse,
+WIRE_TYPES = (ApiSuccess, ApiError, BlockTimeRecord, BlockTimestamps, SaveResponse, SourceSnapshot, DocumentResponse, DraftResponse,
               ClipboardAsset, ObjectBundle, WordBrowserModel, WorkspaceStatus)
 WIRE_ALIASES = {'ApiResponse': ApiResponse}
 

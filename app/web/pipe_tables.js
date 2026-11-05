@@ -7,6 +7,8 @@
 const CAPTION=/^ {0,3}:[ \t]+([^\r\n]*?)(?:[ \t]+\{#(tbl-[A-Za-z0-9_-]{1,60})\})?[ \t]*$/;
 const DELIMITER=/^:?-{3,}:?$/;
 const MAX_ROWS=100,MAX_COLS=30;
+const content=root.ReportTableContent||(typeof require==='function'?require('./table_content.js'):null);
+function mathRanges(text){return new Map(content.tokenize(text,{table:true}).filter(p=>p.kind==='math').map(p=>[p.from,p.to]));}
 function split(line){
  let text=String(line).replace(/\r$/,'').trim();
  if(text.startsWith('|'))text=text.slice(1);
@@ -14,8 +16,14 @@ function split(line){
   let n=0;for(let i=text.length-2;i>=0&&text[i]==='\\';i--)n++;
   if(n%2===0)text=text.slice(0,-1);
  }
- const cells=[];let part='',ticks=0;
+ const cells=[],math=mathRanges(text);let part='',ticks=0;
  for(let i=0;i<text.length;i++){
+  if(!ticks&&math.has(i)){
+   const end=math.get(i);
+   // Keep the existing GFM escape layer, including tables saved by older HRS.
+   // Complete math protects the boundary; it does not bypass Markdown escapes.
+   part+=text.slice(i,end).replace(/\\+\|/g,value=>'\\'.repeat(Math.floor((value.length-1)/2))+'|');i=end-1;continue;
+  }
   const c=text[i];
   if(c==='\\'){
    let j=i+1;while(j<text.length&&text[j]==='\\')j++;
@@ -72,6 +80,45 @@ function parseRaw(raw){
  const model={schema:'report-table-v1',id:caption?.id||'tbl-pipe-preview',caption:caption?.caption||'',rows:rows.map(row=>row.map(text=>({text,rowspan:1,colspan:1}))),align,sourceKind:'gfm-pipe'};
  return {model,hasStableId:!!caption?.id,caption:caption?.caption||'',id:caption?.id||null,newline,overflow};
 }
+function at(lines,index,{caption:includeCaption=true}={}){
+ if(index+1>=lines.length)return null;
+ const header=lines[index].text,delimiter=lines[index+1].text;
+ if(/^ {4}|^\s*>/.test(header)||/^ {4}|^\s*>/.test(delimiter)||!header.includes('|')||!delimiter.includes('|'))return null;
+ const cols=split(header),seps=split(delimiter);
+ if(!cols.length||cols.length>MAX_COLS||seps.length!==cols.length||!seps.every(cell=>DELIMITER.test(cell)))return null;
+ let last=index+1,rows=1;
+ while(last+1<lines.length&&rows<MAX_ROWS){
+  const next=lines[last+1].text;
+  if(!next.trim()||/^ {4}|^\s*>/.test(next)||!next.includes('|')||/^ {0,3}(?:#{1,6}\s|[`~]{3,}|:::\s*)/.test(next))break;
+  last++;rows++;
+ }
+ if(rows===MAX_ROWS&&lines[last+1]?.text.trim()&&lines[last+1].text.includes('|'))return null;
+ let caption=null,captionLine=last+1;
+ if(includeCaption){
+  if(captionLine<lines.length&&!lines[captionLine].text.trim())captionLine++;
+  if(captionLine<lines.length&&captionLine<=last+2){try{caption=parseCaption(lines[captionLine].text);}catch{}if(caption)last=captionLine;}
+ }
+ const raw=lines.slice(index,last+1).map(item=>item.text).join('\n');
+ try{parseRaw(raw);}catch{return null;}
+ return {last,rows,columns:cols.length,caption};
+}
+const installed=new WeakSet();
+function installMarked(marked){
+ if(installed.has(marked))return;installed.add(marked);
+ marked.use({tokenizer:{table(src){
+  // Fast negative path; never scan a whole document for every paragraph.
+  const first=src.indexOf('\n');if(first<0||!src.slice(0,first).includes('|'))return false;
+  const second=src.indexOf('\n',first+1),sep=src.slice(first+1,second<0?src.length:second);
+  if(!sep.includes('|')||!split(sep).every(cell=>DELIMITER.test(cell)))return false;
+  const lines=[];let cursor=0;
+  while(cursor<src.length&&lines.length<MAX_ROWS+3){
+   const end=src.indexOf('\n',cursor),to=end<0?src.length:end+1,raw=src.slice(cursor,to);lines.push({text:raw.replace(/\r?\n$/,''),raw});cursor=to;
+  }
+  const extent=at(lines,0,{caption:false});if(!extent)return false;
+  const raw=lines.slice(0,extent.last+1).map(line=>line.raw).join(''),parsed=parseRaw(raw),inline=text=>({text,tokens:this.lexer.inline(text)});
+  return {type:'table',raw,header:parsed.model.rows[0].map(cell=>inline(cell.text)),align:parsed.model.align,rows:parsed.model.rows.slice(1).map(row=>row.map(cell=>inline(cell.text)))};
+ }}});
+}
 function formatCell(value){
  const text=String(value);if(/[\r\n]/.test(text))throw Error('单元格中有多行内容，必须转换为增强表格');
  let ticks=0,out='';
@@ -117,6 +164,7 @@ function promoted(model,id){
  if(model.verticalAlign!==undefined)obj.verticalAlign=model.verticalAlign;
  return obj;
 }
-const api={split,parseCaption,parseRaw,stringify,promoted,requiresPromotion};
+const api={split,parseCaption,parseRaw,at,installMarked,stringify,promoted,requiresPromotion};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;root.ReportPipeTables=api;
+if(root.marked)installMarked(root.marked);
 })(typeof window!=='undefined'?window:globalThis);

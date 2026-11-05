@@ -62,8 +62,10 @@ function attach({editor,preview,capture,restore,getSourceMap,setDisabled,getSour
   const css=getComputedStyle(scroller),paper=getComputedStyle(preview),available=scroller.clientWidth-parseFloat(css.paddingLeft)-parseFloat(css.paddingRight);
   const width=Math.min(available,parseFloat(paper.maxWidth)||available),scale=values.preview_zoom/100;
   if(width<=0)return;
-  content.style.width=width+'px';content.style.transform=scale===1?'none':'scale('+scale+')';
-  stage.style.width=width*scale+'px';stage.style.height=content.offsetHeight*scale+'px';
+  const set=(node,name,value)=>{if(node.style[name]!==value)node.style[name]=value;};
+  set(content,'width',width+'px');set(content,'transform',scale===1?'none':'scale('+scale+')');
+  const height=content.offsetHeight*scale+'px';
+  set(stage,'width',width*scale+'px');set(stage,'height',height);
  }
  function layoutChange(action,{source=false}={}){
   suspend();const anchor=capture(),sourceAnchor=source?editor.viewportAnchor(getSourceMap()):null,oldZoom=values.preview_zoom;

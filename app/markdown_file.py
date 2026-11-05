@@ -91,7 +91,7 @@ class MarkdownFiles:
         self.mapping=updated
         return identity
 
-    def save(self,identity,text,expected):
+    def save(self,identity,text,expected,*,warnings=None):
         require_text_only(text)
         folder=self.folder(identity)
         with report_lock(folder):
@@ -100,5 +100,5 @@ class MarkdownFiles:
             # Native Enter supplies LF. Serialize all line boundaries using
             # the selected file's convention, including its terminal newline.
             raw=encode_saved_text(text,original)
-            commit_report_locked(folder,raw,expected,source=source)
+            commit_report_locked(folder,raw,expected,source=source,warnings=warnings)
         return raw

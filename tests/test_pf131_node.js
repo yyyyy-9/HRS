@@ -2,10 +2,14 @@
 'use strict';
 const assert=require('node:assert/strict'),P=require('../app/web/pipe_tables.js'),
  fixture=require('./fixtures/gfm_tables.json');
+const marked=require('../app/web/vendor/marked.js');P.installMarked(marked);
 for(const row of fixture.splits){
  assert.deepEqual(P.split(row.source),row.cells,'split: '+JSON.stringify(row.source));
 }
 for(const row of fixture.tables){
+ const token=marked.lexer(row.source).find(t=>t.type==='table');
+ assert.ok(token,'shared lexer recognizes math in table headers');
+ assert.deepEqual([token.header,...token.rows].map(r=>r.map(c=>c.text)),row.rows);
  const actual=P.parseRaw(row.source);
  assert.equal(actual.id,row.id);
  assert.equal(actual.caption,row.caption);

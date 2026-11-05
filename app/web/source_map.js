@@ -5,6 +5,14 @@ function assertRange(source,range,raw=null,snapshot=source){
  if(snapshot!==source||!Number.isInteger(range.start)||!Number.isInteger(range.end)||range.start<0||range.end<range.start||range.end>source.length||raw!==null&&source.slice(range.start,range.end)!==raw)throw Error('源稿已变化，原定位范围过期；请重新定位或打开编辑');
  return range;
 }
+function changedRange(before,after){
+ let start=0,oldEnd=before.length,end=after.length;
+ while(start<oldEnd&&start<end&&before[start]===after[start])start++;
+ if(start>0&&/[\uDC00-\uDFFF]/.test((before[start]||'')+(after[start]||'')))start--;
+ while(oldEnd>start&&end>start&&before[oldEnd-1]===after[end-1]){oldEnd--;end--;}
+ if(end<after.length&&/[\uDC00-\uDFFF]/.test(after[end])){end++;oldEnd++;}
+ return {start,end,oldEnd};
+}
 function referenceRanges(tokens,source,base,normalized){
  const result=[];let cursor=0;
  for(const token of tokens||[]){
@@ -223,5 +231,5 @@ function rebaseUnchanged(source,snapshot,range,raw){
  else throw Error('当前预览块的源文已变化，请等待刷新后编辑');
  return assertRange(source,next,raw,source);
 }
-const api={create,assertRange,rebaseUnchanged,taskRanges,listFrames:(source,record,marked)=>taskRanges(source,record,marked,{frames:true}),literalRanges:(source,record,marked)=>taskRanges(source,record,marked,{literals:true}),textFrame,replaceNormalizedText,inlineOffsets,deindentCode};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.SourceMap=api;
+const api={create,assertRange,changedRange,rebaseUnchanged,taskRanges,listFrames:(source,record,marked)=>taskRanges(source,record,marked,{frames:true}),literalRanges:(source,record,marked)=>taskRanges(source,record,marked,{literals:true}),textFrame,replaceNormalizedText,inlineOffsets,deindentCode};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.SourceMap=api;
 })(typeof window!=='undefined'?window:globalThis);

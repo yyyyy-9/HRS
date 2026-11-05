@@ -14,7 +14,7 @@ from browser_support import ManualService
 from browser_support import source,value
 import studio
 
-TEXT='# Word 界面专项\n\n## 试验目的\n\n当前工作快照：中文 😀 与 < > &。\n\n1. 第一项\n2. 第二项\n\n### 细节\n\n```python\nprint("keep")\n```\n\n| 参数 | 数值 |\n| --- | --- |\n| 功率 | 12 |\n'
+TEXT='# Word 界面专项\n\n## 试验目的\n\n当前工作快照：中文 😀 与 < > &。\n\n1. 第一项\n2. 第二项\n\n### 细节\n\n```python\nprint("keep")\n```\n\n| 参数 | $|g|$ |\n| --- | --- |\n| 功率 | 12 |\n| 传播 | $|k_z|<n_tk_0$ |\n| 劈裂 | $\\omega_\\pm=\\omega_0\\pm|g|$ |\n'
 
 
 class WordUI(ManualService):
@@ -90,6 +90,12 @@ class WordUI(ManualService):
             self.assertTrue(response.value.ok,response.value.text());opened.assert_called_once_with(str(output.parent))
         self.assertIn('Word 界面专项',[p.text for p in doc.paragraphs]);self.assertEqual(len(doc.inline_shapes),1)
         self.assertTrue(any('第一项' in p.text for p in doc.paragraphs));self.assertEqual(len(doc.tables),1)
+        # UX-2.5: header/body pipes stay in native math; display dates never
+        # become a technical paragraph or a table cell in Word.
+        self.assertEqual(len(doc.tables[0].columns),2)
+        self.assertEqual(len(doc.element.xpath('.//m:oMath')),3)
+        visible='\n'.join([p.text for p in doc.paragraphs]+[c.text for t in doc.tables for r in t.rows for c in r.cells])
+        self.assertNotIn('未记录',visible);self.assertNotIn('创建 ',visible)
         self.assertEqual((self.project/'report.md').read_bytes(),original)
         self.assertEqual(value(self.page),md)
         meta=json.loads(Path(str(output)+'.hrs-bridge.json').read_text(encoding='utf8'))

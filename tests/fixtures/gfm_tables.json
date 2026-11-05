@@ -1,6 +1,14 @@
 {
   "version": "gfm-pipe-crosslanguage-v1",
   "splits": [
+    {"source":"| 传播 | $|k_{m,z}|<n_tk_0$ | 正文 |","cells":["传播","$|k_{m,z}|<n_tk_0$","正文"]},
+    {"source":"| 劈裂 | $\\omega_\\pm=\\omega_0\\pm|g|$ | 正文 |","cells":["劈裂","$\\omega_\\pm=\\omega_0\\pm|g|$","正文"]},
+    {"source":"| $$|x|$$ | \\(a|b\\) | \\[|z|\\] |","cells":["$$|x|$$","\\(a|b\\)","\\[|z|\\]"]},
+    {"source":"| $\\|x\\|$ | `a|b` |","cells":["$|x|$","`a|b`"]},
+    {"source":"| $\\\\|x\\\\|$ | $\\lVert x\\rVert$ |","cells":["$\\|x\\|$","$\\lVert x\\rVert$"]},
+    {"source":"| $50 | $60 |","cells":["$50","$60"]},
+    {"source":"| $a | b |","cells":["$a","b"]},
+    {"source":"| \\$a | b$ |","cells":["\\$a","b$"]},
     {
       "source": "| a | b |",
       "cells": [
@@ -99,6 +107,8 @@
     }
   ],
   "tables": [
+    {"source":"| $|g|$ | 说明 |\n| --- | --- |\n| $\\|x\\|$ | 正文 |","id":null,"caption":"","align":[null,null],"rows":[["$|g|$","说明"],["$|x|$","正文"]]},
+    {"source":"| 物理 | 关系 | 说明 |\n| --- | --- | --- |\n| 传播 | $|k_z|<n_tk_0$ | 正文 |\n| 劈裂 | $\\omega_\\pm=\\omega_0\\pm|g|$ | 正文 |","id":null,"caption":"","align":[null,null,null],"rows":[["物理","关系","说明"],["传播","$|k_z|<n_tk_0$","正文"],["劈裂","$\\omega_\\pm=\\omega_0\\pm|g|$","正文"]]},
     {
       "source": "| A | B |\n| :--- | ---: |\n| x | y |",
       "id": null,

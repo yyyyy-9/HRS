@@ -15,7 +15,7 @@ function plan(source,profile=null,records=null,options={}){
  profile=normalize(profile);
  options=normalizeOptions(options);
  records=records||root.SourceMap.create(source,root.marked.lexer(root.SourceBlocks.normalized(source).text)).blocks;
- const headings=[],abstracts=[],diagnostics=[],counts=[0,0,0,0,0];
+ const headings=[],abstracts=[],diagnostics=[];
  const title=records.find(r=>r.type==='heading'&&r.token.depth===1);
  const chapter=records.find(r=>r.type==='heading'&&r.token.depth===2&&(!title||r.start>title.start));
  for(const r of records){
@@ -25,19 +25,15 @@ function plan(source,profile=null,records=null,options={}){
    if(unsupported)diagnostics.push({code:'ENGINEERING_HTML_LITERAL',start:r.start,end:r.end,message:'高级 HTML 已按源码显示；工程 Word 只接受已定义的转换范围。'});
   }
   if(r.type==='heading'){
-   const level=r.token.depth;let number='';
-   if((profile==='engineering'||options.show_heading_numbers)&&level>1){
-    counts[level-2]++;counts.fill(0,level-1);number=counts.slice(0,level-1).join('.');
-    // Output checks consume Python IR in render_profile.py; this is display only.
-   }
-   headings.push({start:r.start,end:r.end,level,number,index:r.index});
+   headings.push({start:r.start,end:r.end,level:r.token.depth,index:r.index});
   }
   if(profile==='engineering'&&title&&r.start>=title.end&&r.start<(chapter?.start??source.length)&&r.type==='blockquote'&&
      r.token.tokens?.[0]?.type==='paragraph'&&r.token.tokens[0].text.startsWith('摘要：')&&
      r.token.tokens.every(t=>['space','paragraph','text'].includes(t.type)))abstracts.push({start:r.start,end:r.end});
  }
  if(abstracts.length>1){diagnostics.push({code:'MULTIPLE_ABSTRACTS',message:'开头存在多个摘要块，按普通引用处理。'});abstracts.length=0;}
- return {profile,headings,abstracts,diagnostics};
+ const catalog=root.ReportObjectCatalog||(typeof module!=='undefined'&&module.exports?require('./object_catalog.js'):null);
+ return {profile,headings:catalog.headingNumbers(headings,profile==='engineering'||options.show_heading_numbers),abstracts,diagnostics};
 }
 function wordTokens(tokens){
  return tokens.flatMap(t=>{

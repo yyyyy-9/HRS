@@ -33,6 +33,11 @@ class ThemeCLIBrowser(unittest.TestCase):
    recovered=folder/'restored';receipt=recover_html(output,recovered,browser=os.environ['CHROMIUM_PATH'])
    self.assertEqual(receipt['markdown_sha256'],hashlib.sha256(raw).hexdigest());self.assertEqual((recovered/'report.md').read_bytes(),raw)
    settings=json.loads((recovered/'meta.json').read_text('utf8'))
-   self.assertEqual(settings,{'render_profile':'free','render_options':{'show_object_numbers':False,'show_heading_numbers':False,'show_equation_numbers':False,'preserve_blank_lines':False},'color_theme':'blue'})
+   stamps=settings.pop('block_timestamps')
+   self.assertEqual(stamps['source_sha256'],hashlib.sha256(raw).hexdigest())
+   self.assertEqual(len(stamps['records']),2)
+   self.assertTrue(all(r['created'] is None and r['modified'] is None for r in stamps['records']))
+   from render_profile import normalize_options
+   self.assertEqual(settings,{'render_profile':'free','render_options':normalize_options(meta['render_options']),'color_theme':'blue'})
 
 if __name__=='__main__':unittest.main()

@@ -9,17 +9,81 @@
 const VERSION='hrs-report-reader-v1';
 const MAX_NAV=500;
 const catalog=root.ReportObjectCatalog;
-function headingOutline(article){
+/* Topic ownership is exported from the existing source notebook index. The
+ * reader filters its DOM only; it never parses or rewrites source Markdown. */
+function notebookReader(doc,article,tools,outline,{show,showEquations,onChange}){
+ outline=headingOutline(article,Infinity);
+ let topics;
+ try{topics=JSON.parse(article.dataset.hrsNotebookTopics||'null');}catch{return null;}
+ if(!Array.isArray(topics)||!topics.length||topics.length>20000||topics.some(t=>!t||typeof t.key!=='string'||!/^(?:all|preamble|topic-\d+)$/.test(t.key)||typeof t.title!=='string'))return null;
+ const names=new Map(topics.map(t=>[t.key,t.title]));if(names.size!==topics.length)return null;
+ const control=(label,cls,choices)=>{
+  const row=docElement(doc,'label','hrs-reader-scope-control');row.append(label);
+  const select=docElement(doc,'select',cls);select.setAttribute('aria-label',label);
+  for(const [value,text] of choices){const option=doc.createElement('option');option.value=value;option.textContent=text;select.append(option);}
+  row.append(select);tools.append(row);return select;
+ };
+ const scope=control('查看范围','hrs-reader-topic-select',[['','全部专题'],...topics.map((t,i)=>[t.key,(i+1)+' · '+t.title])]);
+ const depth=control('目录层级','hrs-reader-depth-select',[['all','全部'],...Array.from({length:6},(_,i)=>[String(i+1),'显示至 H'+(i+1)])]);
+ const owner=node=>node?.closest('[data-hrs-topic-key]')?.dataset.hrsTopicKey||'';
+ const full=catalog.indexDOM(article),local=new Map(),numbers=new Map();
+ for(const t of topics){
+  const entries=full.items.filter(e=>owner(e.node)===t.key);
+  for(const entry of catalog.numbering(entries.map(e=>({...e,valid:e.valid&&!e.duplicate}))).items)local.set(entry.node,entry);
+ }
+ for(const entry of full.items)if(entry.kind==='equation'){
+  const number=entry.node.querySelector('.equation-number');
+   if(number){number.dataset.hrsReaderNumber=String(entry.number);if(!numbers.has(entry.number))numbers.set(entry.number,Array.from(number.childNodes,n=>n.cloneNode(true)));}
+ }
+ const originals=new Map(outline.map(h=>[h.node,h.node.querySelector(':scope > .hrs-heading-number')?.textContent||'']));
+ const activeEntries=()=>scope.value?{...full,items:full.items.map(e=>local.get(e.node)||e)}:full;
+ function apply(){
+  const key=scope.value;
+  for(const block of article.querySelectorAll(':scope > [data-hrs-topic-key]'))block.toggleAttribute('data-hrs-topic-hidden',!!key&&owner(block)!==key);
+  const entries=activeEntries();
+  catalog.applyDisplay(article,show,showEquations,entries);catalog.tableChrome(article,'free',null,entries);
+  for(const entry of entries.items)if(entry.kind==='equation'){
+   const number=entry.node.querySelector('.equation-number'),template=numbers.get(entry.number);
+   if(number&&template&&(!key||owner(entry.node)===key)&&number.dataset.hrsReaderNumber!==String(entry.number)){
+    number.replaceChildren(...template.map(n=>n.cloneNode(true)));number.dataset.hrsReaderNumber=String(entry.number);
+   }
+  }
+  const headings=key?catalog.headingNumbers(outline.filter(h=>owner(h.node)===key&&h.node.querySelector(':scope > .hrs-heading-number')),true):[];
+  const numbered=new Map(headings.map(h=>[h.node,h.number]));
+  for(const heading of outline){const prefix=heading.node.querySelector(':scope > .hrs-heading-number');if(prefix){const text=key&&numbered.has(heading.node)?(numbered.get(heading.node)?numbered.get(heading.node)+' ':''):originals.get(heading.node);if(prefix.textContent!==text)prefix.textContent=text;}}
+  for(const link of article.querySelectorAll('a.object-xref')){
+   const id=link.getAttribute('href')?.replace(/^#object-/,'');const target=full.byId.get(id);
+   if(key&&target&&owner(target.node)!==key)link.prepend('“'+(names.get(owner(target.node))||'其他专题')+'” · ');
+  }
+  const used=new Set(Array.from(article.querySelectorAll('[data-hrs-footnote-ref]')).filter(a=>!a.closest('[data-hrs-topic-hidden]')).map(a=>a.getAttribute('href')?.slice(1)));
+  for(const section of article.querySelectorAll('.hrs-footnotes')){
+   const notes=[...section.querySelectorAll('li[data-hrs-note-key]')];
+   for(const note of notes)note.toggleAttribute('data-hrs-topic-hidden',!!key&&!used.has(note.id));
+   section.toggleAttribute('data-hrs-topic-hidden',!!key&&!notes.some(note=>!note.hasAttribute('data-hrs-topic-hidden')));
+  }
+  onChange(entries);
+ }
+ function reveal(hash){
+  let id;try{id=decodeURIComponent(hash.replace(/^#/,''));}catch{return;}
+  const node=doc.getElementById(id),key=owner(node);
+  if(scope.value&&key&&key!==scope.value&&names.has(key)){scope.value=key;apply();}
+ }
+ scope.addEventListener('change',()=>{apply();root.scrollTo({top:0});});depth.addEventListener('change',()=>onChange(activeEntries()));
+ doc.addEventListener('click',event=>{const link=event.target.closest?.('a[href^="#"]');if(link)reveal(link.getAttribute('href'));},{capture:true});
+ root.addEventListener('hashchange',()=>reveal(root.location.hash));
+ return {apply,reveal,allows(node,heading=false){return !!node&&(!scope.value||!owner(node)||owner(node)===scope.value)&&(!heading||depth.value==='all'||+node.tagName.slice(1)<=+depth.value);}};
+}
+function headingOutline(article,limit=MAX_NAV){
  const headings=[...article.querySelectorAll('h1,h2,h3,h4,h5,h6')].filter(node=>!node.closest('pre,code,.report-table-wrap,.report-figure-wrap'));
- return headings.slice(0,MAX_NAV).map((node,index)=>({node,id:node.id||'hrs-section-'+(index+1),title:node.textContent.trim().slice(0,190)||'未命名章节',level:+node.tagName.slice(1)}));
+ return headings.slice(0,limit).map((node,index)=>({node,id:node.id||'hrs-section-'+(index+1),title:node.textContent.trim().slice(0,190)||'未命名章节',level:+node.tagName.slice(1)}));
 }
 /** A single semantic view over figure, table and numbered equation DOM.
  * Nav modes share this array and the same original target anchors.
- * No body reordering, numbering writes or report-source changes.
+ * No body reordering or source-number/report-source changes.
  */
-function objectOutline(article){
+function objectOutline(article,entries=catalog.indexDOM(article)){
  // The same policy powers editor numbers, fold summaries and offline navigation.
- const records=catalog.indexDOM(article).items.slice(0,MAX_NAV);
+ const records=entries.items.slice(0,MAX_NAV);
  return records.map((entry,index)=>{
   const element=entry.node,{kind:type,number}=entry,pipe=entry.sourceKind==='gfm-pipe';
   let title='';
@@ -279,6 +343,10 @@ function mount(doc=root.document){
  const result=docElement(doc,'span','hrs-reader-result');result.setAttribute('role','status');result.setAttribute('aria-live','polite');
  const back=makeButton(doc,'↑ 返回顶部','hrs-reader-top','返回报告顶部');
  tools.append(search,result,back);
+ if(!originalDocs&&article.querySelector('.hrs-block-times')){
+  const label=docElement(doc,'label','hrs-reader-time-toggle'),toggle=doc.createElement('input');toggle.type='checkbox';toggle.checked=article.dataset.hrsShowTimestamps!=='0';
+  toggle.addEventListener('change',()=>{article.dataset.hrsShowTimestamps=toggle.checked?'1':'0';});label.append(toggle,' 显示时间');tools.append(label);
+ }
  if(!originalDocs)installThemePicker(doc,article,tools);
  if(originalDocs){const actions=sidebar.querySelector('.docs-actions');if(actions)actions.after(tools);else sidebar.prepend(tools);}
  else sidebar.insertBefore(tools,nav);
@@ -356,7 +424,7 @@ function mount(doc=root.document){
     const mode=event.key==='Home'?'order':event.key==='End'?'type':active==='order'?'type':'order';
     switchMode(mode,true);
    });
-   objectNav={objects,tabs,panels,typeGroups,get mode(){return active;},switchMode,refreshSearch:null};
+   objectNav={objects,section,tabs,panels,typeGroups,get mode(){return active;},switchMode,refreshSearch:null};
    switchMode('order');
   }
  }
@@ -419,13 +487,14 @@ function mount(doc=root.document){
   releaseClickedTarget(event);
  },{capture:true});
  back.addEventListener('click',()=>{clickedTarget=null;root.scrollTo({top:0,behavior:'smooth'});});
- let priorTypeOpen=null;
+ let priorTypeOpen=null,notebook=null;
  const refreshSearch=()=>{
   const query=search.value.trim().toLocaleLowerCase();
   const active=objectNav?.mode||'order';
   let hits=new Set();
   for(const link of navLinks){
-   const show=!query||link.textContent.toLocaleLowerCase().includes(query);
+   const target=doc.getElementById(link.getAttribute('href').slice(1));
+   const show=(!notebook||notebook.allows(target,link.className.includes('hrs-reader-level-')))&&(!query||link.textContent.toLocaleLowerCase().includes(query));
    link.hidden=!show;
    if(show&&query&&(!link.dataset.readerMode||link.dataset.readerMode===active))hits.add(link.getAttribute('href'));
   }
@@ -433,7 +502,7 @@ function mount(doc=root.document){
    if(query&&priorTypeOpen===null)priorTypeOpen=Object.fromEntries(Object.entries(objectNav.typeGroups).map(([name,group])=>[name,group.detail.open]));
    for(const [type,group] of Object.entries(objectNav.typeGroups)){
     const any=[...group.entries.querySelectorAll('a')].some(link=>!link.hidden);
-    group.detail.hidden=!!query&&!any;
+    group.detail.hidden=!any;
     if(query&&any)group.detail.open=true;
     if(!query&&priorTypeOpen!==null)group.detail.open=priorTypeOpen[type];
    }
@@ -442,13 +511,31 @@ function mount(doc=root.document){
   result.textContent=query?hits.size+' 个导航匹配 · 回车查正文':'';
  };
  if(objectNav)objectNav.refreshSearch=refreshSearch;
+ if(!originalDocs&&profile==='free'){
+  notebook=notebookReader(doc,article,tools,outline,{show,showEquations,onChange:entries=>{
+   clickedTarget=null;visibleReadingTargets.clear();
+   const titles=new Map(outline.map(h=>[h.id,h.node.textContent.trim()]));
+   if(objectNav){
+    objectNav.objects=objectOutline(article,entries);
+    for(const item of objectNav.objects)titles.set(item.id,item.title);
+    objectNav.section.hidden=!objectNav.objects.some(item=>notebook?.allows(item.element)!==false);
+    for(const [type,group] of Object.entries(objectNav.typeGroups)){
+     const count=objectNav.objects.filter(item=>item.type===type&&notebook?.allows(item.element)!==false).length;
+     group.detail.querySelector('summary').textContent=({figure:'图',table:'表',equation:'公式'}[type])+'（'+count+'）';
+    }
+   }
+   for(const link of navLinks){const title=titles.get(link.getAttribute('href').slice(1));if(title){link.textContent=title;link.title=title;}}
+   refreshSearch();
+  }});
+  notebook?.apply();
+ }
  search.addEventListener('input',refreshSearch);
  search.addEventListener('keydown',event=>{
   if(event.key!=='Enter')return;event.preventDefault();
   const query=search.value.trim().toLocaleLowerCase();if(!query)return;
   const walker=doc.createTreeWalker(article,root.NodeFilter.SHOW_TEXT);let found=null,node;
   while((node=walker.nextNode())){
-   if(node.parentElement?.closest('script,style,svg,.hrs-code-head'))continue;
+   if(node.parentElement?.closest('script,style,svg,.hrs-code-head,.hrs-block-times,[data-hrs-topic-hidden]'))continue;
    const pos=node.textContent.toLocaleLowerCase().indexOf(query);if(pos>=0){found={node,pos};break;}
   }
   if(!found){result.textContent='正文未找到此文字';return;}

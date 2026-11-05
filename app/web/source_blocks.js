@@ -5,37 +5,7 @@
 // never changes report.md or participates in formal table numbering.
 const catalog=root.ReportObjectCatalog||(typeof module!=='undefined'&&module.exports?require('./object_catalog.js'):null);
 const paths=root.ReportAssetPaths||(typeof module!=='undefined'&&module.exports?require('./asset_paths.js'):null);
-function pipeTableAt(lines,index){
- const parser=root.ReportPipeTables;
- if(!parser||index+1>=lines.length)return null;
- const header=lines[index].text,delimiter=lines[index+1].text;
- if(/^ {4}|^\s*>/.test(header)||/^ {4}|^\s*>/.test(delimiter)||
-    !header.includes('|')||!delimiter.includes('|'))return null;
- const cols=parser.split(header),seps=parser.split(delimiter);
- if(!cols.length||cols.length>30||seps.length!==cols.length||
-    !seps.every(cell=>/^:?-{3,}:?$/.test(cell)))return null;
- let last=index+1,rows=1;
- while(last+1<lines.length&&rows<100){
-  const next=lines[last+1].text;
-  if(!next.trim()||/^ {4}|^\s*>/.test(next)||!next.includes('|'))break;
-  // Never absorb Markdown structures or a later, independent table.
-  if(/^ {0,3}(?:#{1,6}\s|[`~]{3,}|:::\s*)/.test(next))break;
-  last++;rows++;
- }
- // Quarto caption belongs to the table only if the grammar recognizes it.
- let caption=null;
- // Directly adjacent is canonical. Historical one-blank captions are still
- // readable; the editor folds both as one object without modifying the source.
- let captionLine=last+1;
- if(captionLine<lines.length&&!lines[captionLine].text.trim())captionLine++;
- if(captionLine<lines.length&&captionLine<=last+2){
-  try{caption=parser.parseCaption(lines[captionLine].text);}catch{}
-  if(caption)last=captionLine;
- }
- const raw=lines.slice(index,last+1).map(item=>item.text).join('\n');
- try{parser.parseRaw(raw);}catch{return null;}
- return {last,rows,columns:cols.length,caption};
-}
+function pipeTableAt(lines,index){return root.ReportPipeTables?.at(lines,index)||null;}
 function scan(markdown,tokens=null){
  markdown=String(markdown);
  const lines=[];let from=0;

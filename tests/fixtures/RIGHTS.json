@@ -85,8 +85,8 @@
     },
     {
       "path": "gfm_tables.json",
-      "bytes": 3481,
-      "sha256": "eddbd37d71518cbb45574e2f3efbd9cb6370cad824915feee14cbc6f93ef48c4",
+      "bytes": 4647,
+      "sha256": "e9616e95786b366356f98024060843e62fdd7061431a70475c8373ada56e6a7c",
       "source": "Project-authored conformance data or newly generated synthetic example",
       "public_distribution": "AUTHORIZED",
       "license": "GPL-3.0-or-later",

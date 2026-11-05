@@ -2,7 +2,7 @@
 (function(root){
 'use strict';
 function escaped(text,position){let n=0;while(position>0&&text[--position]==='\\')n++;return n%2===1;}
-function tokenize(input){
+function tokenize(input,{table=false}={}){
  const text=String(input),parts=[];let plain=0,i=0;
  while(i<text.length){
   if(text[i]==='`'){
@@ -19,10 +19,13 @@ function tokenize(input){
    opener='\\[';closer='\\]';display=true;
   }
   if(!opener){i++;continue;}
+  // In a row, currency in adjacent cells must not swallow the delimiter.
+  if(table&&opener==='$'&&/\s/.test(text[i+1]||'')){i++;continue;}
   let close=i+opener.length;
   while((close=text.indexOf(closer,close))>=0){
    if(escaped(text,close)){close+=closer.length;continue;}
    if(closer==='$'&&(text[close-1]==='$'||text[close+1]==='$')){close++;continue;}
+   if(table&&closer==='$'&&/\s/.test(text[close-1]||'')){close++;continue;}
    break;
   }
   if(close<0){i+=opener.length;continue;}

@@ -21,7 +21,8 @@ import zipfile
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from project_workspace import is_link
 
-
+WORD_WORKER_TIMEOUT_SECONDS=180
+WORD_REQUEST_TIMEOUT_MS=(WORD_WORKER_TIMEOUT_SECONDS+30)*1000
 
 
 def runtime_paths(root,app=None):
@@ -125,7 +126,8 @@ class WordExport:
                     'template':selected or managed or default,'template_choice':'saved' if selected else 'managed' if managed else 'default',
                     'template_missing':missing,'default_template':default,
                     'managed_default_template':managed,'word_options':self.settings.get('word_options',{'notes_mode':'footnotes','preserve_emphasis':False}),
-                    'runtime_kind':rt['kind'] if rt else None,'formula_available':bool(self.pandoc(rt))}
+                    'runtime_kind':rt['kind'] if rt else None,'formula_available':bool(self.pandoc(rt)),
+                    'request_timeout_ms':WORD_REQUEST_TIMEOUT_MS}
 
     def select_bundle(self,root):
         rt=runtime_paths(root,self.app)
@@ -215,10 +217,10 @@ class WordExport:
         try:
             completed=subprocess.run([str(rt['python']),'-X','utf8','-B',str(self.app/'word_export.py'),
                                       '--worker',str(request_path),str(result_path)],
-                                     cwd=rt['root'],capture_output=True,timeout=180,
+                                     cwd=rt['root'],capture_output=True,timeout=WORD_WORKER_TIMEOUT_SECONDS,
                                      creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
         except subprocess.TimeoutExpired:
-            raise RuntimeError('Word 导出超过 180 秒；本次输出未确认，请检查 output/ 后重试') from None
+            raise RuntimeError(f'Word 导出超过 {WORD_WORKER_TIMEOUT_SECONDS} 秒；本次输出未确认，请检查 output/ 后重试') from None
         if not result_path.is_file():
             detail=completed.stderr.decode('utf8',errors='replace')[-1800:]
             raise RuntimeError('配套 Word 运行环境启动失败：'+detail)

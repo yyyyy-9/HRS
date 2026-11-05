@@ -85,7 +85,10 @@ class FootnotesTables(ManualService):
 
     def test_03_word_has_native_notes_from_body_and_tables_and_exact_source_return(self):
         """Every marker reaches footnotes.xml, with preserved code and rich note text."""
-        source(self.page,TEXT);self.open_word()
+        # WORD-MATH-PERF-03: used note math is native; an unused unsupported
+        # definition stays in provenance without becoming a new export error.
+        raw=TEXT.replace('正文脚注 **加粗说明**。',r'正文脚注 **加粗说明**，$a\Rightarrow b$。')+'\n[^unused-math]: $\\HRSUnknownCommand{x}$\n'
+        source(self.page,raw);self.open_word()
         # R25 defaults to stripping extra emphasis. This case explicitly tests
         # the supported rich-note policy; keep its original native assertions.
         self.page.locator('#word-keep-emphasis').check();output=self.compile()
@@ -104,11 +107,12 @@ class FootnotesTables(ManualService):
             self.assertTrue(notes.xpath('//w:b',namespaces=NS))
             self.assertTrue(notes.xpath('//w:hyperlink[@r:id]',namespaces={**NS,'r':'http://schemas.openxmlformats.org/officeDocument/2006/relationships'}))
             self.assertTrue(z.read('word/_rels/footnotes.xml.rels'))
+            self.assertEqual(len(notes.xpath('//m:oMath',namespaces={'m':'http://schemas.openxmlformats.org/officeDocument/2006/math'})),1)
         self.assertIn('[^literal]','\n'.join(p.text for p in Document(output).paragraphs))
         receipt=json.loads(Path(str(output)+'.hrs-bridge.json').read_text('utf8'))
-        self.assertEqual(base64.b64decode(receipt['source_b64']).decode('utf8'),TEXT)
+        self.assertEqual(base64.b64decode(receipt['source_b64']).decode('utf8'),raw)
         self.assertEqual((self.project/'report.md').read_bytes(),b'# Initial\n')
-        self.assertEqual(value(self.page),TEXT)
+        self.assertEqual(value(self.page),raw)
 
 
 if __name__=='__main__':unittest.main()

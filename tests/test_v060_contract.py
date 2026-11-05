@@ -3,7 +3,7 @@ from pathlib import Path
 import struct,sys,tempfile,unittest
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'app'))
 from color_theme import normalize,read
-from render_profile import read_options
+from render_profile import read_options,normalize_options
 from studio import audit_export
 
 class ThemeContract(unittest.TestCase):
@@ -12,7 +12,7 @@ class ThemeContract(unittest.TestCase):
   for bad in ('missing','../../outside',False,{},'Blue'):
    with self.assertRaises(ValueError):normalize(bad)
   with tempfile.TemporaryDirectory() as d:
-   self.assertEqual(read(d),'blue');self.assertEqual(read_options(d),{'show_object_numbers':True,'show_heading_numbers':False,'show_equation_numbers':False,'preserve_blank_lines':False})
+   self.assertEqual(read(d),'blue');self.assertEqual(read_options(d),normalize_options())
 
  def test_only_profile_meta_is_allowed(self):
   def html(meta):return '<!doctype html><html><head>'+meta+'</head><body>Text<script id="report-source" type="application/json">{"format":"html-report-studio-v1","markdown":"# Report","assets":{}}</script></body></html>'

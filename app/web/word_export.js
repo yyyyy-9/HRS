@@ -8,8 +8,9 @@ function badge(){return element('span','beta','beta-badge');}
 async function open({api,modal,toast,getRequest,validate=async()=>{}}){
  document.querySelector('#menu-export').open=false;
  const context=getRequest();
- const post=(action,body={})=>api('/api/word/'+action,'POST',{document_id:context.document_id,draft_id:context.draft_id,template:context.template,...body},headers);
- let options=await post('options'),choice=options.template_choice,busy=false,picking=false;
+ let options;
+ const post=(action,body={})=>api('/api/word/'+action,'POST',{document_id:context.document_id,draft_id:context.draft_id,template:context.template,...body},headers,{timeout:options?.request_timeout_ms});
+ options=await post('options');let choice=options.template_choice,busy=false,picking=false;
  let templateField,filename,status,runState,formulaState,pickTemplate,pickRuntime,pickFormula,useDefault,setDefault,notesMode,keepEmphasis;
  const controls=()=>[pickTemplate,pickRuntime,pickFormula,useDefault,setDefault,notesMode,keepEmphasis,filename,document.querySelector('#modal-ok'),document.querySelector('#modal-cancel'),document.querySelector('#modal-close')];
  function sync(){

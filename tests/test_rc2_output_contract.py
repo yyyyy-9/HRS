@@ -23,11 +23,16 @@ class OutputPolicy(unittest.TestCase):
   self.assertEqual(self.codes('# 一\n\n# 二\n\n##### 五\n','free'),{})
   self.assertEqual(self.codes('# 一\n\n```markdown\n# 二\n##### 五\n```\n'),{})
  def test_options_default_show_and_validate_boolean(self):
-  self.assertEqual(policy.normalize_options(None),{'show_object_numbers':True,'show_heading_numbers':False,'show_equation_numbers':False,'preserve_blank_lines':False})
-  self.assertEqual(policy.normalize_options({'show_object_numbers':False}),{'show_object_numbers':False,'show_heading_numbers':False,'show_equation_numbers':False,'preserve_blank_lines':False})
-  with self.assertRaises(ValueError):policy.normalize_options({'show_object_numbers':'no'})
-  self.assertEqual(policy.normalize_options({'show_heading_numbers':True}),{'show_object_numbers':True,'show_heading_numbers':True,'show_equation_numbers':False,'preserve_blank_lines':False})
-  with self.assertRaises(ValueError):policy.normalize_options({'show_heading_numbers':1})
+  # The catalog/default values have one explicit contract in CoreConsistency;
+  # this test owns engineering legacy behaviour and all boolean boundaries.
+  from product_settings import load_settings
+  defaults=policy.normalize_options(None)
+  self.assertEqual(set(defaults),set(load_settings()['render_options']))
+  self.assertTrue(defaults['show_object_numbers']);self.assertFalse(defaults['show_heading_numbers'])
+  for key in defaults:
+   for value in (True,False):self.assertEqual(policy.normalize_options({key:value}),{**defaults,key:value})
+   for bad in ('no',1,None):
+    with self.assertRaises(ValueError):policy.normalize_options({key:bad})
  def test_real_feedback_has_both_heading_failures(self):
   fixture=Path(__file__).with_name('fixtures')/'rc2_feedback'
   ir=analyze((fixture/'report.md').read_text(encoding='utf8'),assets=fixture/'assets')

@@ -53,10 +53,11 @@ DOC_ID = re.compile(r'^[a-f0-9]{32}$')
 DRAFT_ID = DOC_ID
 # Byte-exact first-party reader scripts shipped by earlier releases, so HTML
 # already exported to output/ by them can still pass the delivery audit.
-LEGACY_READER_SHA256 = {'144e3ee2de81669c83ce3497796f2f7e62d35a9f2ebe044ecfb820e9b79b04d8','81e304255c212aae1ef28dd2e8cb51fc97580aac0c43a601054fcbd23e8958cd','1275a6830b70fb59cf07ac16be15e2dc5ce9c87b2af2345db2c3d2bf27dbeee8','4386a8a446949233a9e5170f96e453eb58e962b876451e4de88501084e0252db','43c2ccdad84ddf525d2b5f4a6bba651c37b94c53d9c65ac28dcd5c8317a3330a','4f06e316f1bdd62d20e5173f56af0ade63b8d9e326918d2b55e3e76ad96e4036','6feb1c196b0f5f231ce9fb11d68642fecd0f810ddf035284902f8778bb4b93b4','764f4333c55c29de9affc2cf53e5322f48443d400ab6cc212e6124812eb74219','782a99c76ee2b047239bc460cca74fc2895e9c275f415f3e967e40eb20a25bde','7f217047cc92ebc99211c63201762a3f89050564c20d5b5b38fb927d77ec74c3','8769a7ce7557c2c68b62c9ac1ec6e03c60c34b65e6757f3cd6121ca080bfe833','906c8d3447b0ccda8b7e71055e3bf7ef66e064506a27d33d05ad5e701a322473','949267a8c0f7b6615f723176597cc68baddfd689f3f964e8715d74d3c6dcc0c5','bb6ecd6c41f23bd618bbf109377f2895ec3fe35fa22c4d96b65da4ea818cb577','bd7ed68acf2f5d849a16142cece55b3bd5efa8dd033cb70ea7fb5d6d6a7344a3','c8ac801ae44f87fd341b1243654f33b8e867f0592e72e95435c35653fae26a97','dc69801f4091638ea113c99e29156ebac1c24ee6711f78d16b28af766f6a32c0','e311b36e32036747723d519fd7d15d341e8d69a494d5642dfa1bccefc035ff1f','e995e95d01162d97e254b75f17d34f9e460c332ef81cf40619091a91db3bc2d5','f478329753af6f59b00426e060dc2c12f95cb0000652433a861d09b0b5cce7ec','f85efdc2182e7b211fec5b39e7a840d3cefdf7ac9bbf03f1b219161ce139d144','302c3ad5d40c53a881a3d1e22d89abc3a01e738157d7e549634e8e2fb260dbc7'}
+LEGACY_READER_SHA256 = {'285059b0e9759a0d2ddcecec186907a17f245fcfb4764251531dff1d868c8461','144e3ee2de81669c83ce3497796f2f7e62d35a9f2ebe044ecfb820e9b79b04d8','81e304255c212aae1ef28dd2e8cb51fc97580aac0c43a601054fcbd23e8958cd','1275a6830b70fb59cf07ac16be15e2dc5ce9c87b2af2345db2c3d2bf27dbeee8','4386a8a446949233a9e5170f96e453eb58e962b876451e4de88501084e0252db','43c2ccdad84ddf525d2b5f4a6bba651c37b94c53d9c65ac28dcd5c8317a3330a','4f06e316f1bdd62d20e5173f56af0ade63b8d9e326918d2b55e3e76ad96e4036','6feb1c196b0f5f231ce9fb11d68642fecd0f810ddf035284902f8778bb4b93b4','764f4333c55c29de9affc2cf53e5322f48443d400ab6cc212e6124812eb74219','782a99c76ee2b047239bc460cca74fc2895e9c275f415f3e967e40eb20a25bde','7f217047cc92ebc99211c63201762a3f89050564c20d5b5b38fb927d77ec74c3','8769a7ce7557c2c68b62c9ac1ec6e03c60c34b65e6757f3cd6121ca080bfe833','906c8d3447b0ccda8b7e71055e3bf7ef66e064506a27d33d05ad5e701a322473','949267a8c0f7b6615f723176597cc68baddfd689f3f964e8715d74d3c6dcc0c5','bb6ecd6c41f23bd618bbf109377f2895ec3fe35fa22c4d96b65da4ea818cb577','bd7ed68acf2f5d849a16142cece55b3bd5efa8dd033cb70ea7fb5d6d6a7344a3','c8ac801ae44f87fd341b1243654f33b8e867f0592e72e95435c35653fae26a97','dc69801f4091638ea113c99e29156ebac1c24ee6711f78d16b28af766f6a32c0','e311b36e32036747723d519fd7d15d341e8d69a494d5642dfa1bccefc035ff1f','e995e95d01162d97e254b75f17d34f9e460c332ef81cf40619091a91db3bc2d5','f478329753af6f59b00426e060dc2c12f95cb0000652433a861d09b0b5cce7ec','f85efdc2182e7b211fec5b39e7a840d3cefdf7ac9bbf03f1b219161ce139d144','302c3ad5d40c53a881a3d1e22d89abc3a01e738157d7e549634e8e2fb260dbc7','f7f6939204542c6bc6c73d4a4a1a57504ee287666baa68ac33f121fd706d692b'}
 SVG_DOCUMENT_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox"
 
 from project_commit import commit_report, backup_report, report_lock
+import document_timestamps as block_times
 from render_profile import (normalize as normalize_profile, read as read_profile,
     normalize_options, new_options, read_options, output_checks, require_output)
 from color_theme import normalize as normalize_color_theme, read as read_color_theme
@@ -401,6 +402,8 @@ class StudioServer(ThreadingHTTPServer):
         data=json.loads(path.read_text(encoding='utf-8'))
         if data.get('draft_id')!=draft_id or data.get('document_id') not in ('new','legacy') and not DOC_ID.fullmatch(str(data.get('document_id',''))):
             raise ValueError('草稿的文档绑定无效')
+        try:data['block_timestamps']=block_times.validate(data.get('block_timestamps'))
+        except (ValueError,TypeError):data.pop('block_timestamps',None)
         return data
 
     def pending_drafts(self,document_id=None) -> list:
@@ -531,13 +534,30 @@ class Handler(BaseHTTPRequestHandler):
             reply: DraftResponse = {'ok':True,'accepted':False,'seq':previous['seq'],'markdown_sha256':digest(previous['markdown'].encode('utf-8'))}
             return self.resp(reply)
         profile=normalize_profile(req.get('render_profile',(previous or {}).get('render_profile')))
+        stamps=self._timestamp_request(req,markdown,previous=previous)
         folder.mkdir(exist_ok=True)
         write_json(folder/'state.json',{'format':'html-report-studio-draft-v1','draft_id':did,
             'document_id':doc_id,'template':template,'base_revision':base,'seq':seq,
             'render_profile':profile,'render_options':normalize_options(req.get('render_options',(previous or {}).get('render_options'))),
             'color_theme':normalize_color_theme(req.get('color_theme',(previous or {}).get('color_theme'))),
-            'markdown':markdown,'updated':datetime.now(timezone.utc).isoformat()})
-        self.resp({'ok':True,'accepted':True,'seq':seq,'markdown_sha256':digest(markdown.encode('utf-8'))})
+            'block_timestamps':stamps,'markdown':markdown,'updated':datetime.now(timezone.utc).isoformat()})
+        self.resp({'ok':True,'accepted':True,'seq':seq,'markdown_sha256':digest(markdown.encode('utf-8')),'block_timestamps':stamps})
+
+    def _timestamp_request(self,req,text,previous=None,ir=None):
+        """One source-bound metadata path for drafts, saves and archive restore."""
+        restored=block_times.validate(req.get('block_timestamps'))
+        if restored and restored['source_sha256']==digest(text.encode('utf-8')):
+            # Recompute semantic ranges/hashes; never trust ranges in HTML.
+            return block_times.reconcile(text,restored,observed=False,ir=ir)
+        folder,raw,_,_=self._context(self._docid(req),self._template(req))
+        if previous is None and req.get('draft_id'):
+            try:previous=self.server.read_draft(self._draft_id(req))
+            except ValueError:pass
+            if previous and previous.get('document_id')!=self._docid(req):raise ValueError('时间信息草稿来源不匹配')
+        old=previous['markdown'] if previous else raw.decode('utf-8-sig')
+        baseline=previous.get('block_timestamps') if previous else None
+        baseline=baseline or block_times.load(folder,old,fresh=folder is None)
+        return block_times.advance(old,text,baseline,hints=req.get('timestamp_hints'),ir=ir)
     def _picker_origin_ok(self):
         # Explicit interaction header + same-origin Origin required for file dialog.
         if self.headers.get('X-HRS-Project-Action')!='user-action':return False
@@ -595,6 +615,7 @@ class Handler(BaseHTTPRequestHandler):
             target=self.server.registry.consume_selection(req.get('selection_token'),'create','new')
             final,new_id=self._create_with_assets(text,template,theme,{},target,
                 meta_extra={'render_profile':normalize_profile(req.get('render_profile','free')),
+                    'block_timestamps':self._timestamp_request(req,text),
                     'render_options':normalize_options(req.get('render_options')),'color_theme':normalize_color_theme(req.get('color_theme'))},
                 before_commit=lambda:self._assert_file_revision(doc_id,original))
             self._clear_draft(draft_id)
@@ -757,7 +778,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _backup(self,p):
         return backup_report(p)
-    def _store_meta(self,p,doc_id,text,template,theme,render_profile=None,render_options=None,color_theme=None):
+    def _store_meta(self,p,doc_id,text,template,theme,render_profile=None,render_options=None,color_theme=None,block_timestamps=None):
         path=p/'meta.json'
         try:existing=json.loads(path.read_text(encoding='utf-8')) if path.is_file() else {}
         except (OSError,ValueError):existing={}
@@ -769,13 +790,16 @@ class Handler(BaseHTTPRequestHandler):
               'render_options':normalize_options(render_options if render_options is not None else existing.get('render_options')),
               'color_theme':normalize_color_theme(color_theme if color_theme is not None else existing.get('color_theme')),
               'created':existing.get('created',now),'updated':now}
+        if block_timestamps is not None:info['block_timestamps']=block_times.validate(block_timestamps)
         write_json(path,info)
     def _save_followups(self,p,doc_id,text,template,theme,req):
         # The source has committed. Metadata and obsolete-draft cleanup cannot
         # turn that acknowledged revision into a failed save or a stale retry.
         warnings=[]
         try:
-            self._store_meta(p,doc_id,text,template,theme,req.get('render_profile'),req.get('render_options'),req.get('color_theme'))
+            with report_lock(p):
+                if self.server.source_path(doc_id).read_bytes().decode('utf-8-sig')!=text:raise ValueError('正文在提交后再次变化，保留较新的元数据')
+                self._store_meta(p,doc_id,text,template,theme,req.get('render_profile'),req.get('render_options'),req.get('color_theme'),req.get('_block_timestamps'))
         except (OSError,ValueError) as error:
             warnings.append('正文已保存，显示设置更新未完成：'+str(error))
         if req.get('draft_id'):
@@ -834,6 +858,7 @@ class Handler(BaseHTTPRequestHandler):
                                   'render_profile':read_profile(folder,'engineering' if folder is None and template=='engineering' else None),
                                   'render_options':read_options(folder) if folder is not None else new_options('engineering' if template=='engineering' else 'free'),
                                   'color_theme':read_color_theme(folder),
+                                  'block_timestamps':block_times.load(folder,raw.decode('utf-8-sig'),fresh=folder is None),
                                   'project_path':str(folder) if folder else None,
                                   'markdown_file':str(file_path) if file_path else None,
                                   'external_project':doc_id in self.server.registry.mapping,
@@ -1219,10 +1244,15 @@ class Handler(BaseHTTPRequestHandler):
 
     def export_preflight(self,req):
         snap=self._readonly_export_snapshot(req)
+        stamps=block_times.validate(req.get('block_timestamps'))
+        if stamps is None:
+            folder,raw,_,_=self._context(self._docid(req),self._template(req))
+            stamps=block_times.load(folder,raw.decode('utf-8-sig'))
+        stamps=block_times.reconcile(req['markdown'],stamps,observed=False,projection=True)
         total=sum(meta['bytes'] for meta in snap['files'].values())
         self.resp({'ok':True,'files':snap['files'],'asset_count':len(snap['files']),
                    'source_bytes':total,'revision':snap['revision'],
-                   'markdown_sha256':snap['markdown_sha256']})
+                   'markdown_sha256':snap['markdown_sha256'],'block_timestamps':stamps})
 
     def export_verify(self,req):
         snap=self._readonly_export_snapshot(req)
@@ -1394,6 +1424,7 @@ class Handler(BaseHTTPRequestHandler):
                     raise RuntimeError('独立保存期间来源或附件已变化')
             final,new_id=self._create_with_assets(req['markdown'],template,theme,assets,target,
                 meta_extra={'render_profile':'engineering','render_options':normalize_options(req.get('render_options')),
+                            'block_timestamps':self._timestamp_request(req,req['markdown'],ir=ir),
                             'color_theme':normalize_color_theme(req.get('color_theme'))},before_commit=verify)
             return self.resp({'ok':True,'document_id':new_id,'project_path':str(final)})
         if action=='start':
@@ -1434,6 +1465,7 @@ class Handler(BaseHTTPRequestHandler):
         if origin_snapshot:descriptor['sync']=origin_snapshot['mapping']
         target,new_id=self._create_with_assets(req['markdown'],'engineering','engineering',assets,progress=progress,
             meta_extra={'report_workspace':descriptor,'render_profile':'engineering',
+                        'block_timestamps':block_times.reconcile(req['markdown'],self._timestamp_request(req,full),observed=False,projection=True),
                         'render_options':new_options('engineering'),'color_theme':normalize_color_theme(req.get('color_theme'))})
         def rollback():
             if target.parent.resolve()!=self.server.workspace.resolve() or target.name!=new_id or is_link(target):
@@ -1478,18 +1510,22 @@ class Handler(BaseHTTPRequestHandler):
         is_file=doc_id in self.server.markdown_files.mapping
         if invalid and not is_file and not report_workspace_info(p,self.server.workspace):raise ValueError('工程文档结构错误：'+invalid[0]['message'])
         if not self._check_revision(req,old):return
+        stamps=self._timestamp_request(req,text,ir=ir);req['_block_timestamps']=stamps
+        commit_warnings=[]
         if is_file:
             if req.get('draft_id'):self._verify_draft_owner(req['draft_id'],doc_id)
             source_path=str(self.server.source_path(doc_id))
-            try:raw=self.server.markdown_files.save(doc_id,text,digest(old))
+            try:raw=self.server.markdown_files.save(doc_id,text,digest(old),warnings=commit_warnings)
             except ValueError as exc:
                 if str(exc).startswith(('STALE_SNAPSHOT','WRITE_BUSY')):return self.fail(str(exc),409)
                 raise
             text=raw.decode('utf-8-sig')
+            if stamps['source_sha256']!=digest(text.encode('utf-8')):
+                stamps=block_times.advance(req['markdown'],text,stamps);req['_block_timestamps']=stamps
             warnings=self._save_followups(p,doc_id,text,template,theme,req)
             reply: SaveResponse = {'ok':True,'document_id':doc_id,'revision':digest(raw),'saved':raw!=old,
                 'title':document_title(text),'theme':theme,'markdown_file':source_path,
-                'markdown':text,'warnings':warnings}
+                'markdown':text,'warnings':commit_warnings+warnings,'block_timestamps':stamps}
             return self.resp(reply)
         assets=self._retain_draft_assets(req,p,self._asset_preflight(req,ir['assets'],p))
         raw=text.encode('utf-8')
@@ -1509,13 +1545,13 @@ class Handler(BaseHTTPRequestHandler):
                 if not target.exists():atomic_write(target,data)
             updated=raw!=old
             if updated:
-                try:commit_report(p,raw,digest(old))
+                try:commit_report(p,raw,digest(old),warnings=commit_warnings,timestamp_snapshot=stamps)
                 except ValueError as error:
                     if str(error).startswith(('STALE_SNAPSHOT','WRITE_BUSY')):return self.fail(str(error),409)
                     raise
         warnings=self._save_followups(p,doc_id,text,template,theme,req)
         reply: SaveResponse = {'ok':True,'document_id':doc_id,'revision':digest(raw),'saved':updated,
-                   'title':document_title(text),'theme':theme,'warnings':warnings}
+                   'title':document_title(text),'theme':theme,'warnings':commit_warnings+warnings,'block_timestamps':stamps}
         self.resp(reply)
     def _native_origin_ok(self):
         # Prevent an arbitrary site from reading the local Windows clipboard
@@ -1724,6 +1760,7 @@ class Handler(BaseHTTPRequestHandler):
         if folder.exists():raise ValueError('导入草稿 ID 已存在')
         profile=normalize_profile(req.get('render_profile'))
         template=self._template(req);template_info(template)
+        stamps=block_times.reconcile(text,block_times.validate(req.get('block_timestamps')),observed=False)
         base=digest(template_info(template)['markdown'].encode('utf-8'))
         folder.mkdir()
         (folder/'assets').mkdir()
@@ -1733,10 +1770,11 @@ class Handler(BaseHTTPRequestHandler):
                 'document_id':'new','template':template,'base_revision':base,
                 'render_profile':profile,'render_options':normalize_options(req.get('render_options')),
                 'color_theme':normalize_color_theme(req.get('color_theme')),
+                'block_timestamps':stamps,
                 'seq':1,'markdown':text,'updated':datetime.now(timezone.utc).isoformat()})
         except Exception:
             shutil.rmtree(folder,ignore_errors=True);raise
-        self.resp({'ok':True,'draft_id':did,'seq':1,'assets_imported':len(prepared)})
+        self.resp({'ok':True,'draft_id':did,'seq':1,'assets_imported':len(prepared),'block_timestamps':stamps})
 
     def pdf_snapshot(self,req):
         source=req.get('html')

@@ -59,6 +59,14 @@ function figureValidate(obj){
 
 // Input order is document order; invalid/duplicate IDs never consume a number.
 // Object sequence is independent of source representation and display settings.
+function headingNumbers(headings,enabled){
+ const counts=[0,0,0,0,0];
+ return headings.map(heading=>{
+  const level=heading.level;let number='';
+  if(enabled&&level>1&&level<=6){counts[level-2]++;counts.fill(0,level-1);number=counts.slice(0,level-1).join('.');}
+  return {...heading,number};
+ });
+}
 function numbering(records){
  const counts={figure:0,table:0,equation:0},seen=new Set(),items=[],byId=new Map();
  for(const input of records){
@@ -176,9 +184,9 @@ function objectTitle(entry,show=true,profile='engineering'){
  }
  return node.querySelector(kind==='table'?'caption':'figcaption')?.textContent?.trim()||entry.label||(kind==='table'?'表格':'图');
 }
-function tableChrome(article,profile='engineering',editTable=null){
+function tableChrome(article,profile='engineering',editTable=null,entries=indexDOM(article)){
  const free=profile==='free',show=article.dataset.hrsShowObjectNumbers!=='0';
- for(const entry of indexDOM(article).items){
+ for(const entry of entries.items){
   if(entry.kind!=='table')continue;
   const wrap=entry.node,tools=wrap.querySelector('.hrs-table-tools');if(!tools)continue;
   tools.classList.toggle('hrs-table-mini',free);
@@ -204,9 +212,9 @@ function tableChrome(article,profile='engineering',editTable=null){
   }
  }
 }
-function applyDisplay(article,show=true,showEquations=false){
+function applyDisplay(article,show=true,showEquations=false,entries=indexDOM(article)){
  article.dataset.hrsShowEquationNumbers=showEquations?'1':'0';
- const entries=indexDOM(article);article.dataset.hrsShowObjectNumbers=show?'1':'0';
+ article.dataset.hrsShowObjectNumbers=show?'1':'0';
  for(const entry of entries.items){
   if(entry.kind==='equation'){
    entry.node.querySelectorAll('.equation-number').forEach(n=>n.hidden=!showEquations);
@@ -226,7 +234,7 @@ function applyDisplay(article,show=true,showEquations=false){
  article.querySelectorAll('.report-table-wrap').forEach(tableHeading);
  return entries;
 }
-const api={tableValidate,figureValidate,validObject,numbering,indexDOM,indexSource,sourceTexts,captionDisplay,tableHeading,tableName,objectTitle,tableChrome,applyDisplay};
+const api={tableValidate,figureValidate,validObject,headingNumbers,numbering,indexDOM,indexSource,sourceTexts,captionDisplay,tableHeading,tableName,objectTitle,tableChrome,applyDisplay};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.ReportObjectCatalog=api;
 })(typeof window!=='undefined'?window:globalThis);

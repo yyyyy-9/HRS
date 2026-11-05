@@ -1,5 +1,6 @@
 # 工程报告源格式 v1
 
+Markdown段落与Setext规则保持标准语义：普通连续行属于同段，空白行分段，行尾两个空格或反斜杠表示同段强制换行。生成分隔线时与前文留空白行，避免紧邻正文的`---`将前段解释为二级标题；新标题优先使用`#`形式。自由留白开关只影响额外视觉间距，不能作为另一套段落语法。HTML的专题归属和阅读筛选是原索引的显示投影，不改变源稿范围、对象ID或归档内容。
 ## 渲染与输出配置
 
 `report.md/assets` 仍为唯一内容真源。工程 `meta.json` 的可选 `render_profile` 为 `free` 或 `engineering`；旧工程缺省为自由模式，新建工程技术报告在编辑器中默认工程模式。模式不等同于配色 `theme` 或新建内容 `template`，切换只保存配置，不改写 Markdown。草稿、可回编 HTML 的可选 `renderProfile` 及恢复工程保留该选择；旧归档没有此项时仍按自由模式解释。CLI 可用 `--render-profile` 临时指定输出，不修改工程配置。
@@ -9,6 +10,8 @@
 可选配置 `render_options.show_object_numbers`、`show_heading_numbers`、`show_equation_numbers` 必须为布尔值。图表编号在新建自由笔记／导入普通Markdown默认false，旧工程或归档缺省true；章节编号和公式编号缺省false。自由模式可分别切换三项；工程模式固定章节及图表编号，公式编号仍可选。题注、导航、正文引用和HTML服从同一开关。Word按工程规则固定章节及图表编号，公式服从本次源快照的show_equation_numbers。普通／增强表格和普通／对象Mermaid共用序列，不再区分带号插入类型。配置随元数据、草稿、归档、恢复保存，不写进report.md。
 
 本机视图偏好（源码正文/标题字号、自动折行、预览/阅读显示比例和面板布局）不属于render_options，不进入meta.json、草稿内容、归档源稿或Word页面模型，不产生正文修改/撤销。预览缩放层在导出article之外，所有输出仍由完整源稿和既有输出配置构建。源码固定字号范围消费原SourceBlocks/SourceMap，涵盖对象、公式、代码、HTML、表格及折叠卡片，行号保持原字号。
+
+`render_options.show_timestamps`为可选布尔值，缺省true，只控制显示，不触发技术内容重排。时间元数据单独保存在工程meta.json的`block_timestamps`，直接Markdown在应用数据目录保管；归档字段为`blockTimestamps`。格式`hrs-block-times-v1`含源文本UTF-8 SHA-256（不含文件BOM）及records：元数据key、kind、原对象id或null、UTF-16 start/end、own_sha256/content_sha256、created/modified（含时区、精确到分钟或null）。key不进入Markdown。仅heading/figure/image-group/table/mermaid记录；章节内容摘要涵盖所有下辖内容。日期未知保持null，删除后不留独立历史；载体临时语法无效时可标记pending，恢复后按原身份接续。日期/布局/编号彼此分离，Word不将信息行写入正文。普通公式/代码块的变化只通过所属章节更新。Agent生成源文不写时间注释、不另造时间ID；正式plan/apply沿同一提交元数据过程，源范围及字节保护不变。
 
 独立可选 `color_theme` 为blue/celadon/violet/azure/navy/warm，缺省blue；HTML归档对应colorTheme。它与原内容模板theme、render_profile分开。URL的theme参数只接受清单，default及未知值回退蓝色；CLI --theme可临时覆盖输出，缺省读取工程，--output不被模式前缀改名。HTML带明确free/engineering模式属性和受限meta，纯阅读输出也能按模式呈现。帮助固定原蓝色。
 
@@ -131,6 +134,8 @@ $$
 IR 为 `type:table`、`sourceKind:gfm-pipe`、`data.schema:gfm-pipe-table-v1`，保留行、对齐、可选题注/ID和原始源码。所有GFM表与增强表共用表序列，numbered:true表示参与序列；显示服从文档图表开关。匿名表不强制加ID。显式引用可写`:  {#tbl-id}`身份行，不要求捏造题名。水平对齐由`:---/---:/:---:`决定；合并、精确列宽和垂直对齐需明确升级增强表，不能自动改JSON。
 
 不等长数据行的显示按表头列数补空/忽略额外列，原始 Markdown 保留；显式保存涉及丢失信息时按现有确认处理。单元格富文本仍须从源文安全解析，不能以 HTML 表格 DOM 代替语义。
+
+HRS的管道分列保护完整`$...$`、`$$...$$`、`\(...\)`和`\[...\]`数学区间，包括表头。完整区间内竖线不作为列边界，但继续保留原GFM转义层：`\|`解码为绝对值竖线，避免旧版已保存表格改变显示含义；范数可写`\lVert x\rVert`，在表格窗口中输入的TeX由保存层处理转义。原始表格源码保持，反引号及区间外奇偶反斜杠的原规则保持。不完整定界符不吞掉后续列，美元号的紧邻空白规则避免把`$50 | $60`两列合并。词法器、折叠、表格编辑及Python IR共享该分列约定；不把源文全局改写为`\lvert`等替代语法。
 
 表格单元格与图表题注先保护数学，再用现有Marked/安全HTML链完整解析一次内联，最后恢复数学节点；加粗、斜体、链接等边界可跨越数学，如`**参数 $x$ 的说明**`。普通表与增强表共用，不修改原文字/TeX/ID；行内代码仍按字面。Markdown强调不代替数学字形命令。
 
