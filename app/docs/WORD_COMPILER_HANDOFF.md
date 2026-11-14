@@ -8,7 +8,7 @@ HRS自由笔记与工程报告共用源和对象；请求Word时均进入Bridge�
 
 配套母模板v0.3.11已预置六级Heading原生编号、HRS Abstract和HRS Code。Bridge复用现有编号定义；旧基础模板仍兼容原编号装配路径，但摘要/代码须有相应新样式。摘要仍按源规范的位置与标记识别；当前输出使用正文段落，只加粗“摘要：”标签，不再使用继承Heading1字重的整段摘要样式。普通代码9pt等宽、无首行缩进，保留换行和缩进且允许跨页；图表/Mermaid等已识别对象不进入普通代码分支。
 
-mark/span装饰可确定地去装饰，复杂HTML仍明确拒绝。任意HTML/CSS到DOCX不在支持范围；修改过的普通代码块或复杂摘要的反向恢复仍受既有受限回编规则约束。
+`mark`／`span` 按已有规则去除装饰。没有 Word 映射的普通 Markdown 或 HTML 以字面原文写入。任意 HTML／CSS 的版式复刻及编辑后回编受支持范围约束。
 
 适用版本以本包 release.json 为准，上游 IR 为 `engineering-report-ir-v1`。本页面向独立 Word/WPS 编译和逆向识别项目，说明当前可以读取的数据及限制；当前程序各模块的职责见[模块说明](MODULE_OVERVIEW.md)。
 
@@ -20,11 +20,11 @@ Word组图仍用原无边框布局表格；每个逻辑排输出“图片行＋�
 
 ## 笔记降级边界
 
-`==高亮==`由 HRS 共用词法器识别，Word 预检展开为其中的普通文字；安全 mark/span 装饰继续去除。脚注沿共用词法器映射为原生 footnotes.xml，重复引用使用 NOTEREF；脚注关系、公式与实际正文进入来源指纹。题注与单元格使用同一内联转换。未定义、重复定义、嵌套脚注及脚注图片明确拒绝。自身未变 Word 可精确回编，已改脚注或含脚注块明确拒绝不可靠恢复。外来 Word 不因字面出现这些符号就新造笔记对象。
+`==高亮==` 及安全 `mark`／`span` 在 Word 保留文字。页底脚注映射为原生 footnotes.xml，重复引用使用 NOTEREF，题注与单元格使用同一内联转换。输出只解析引用所需的定义，正文引用必须有唯一的目标。嵌套脚注保留标记和可用定义原文，空条目保留编号，页底脚注图片保留原文链接。Word 的普通失效 `#object-…` 链接按字面输出，正式工程引用继续核对对象身份。自身未变 Word 可精确回编，修改脚注后按现行回编范围处理。
 
 HRS的Word组件复用Bridge及唯一browser_model.js，装配、数学和母模板规则由下游实现。prepare绑定源、资源、模板及匹配模型，过期或关闭后清理快照。组件使用Python3.13；Pandoc按需提供，办公软件的域刷新与页面呈现由相应集成检查验证。
 
-数学适配器从既有页面tokens/inline/footnotes和IR行间公式收集输入，按原始TeX与显示类型复用，有界批量交给原生转换器。每个输入段落必须对应一个OMML公式，批次映射完整后才更新缓存；预热被拒绝的批次不提交部分结果，实际用到的表达式沿原严格转换处理，未使用定义不会新阻断文稿。旧正体及控制空白只在转换副本规范，回编来源与原始缓存键保持。Word options响应的request_timeout_ms由服务端工作时限推导，界面只对本Word会话使用该预算；原页面模型、快照和编号协议保持。
+数学适配器从既有页面 tokens／inline／footnotes 和 IR 行间公式收集输入，按原始 TeX 与显示类型去重，分批交给 Pandoc。批次段落数一致时独立核对各式。有效段落应恰有一个原生公式及允许的空白填充。无完整原生式的段落以原始 TeX 输出，转换器缺失或超时时未得到结果的式子同样按原文输出。旧正体及控制空白只在转换副本规范。Word options 的 `request_timeout_ms` 由服务端工作时限推导。
 
 ## 项目分工与内容来源
 
@@ -72,7 +72,7 @@ A0七种查询保持只读；block_cli plan生成绑定当前源/范围/资源�
 
 ## 安全 HTML 与 Word 的边界
 
-HRS 可以显示受限 HTML，但它仍保留在原 markdown 源块中，不变成工程图表或一套新 IR。HTML 图片的依赖进入现有 assets 审计；HTML 表格不获得图表号。当前独立桥接不把任意 HTML 卡片/标签当作已支持 Word 结构，不支持的 token 明确拒绝，不能静默去标签或套用旧正文。HRS 单份 HTML CLI 由 html_cli.py 提供，桥接复用该入口；它不负责 Word 编译。
+HRS 可以显示受限 HTML，原标签保存在 Markdown 源块中。HTML 图片的依赖进入现有 assets 审计，HTML 表格用于展示。独立桥接将成对的行内 `sub`、`sup`、`u`、`b`/`strong`、`i`/`em`、`s`/`strike`/`del` 映射为 Word 文字格式，将 `br` 映射为换行。`kbd` 保留文字，`mark`/`span` 沿现有去装饰规则，行内注释保留在来源映射中。代码内容保持字面。未知或未配对的行内标签及复杂块级 HTML 按原文写入 Word。HRS 单份 HTML CLI 由 html_cli.py 提供，桥接复用该入口。
 
 ## 可消费的数据及输出责任
 
@@ -92,7 +92,7 @@ HRS 可以显示受限 HTML，但它仍保留在原 markdown 源块中，不变�
 
 ### 完整预检与安装命令
 
-普通Word导入使用可编辑模式：正文、样式/直接自动列表、内容控件、脚注、可识别图表和公式进入同一HRS源格式。普通域保留保存的显示结果；嵌套表及单元格图片移为相邻对象，原位置保留引用；浮动图转正文图，受支持位图的裁切/旋转固化为预览。局部不能转换项在原位置提示待确认，源Word保存在output/word-import-source.docx，不因局部差异拒绝整篇。普通外来稿默认自由模式；工程输出仍按工程规则检查。
+`from-docx --mode editable` 和 HRS 菜单共用 WPS 事实扫描及图表关联。可重排的同段图片、无表题的图片布局表写入现有图片对象协议。关联表题的数据表保留表格及其图片引用。原生公式按 XML 去重分批核对，旧公式按内嵌字节摘要复用结果。组图和独立公式通过现有 HRS 页面接口成批序列化。局部转换差异随回执，源 Word 随新工程交付。
 
 自身导出件的可用同名.docx.hrs-bridge.json仍用于精确恢复；自动映射缺失、损坏或不适用于当前内容时，普通导入按当前Word建立新身份并说明差异，不恢复旧文字覆盖当前编辑。CLI显式from-docx --mode roundtrip及显式来源映射继续核对原身份；--mode editable与HRS菜单使用兼容导入。不能读取的文件/损坏包、资源上限、来源变化、取消和目标已存在仍明确失败；原件和当前稿不改写。 HRS仅允许同源用户操作和原生文件选择，后续绑定job_token/序号/新工程目录；不开放Agent任意文件写入。Word内容读取、冻结、暂存清单和回执生成、来源复核及工程复制由所选组件的同一Python完成。工程已生成/保存之后，临时目录清理失败不会改成导入失败。仍被占用的自有临时目录进入本次服务的延后清理队列，下次导入或退出时再尝试；持续占用时可能暂留系统Temp。真正的读取、写入、校验或保存失败仍保留原错误，提示具体阶段和路径，保护原件及当前稿；不通过整链重试掩盖问题。
 
@@ -116,7 +116,7 @@ HRS已提供block_cli的显式plan/apply；Bridge委托它，不再另写候选�
 
 ## 图形原件、预览与资源
 
-Mermaid源文由HRS的完整本地Pele适配器生成SVG，图内公式复用MathJax；Word页面模型继续携带固化主题和字体的PNG，模型Schema和图形身份不变。布局与旧Mermaid引擎有差异，方向沿源码固定；基本流程图的%% pos手动位置由同一SVG层应用，PNG与正文预览保持，不需Bridge重新排图。源语言/兼容范围见源规范，Agent继续生成Mermaid，不需要生成Pele专用语法。
+Word 界面和 CLI 共用浏览器图形生成，输入是源快照中的 Mermaid 和 SVG。Pele 沿用原图形布局、手动位置和图内公式，输出 PNG。SVG 按完整工程路径绑定，从浏览器解码的原视口整体缩放。页面模型为每个请求对象返回有效 PNG 或对应的 `graphic_errors`。流程图失败时保留 Mermaid 原文及图题、SEQ 和书签。SVG 可使用已声明的位图预览，否则保留原件路径并报告。普通 Mermaid 围栏的派生图号与源块身份各自保存，未改成品可精确回编。
 
 `src` 是显示图，`sourceAsset` 可指向归档 EMF/PDF 等原件，`rendition` 记录预览信息。选择 Word 兼容格式时应先检查原件，再决定矢量或栅格降级；不能从 HTML 提取 PNG 后丢掉原件关系。旧 `vectorSource/rasterFallback` 按现行规范兼容。
 
@@ -127,6 +127,8 @@ PDF 作为插图导入时保留完整原件，PNG 预览是第一页；DPI 为�
 ## 公式、源范围与结构门槛
 
 下游从原始source/latex读取TeX；行内$...$、\(...\)与块级$$...$$、\[...\]保留原定界符。所有块公式共用序列，行内数学不编号。公式编号开启时输出原生SEQ 公式及数字书签、REF；关闭时无公式SEQ，已有公式引用输出指向该公式的“该公式”内部链接。MathJax SVG是显示结果，不是OMML。
+
+导入时，内嵌 Equation Native MTEF3／MTEF5 恢复为 TeX，OMML 走 MathAdapter。识别可定位的单个公式 SEQ、右侧括号式号以及 MathType 旧文档的 MTPlaceRef／MTEqn 缓存编号。唯一匹配的 Word 书签和 REF，包括 MathType 的成对 GOTOBUTTON／REF，可映射为块公式 ID 与 `@eq:`。原号记录在 `WORD_EQUATION_NUMBER_NORMALIZED` 回执，显示由 HRS 文档级开关统一派生。带来源映射的公式修改回编保留原 ID、定界符和配置。普通导入按当前 DOCX 重建 ID 和引用，无法映射的公式或域按局部诊断保留。Word 的导出编辑格式为 OMML。
 
 所有 UTF-16 范围只对同一源摘要有效；BOM、CRLF/LF 与非 BMP 字符都参与偏移计算。源文修改后重新解析，不用旧坐标定位。CLI 原始文件摘要与 HTTP 提交文本摘要的区别见源规范。
 
@@ -142,7 +144,13 @@ PDF 作为插图导入时保留完整原件，PNG 预览是第一页；DPI 为�
 
 ## Word 输出配置
 
-prepare／convert 的 options 包含 notes_mode（footnotes／references）和 preserve_emphasis（布尔值），进入页面模型请求摘要及来源映射。HRS界面默认不保留额外正文强调；原CLI缺省保留以兼容已有调用，可显式 --strip-body-emphasis。文末参考文献是派生输出区域，具备独立书签和内容指纹；未变可精确回编，修改、丢失或额外内容拒绝用旧源恢复。标题采用现有章节样式、outlineLvl=0、numId=0，参与原目录而不消耗章号；引用与条目使用独立SEQ／REF。母模板与WPS编号实现不变。
+`prepare`／`convert` 的 `options` 包含 `notes_mode`（`footnotes`／`references`）、`preserve_emphasis`（布尔值）和 `inline_math_mode`（`native`／`text`），进入页面模型请求摘要及来源映射。HRS 界面默认清除额外正文强调。原 CLI 默认保留，可显式用 `--strip-body-emphasis` 清除。
+
+行内公式默认 `native`，导出的 OMML 字符明确指定 Cambria Math。`to-docx --inline-math-mode text` 与页面文字选项使用同一转换，从已解析的 OMML 输出 Times New Roman 普通文字。普通符号、单位、单组括号和一层上下标可转换，复杂结构保持原生。`WORD_INLINE_MATH_TEXT` 回执报告 `converted`、`retained`。独立公式由原公式样式及编号规则处理。新来源映射以 `native_text_scripts` 声明普通文字上下标参与内容指纹，旧映射缺省使用旧规则。
+
+文字保留以 `WORD_TEXT_FALLBACK` 回执记录 `reason`、`kind`、`excerpt` 及来源位置。位置为 `line`、可选 `end_line`，或 `footnote`。可选 `detail` 说明图形失败或缺少内层脚注定义的原因。相同记录进入同名来源映射的 `output_fallbacks`。编号对象仍生成对应 SEQ 和书签，引用沿用原生域。工程结构、资源、快照和输出文件由现有检查核验。
+
+文末参考文献是派生输出区域，具备独立书签和内容指纹。内容一致时可精确回编，修改、丢失或额外内容会阻止旧源覆盖。标题沿用章节样式，设置 `outlineLvl=0`、`numId=0`，参与原目录而不占章号。引用与条目使用独立的 SEQ／REF。
 
 ## 桌面宿主边界
 
@@ -156,7 +164,7 @@ prepare／convert 的 options 包含 notes_mode（footnotes／references）和 p
 
 自由笔记的专题目录和局部显示编号属于浏览器投影，A0/IR和plan/apply仍针对全文源快照与稳定ID。整篇编译不能读取聚焦后的DOM；专题编译继续先由原提取器生成独立源稿，再按该稿编号。2.0.2未改页面模型与Word组件。普通Mermaid由用户添加图题时，源事务提升为既有report-figure-v1，下游直接消费原图形契约。文件/文件夹跳转属于用户点击UI，不是Agent文件访问或执行接口。
 
-本版HRS便携包携带Bridge 0.3.1的匹配快照；本地独立Bridge 0.4.3由DocFlow权威源码构建，增加相同的超链接适配。两套组合保持各自身份及扫描基线，兼容性由页面模型摘要、协议与组件清单核对，不以Bridge版本号大小判断。DocFlow固定HRS子模块和既有任务不自动更新；已有冻结任务继续用原程序。
+HRS 便携包与同批独立 Word 组件携带相同 Bridge 快照。DocFlow 由独立源码构建并固定其 HRS 子模块。兼容性由页面模型摘要、协议与组件清单核对，已有冻结任务继续使用原配套组合。
 
 页面模型请求声明numbering_policy=document-v2，并绑定source render_options（含公式开关）及源快照。build/validate消费相同值，模型摘要拒绝旧组件或配置变化，不能将旧页面模型用于新编号。公式批量粘贴与Word编译共用MathAdapter，不增加第二套TeX→OMML链；clipboard-math子进程只返回转换结果，原粘贴事务持有身份、资源及提交。
 

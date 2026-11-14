@@ -1,10 +1,12 @@
 """PASTE-01: native clipboard binding, image fidelity and refusal boundaries."""
 import base64
+from io import BytesIO
 from pathlib import Path
 import sys
 import tempfile
 import unittest
 from unittest.mock import Mock,patch
+from zipfile import ZipFile
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'app'))
 from clipboard_document import html_fragment, prepare_document, rtf_pictures
@@ -60,6 +62,55 @@ class WordClipboardContract(unittest.TestCase):
     def test_changed_clipboard_refuses_before_file_read(self):
         with self.assertRaisesRegex(ValueError,'已变化'):
             prepare_document(snapshot('<img src="file:///C:/not-read.png">'),'另一次复制',check_image)
+
+    def test_native_math_matches_office_list_labels_at_their_own_positions(self):
+        # WORD-CLIPBOARD-LIST-01: WPS adds automatic labels only to the text
+        # and HTML formats. A real numeric value in the paragraph still matters.
+        from clipboard_math import W, M
+
+        def item(before, formulas, after=''):
+            math = ''.join(f'<m:oMath><m:r><m:t>{tex}</m:t></m:r></m:oMath>' for tex in formulas)
+            return f'<w:p><w:r><w:t>{before}</w:t></w:r>{math}<w:r><w:t>{after}</w:t></w:r></w:p>'
+
+        body = ('<w:p><w:r><w:t>1. 正文</w:t></w:r></w:p>'
+                + item('测量 ', ('x=2',), ' 14 nm') + item('复核 ', ('y=3',)) + item('', ('z=4', 'q=5')))
+        native = BytesIO()
+        with ZipFile(native, 'w') as archive:
+            archive.writestr('word/document.xml', f'<w:document xmlns:w="{W}" xmlns:m="{M}"><w:body>{body}</w:body></w:document>')
+        images = [f'file:///C:/no-file/formula-{i}.png' for i in range(4)]
+        html = ('<p>1. 正文</p>'
+                f'<p><span style="mso-list:Ignore">3.<span>&nbsp;</span></span>测量 <img src="{images[0]}"> 14 nm</p>'
+                f'<p><span style="mso-list:Ignore">&#183;&nbsp;</span>复核 <img src="{images[1]}"></p>'
+                f'<p><span style="mso-list:Ignore">1.&nbsp;</span><img src="{images[2]}"> <img src="{images[3]}"></p>')
+        plain = '1. 正文\r\n3.测量 x=2 14 nm\r\n\uf0b7复核 y=3\r\n4.z=4 q=5'
+        tex_values = ('x=2', 'y=3', 'z=4', 'q=5')
+        convert = Mock(return_value=tex_values)
+
+        def prepare(plain, html=html):
+            record = snapshot(html, plain)
+            record['Kingsoft WPS 9.0 Format'] = native.getvalue()
+            return prepare_document(record, plain.replace('\r\n', '\n'), check_image, convert)
+
+        result = prepare(plain)
+        self.assertEqual(result['images'], {})
+        self.assertIn('3.<span>&nbsp;</span></span>测量', result['html'])
+        self.assertIn('•&nbsp;</span>复核', result['html'])
+        self.assertIn('4.&nbsp;</span><img', result['html'])
+        self.assertEqual(result['math_images'], {
+            image: {'tex': tex, 'display': False, 'source_number': ''}
+            for image, tex in zip(images, tex_values)
+        })
+        convert.assert_called_once()
+        convert.reset_mock()
+        for changed_plain, changed_html in (
+            (plain.replace('14 nm', '15 nm'), html),
+            (plain.replace('1. 正文', '3.1. 正文'), html),
+            (plain, html.replace('mso-list:Ignore', 'color:red')),
+            (plain, html.replace(f'测量 <img src="{images[0]}"> 14 nm', f'测量 14 nm <img src="{images[0]}">')),
+        ):
+            with self.subTest(plain=changed_plain), self.assertRaisesRegex(ValueError, '不一致'):
+                prepare(changed_plain, changed_html)
+        convert.assert_not_called()
 
     def test_missing_image_count_and_corrupt_data_refused(self):
         url='file:///C:/missing/picture.png'

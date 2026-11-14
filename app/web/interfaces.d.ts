@@ -84,6 +84,12 @@ interface HrsObjectBundle {
   operation?: "copy" | "cut" | "import";
 }
 
+interface HrsWordOutputOptions {
+  notes_mode?: "footnotes" | "references";
+  preserve_emphasis?: boolean;
+  inline_math_mode?: "native" | "text";
+}
+
 interface HrsWordBrowserModel {
   schema: "hrs-word-browser-model-v1";
   tokens: Array<Array<string | number | number | boolean | null | Array<string | number | number | boolean | null | Array<HrsJsonValue> | Record<string, HrsJsonValue>> | Record<string, string | number | number | boolean | null | Array<HrsJsonValue> | Record<string, HrsJsonValue>>>>;
@@ -91,10 +97,13 @@ interface HrsWordBrowserModel {
   numbering_policy?: "document-v2";
   request_sha256?: string;
   render_options?: Record<string, string | number | number | boolean | null | Array<string | number | number | boolean | null | Array<HrsJsonValue> | Record<string, HrsJsonValue>> | Record<string, string | number | number | boolean | null | Array<HrsJsonValue> | Record<string, HrsJsonValue>>>;
+  output_options?: HrsWordOutputOptions;
   profile?: Record<string, string | number | number | boolean | null | Array<string | number | number | boolean | null | Array<HrsJsonValue> | Record<string, HrsJsonValue>> | Record<string, string | number | number | boolean | null | Array<HrsJsonValue> | Record<string, HrsJsonValue>>>;
   diagrams?: Record<string, string | number | number | boolean | null | Array<string | number | number | boolean | null | Array<HrsJsonValue> | Record<string, HrsJsonValue>> | Record<string, string | number | number | boolean | null | Array<HrsJsonValue> | Record<string, HrsJsonValue>>>;
   svgAssets?: Record<string, string | number | number | boolean | null | Array<string | number | number | boolean | null | Array<HrsJsonValue> | Record<string, HrsJsonValue>> | Record<string, string | number | number | boolean | null | Array<HrsJsonValue> | Record<string, HrsJsonValue>>>;
+  graphic_errors?: Record<string, Record<string, string>>;
   footnotes?: Record<string, Array<string | number | number | boolean | null | Array<string | number | number | boolean | null | Array<HrsJsonValue> | Record<string, HrsJsonValue>> | Record<string, string | number | number | boolean | null | Array<HrsJsonValue> | Record<string, HrsJsonValue>>>>;
+  footnote_sources?: Record<string, string>;
 }
 
 interface HrsWorkspaceStatus {

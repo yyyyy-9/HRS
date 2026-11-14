@@ -21,10 +21,14 @@ function parse(source){
  const length=offset+match.index+match[0].length;
  return {raw:text.slice(0,length),tex,id:meta?.[1]||null,delimiter:bracket?'bracket':'dollar'};
 }
-function snippet(tex,id=null,newline='\n',delimiter='dollar'){
+function identityLine(id){
  if(id&&!/^eq-[A-Za-z0-9_-]{1,60}$/.test(id))throw Error('公式 ID 必须符合 eq-…，最多 63 字符');
+ return id?'<!-- hrs:eq id='+id+' -->':'';
+}
+function snippet(tex,id=null,newline='\n',delimiter='dollar'){
+ const identity=identityLine(id);
  const bracket=delimiter==='bracket';
- return (id?'<!-- hrs:eq id='+id+' -->'+newline:'')+(bracket?'\\[':'$$')+newline+String(tex).replace(/\r\n?/g,'\n').replace(/\n/g,newline)+newline+(bracket?'\\]':'$$');
+ return (identity?identity+newline:'')+(bracket?'\\[':'$$')+newline+String(tex).replace(/\r\n?/g,'\n').replace(/\n/g,newline)+newline+(bracket?'\\]':'$$');
 }
 // TeX tags belong to source provenance; display numbers belong to HRS.
 function presentation(input){
@@ -58,5 +62,5 @@ function installMarked(marked){marked.use({extensions:[{name:'reportEquation',le
  tokenizer(src){const equation=parse(src);if(equation)return {type:'reportEquation',raw:equation.raw,equation};},
  renderer(token){return '<pre>'+token.raw.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</pre>';}
 }]});}
-const api={parse,snippet,presentation,installMarked};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.ReportEquations=api;
+const api={parse,snippet,identityLine,presentation,installMarked};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.ReportEquations=api;
 })(typeof window!=='undefined'?window:globalThis);

@@ -5,7 +5,7 @@ Real local service + Chromium; source text is never changed by display policy.
 import io,json,zipfile
 from pathlib import Path
 from browser_support import ManualService
-from browser_support import source, value, default_render_options
+from browser_support import select, source, value, default_render_options
 
 
 class HeadingProfile(ManualService):
@@ -34,6 +34,24 @@ class HeadingProfile(ManualService):
         self.page.reload();self.page.evaluate("async()=>{await ReportStudioProgrammatic.ready();await ReportStudioProgrammatic.open('legacy')}")
         self.assertEqual(self.page.locator('#preview-content a.object-xref').inner_text(),'“目的”节')
         self.assertEqual(value(self.page),raw)
+        # EDITOR-UX-2.6: path labels identify duplicate chapter titles.
+        fresh='# 报告\r\n\r\n## 目的\r\n\r\n## 目的\r\n\r\n参见：\r\n'
+        source(self.page,fresh)
+        self.page.locator('[data-view="source"]').click()
+        point=fresh.index('参见：')+len('参见：')
+        select(self.page,point,point)
+        self.page.locator('#ref-picker summary').click()
+        self.page.locator('[data-insert="section-ref"]').click()
+        picker=self.page.get_by_label('引用章节')
+        self.assertEqual(picker.locator('option').all_text_contents(),['报告','报告 · 目的 · 第 3 行','报告 · 目的 · 第 5 行'])
+        picker.select_option(index=2);self.page.locator('#modal-ok').click()
+        written=value(self.page)
+        self.assertRegex(written,r'## 目的\r\n\r\n## 目的 \{#(sec-[a-f0-9]+)\}\r\n\r\n参见：@sec:\1\r\n')
+        self.page.locator('[data-view="split"]').click()
+        self.page.wait_for_selector('#preview-content a.object-xref')
+        self.assertEqual(self.page.locator('#preview-content a.object-xref').inner_text(),'“目的”节')
+        self.page.locator('#btn-undo').click()
+        self.assertEqual(value(self.page),fresh)
 
     def test_03_free_heading_toggle_persists_archive_and_engineering_forces_numbers(self):
         raw='# 无手工号\r\n\r\n## 目的\r\n\r\n### 方法\r\n\r\n## 结果\r\n'
@@ -123,6 +141,53 @@ class HeadingProfile(ManualService):
         pending[0].fulfill(status=503,json={'ok':False,'error':'C 的旧检查'})
         self.page.wait_for_timeout(100)
         self.assertEqual(self.page.locator('#toast').inner_text(),'')
+
+    def test_06_live_validation_coalesces_input_and_ignores_closed_results(self):
+        """DOCUMENT-CHECK-LIVE: serialize automatic requests, catch up, then stop on close."""
+        p=self.page
+        raw='# 标题\n\n## 一节\n\n正文'
+        source(p,raw);p.locator('#render-profile').select_option('engineering')
+        p.locator('#btn-validate').click()
+        p.wait_for_function("document.querySelector('#problems-summary').textContent==='0 个错误 · 0 个提醒'")
+        pending=[]
+        p.route('**/api/validate',lambda route: pending.append(route))
+
+        first=raw+'\n\n#### 跳级\n'
+        with p.expect_request('**/api/validate') as request:
+            source(p,first)
+        self.assertEqual(request.value.post_data_json['markdown'],first)
+        self.assertEqual(p.locator('#problems-summary').inner_text(),'正在更新检查…')
+        latest='# 标题\n\n# 第二标题\n\n正文'
+        source(p,latest+'甲');source(p,latest+'甲乙');source(p,latest)
+        p.wait_for_timeout(550)
+        self.assertEqual(len(pending),1)
+        with p.expect_request('**/api/validate') as request, p.expect_response('**/api/validate'):
+            pending[0].continue_()
+        self.assertEqual(request.value.post_data_json['markdown'],latest)
+        self.assertEqual(p.locator('[data-code="HEADING_LEVEL_GAP"]').count(),0)
+        pending[1].continue_()
+        p.locator('[data-code="MULTIPLE_H1"]').wait_for()
+        self.assertEqual(p.locator('#toast').inner_text(),'')
+
+        # Collapsing ignores an in-flight result and stops checks on further edits.
+        with p.expect_request('**/api/validate'):
+            source(p,raw)
+        p.locator('#btn-problems-close').click()
+        source(p,first)
+        pending[2].continue_()
+        p.wait_for_timeout(550)
+        self.assertEqual(len(pending),3)
+        self.assertTrue(p.locator('#problems-panel').is_hidden())
+        self.assertEqual(p.locator('#problem-list').inner_text(),'')
+        p.unroute('**/api/validate')
+        p.locator('#btn-validate').click()
+        gap=p.locator('[data-code="HEADING_LEVEL_GAP"]')
+        gap.wait_for()
+        source(p,raw)
+        self.assertTrue(gap.is_disabled())
+        p.locator('#btn-problems-close').click()
+        p.locator('#btn-validate').click()
+        p.wait_for_function("document.querySelector('#problems-summary').textContent.startsWith('0 个错误')")
 
 
 if __name__=='__main__':

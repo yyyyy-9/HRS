@@ -1,8 +1,10 @@
 """WORD-LITE-01: same engines, embedded Python, open-page model and optional math."""
+from io import BytesIO
 from pathlib import Path
 import base64,hashlib,json,os,shutil,subprocess,unittest,zipfile
 from unittest.mock import patch
 from docx import Document
+from docx.oxml.ns import qn
 from PIL import Image
 from browser_support import ManualService
 from browser_support import source,value
@@ -28,31 +30,60 @@ class WordLite(ManualService):
         # WORD-MATH-RM-02: the complete formula, a subscript group and a table
         # cell all have explicit font scope; original TeX stays in provenance.
         raw='# 原生公式\n\n## 计算\n\n向量 $\\boldsymbol{E}=mc^2$。\n\n$$\\frac{a}{b}+x^2$$\n\n$\\rm pix$ 与 $N_{\\rm pix}+1$。\n\n$$\na\\Rightarrow\\\nb\n$$\n\n| 单位 | 数值 |\n| --- | --- |\n| $\\rm mm\\,s^{-1}$ | 12 |\n\n```tex\n$not_math$\n```\n'
+        # WORD-EXPORT-MAINT-01: a deep legacy group used to exhaust Python
+        # before Pandoc could convert the formula or the rest of the document.
+        raw += '\n$' + '{' * 600 + r'\rm nestedprobe' + '}' * 600 + '$\n\n'
         # WORD-MATH-PERF-03: cross a batch boundary, preserve each subscript and
         # keep inline/display arrows in their own native formula containers.
         raw+='\n'+' '.join('$x_{'+str(i)+'}+'+str(i)+'$' for i in range(70))+'\n\n'
+        # WORD-EXPORT-FALLBACK-01: a rejected expression leaves both batches'
+        # other formulas native. An independent failed formula retains its REF.
+        bad_inline=r'$n^2k_{0,\rm ref}^2$'
+        bad_display=r'\hrsUnknownMath{q}'
+        raw=raw.replace('$x_{4}+4$',bad_inline+' $x_{4}+4$')
         for tex in (r'a\Rightarrow b',r'a\Longrightarrow b',r'a\implies b','a⇒b'):
             raw+='$'+tex+'$\n\n$$\n'+tex+'\n$$\n\n'
+        raw+='<!-- hrs:eq id=eq-unsupported -->\n$$\n'+bad_display+'\n$$\n\n参见 @eq:eq-unsupported。\n'
         source(self.page,raw)
+        self.page.locator('#show-equation-numbers').check()
         pandoc=Path(os.environ['HRS_WORD_TEST_ENV'])/'pandoc/pandoc.exe';self.assertTrue(pandoc.is_file())
         exporter=self.server.word_export
         # Hide the Full test runner's formula tool until the user selects it.
         def selected(rt):return Path(exporter.settings['pandoc']) if exporter.settings.get('pandoc') else None
         with patch.object(exporter,'pandoc',side_effect=selected):
-            self.open_word();self.page.locator('#modal-ok').click()
-            self.assertIn('选择 Pandoc',self.failed())
+            self.open_word();plain=self.compile(expected_note='有 87 处按原文文字保留')
+            plain_doc=Document(plain)
+            self.assertFalse(plain_doc._element.xpath('//m:oMath'))
+            self.assertIn(bad_inline,'\n'.join(p.text for p in plain_doc.paragraphs))
+            self.open_word()
             self.page.locator('.word-export-formula>summary').click()
             with patch.object(studio,'pick_import_file',return_value=pandoc):
                 self.page.locator('#word-pick-formula').click()
                 self.page.wait_for_function("document.querySelector('#word-export-status').textContent==='原生公式转换器已配置。'")
-            output=self.compile()
+            output=self.compile(expected_note='有 2 处按原文文字保留')
         doc=Document(output);ns={'m':'http://schemas.openxmlformats.org/officeDocument/2006/math'}
-        self.assertEqual(len(doc._element.xpath('//m:oMath')),84)
+        self.assertEqual(len(doc._element.xpath('//m:oMath')),85)
+        inline='//m:oMath[not(parent::m:oMathPara)]//m:r'
+        count=len(doc._element.xpath(inline))
+        self.assertGreater(count,0)
+        for attribute in ('ascii','hAnsi'):
+            self.assertEqual(doc._element.xpath(inline+'/w:rPr/w:rFonts/@w:'+attribute),['Cambria Math']*count)
+        controls=doc._element.xpath('//m:oMath[not(parent::m:oMathPara)]//m:ctrlPr/w:rPr/w:rFonts/@w:ascii')
+        self.assertGreater(len(controls),0);self.assertEqual(set(controls),{'Cambria Math'})
         texts=[''.join(node.xpath('.//m:t/text()',namespaces=ns)) for node in doc._element.xpath('//m:oMath')]
+        self.assertIn('nestedprobe',texts)
         for i in range(70):self.assertIn('x'+str(i)+'+'+str(i),texts)
         self.assertTrue(all(any(arrow in text for arrow in ('⇒','⟹')) for text in texts[-8:]))
         self.assertIn('pix',''.join(doc._element.xpath('//m:t/text()')))
-        self.assertEqual(base64.b64decode(json.loads(Path(str(output)+'.hrs-bridge.json').read_text('utf8'))['source_b64']).decode('utf8'),raw)
+        meta=json.loads(Path(str(output)+'.hrs-bridge.json').read_text('utf8'))
+        self.assertEqual(base64.b64decode(meta['source_b64']).decode('utf8'),raw)
+        fallback=meta['output_fallbacks']
+        self.assertEqual([(x['line'],x['reason']) for x in fallback],
+                         [(next(i for i,line in enumerate(raw.splitlines(),1) if snippet in line),'math_unconverted')
+                          for snippet in (bad_inline,'<!-- hrs:eq id=eq-unsupported -->')])
+        self.assertIn(bad_display,'\n'.join(doc._element.xpath('//w:t/text()')))
+        self.assertTrue(doc._element.xpath('//w:fldSimple[contains(@w:instr,"REF ")]'))
+        self.assertTrue(doc._element.xpath('//w:fldSimple[contains(@w:instr,"SEQ 公式")]'))
         self.assertEqual(value(self.page),raw)
         self.assertTrue(any('$not_math$' in p.text for p in doc.paragraphs))
         cover=exporter.runtime()['wps']/'templates/cover_template_v0311.docx';before=cover.read_bytes()
@@ -61,8 +92,31 @@ class WordLite(ManualService):
             self.page.locator('#word-pick-template').click()
             self.page.wait_for_function('path=>document.querySelector("#word-template").value===path',arg=str(cover))
         covered=self.compile()
-        self.assertEqual(len(Document(covered)._element.xpath('//m:oMath')),84)
+        self.assertEqual(len(Document(covered)._element.xpath('//m:oMath')),85)
         self.assertEqual(cover.read_bytes(),before);self.assertEqual(value(self.page),raw)
+
+        # WORD-INLINE-01: ordinary Word runs retain scripts and math emphasis;
+        # a stacked fraction and the standalone formula keep editable OMML.
+        raw=('# Text math\n\n## Calculation\n\n'+
+             r'变量 $x_i^2+\lambda=532\,\mathrm{nm}$，向量 $\boldsymbol{E}$，$\left|a\right|$，分式 $\frac{a+b}{c}$。'+
+             '\n\n$$\\frac{a}{b}$$\n')
+        source(self.page,raw);self.open_word()
+        self.assertEqual(self.page.locator('#word-inline-math-mode').input_value(),'native')
+        self.page.locator('#word-inline-math-mode').select_option('text')
+        output=self.compile(expected_note='正文 3 处，保留原生公式 1 处');doc=Document(output)
+        text_runs=doc._element.xpath('//w:r[w:rPr/w:rFonts[@w:ascii="Times New Roman"]]/w:t/text()')
+        self.assertIn('xi2+λ=532 nm',''.join(text_runs))
+        self.assertEqual(doc._element.xpath('//w:r[w:rPr/w:vertAlign[@w:val="subscript"]]/w:t/text()'),['i'])
+        self.assertEqual(doc._element.xpath('//w:r[w:rPr/w:vertAlign[@w:val="superscript"]]/w:t/text()'),['2'])
+        self.assertEqual(doc._element.xpath('//w:r[w:rPr/w:b and w:rPr/w:i]/w:t/text()'),['E'])
+        self.assertEqual(len(doc._element.xpath('//m:oMath')),2)
+        self.assertEqual(len(doc._element.xpath('//m:oMathPara')),1)
+        self.assertEqual(value(self.page),raw)
+        meta=json.loads(Path(str(output)+'.hrs-bridge.json').read_text('utf8'))
+        self.assertEqual(base64.b64decode(meta['source_b64']).decode('utf8'),raw)
+        self.assertEqual(meta['word_output_options']['inline_math_mode'],'text')
+        self.open_word();self.assertEqual(self.page.locator('#word-inline-math-mode').input_value(),'text')
+        self.page.locator('#modal-cancel').click()
 
     def rich_source(self):
         for name in ('one','two'):(self.project/'assets'/name).mkdir(exist_ok=True)
@@ -81,12 +135,31 @@ class WordLite(ManualService):
         return '# 精简组件报告\n\n> 摘要：沿用同一工程编译规则。\n\n## 方案\n\n==重点==，`代码`与普通正文。\n\n1. 甲\n2. 乙\n\n'+group_source+'\n\n'+''.join('```report-figure\n'+json.dumps(f,ensure_ascii=False)+'\n```\n\n' for f in figures)+'```report-table\n'+json.dumps(table,ensure_ascii=False)+'\n```\n\n参见 @fig:fig-flow、@fig:fig-pair、@tbl:tbl-params。\n'
 
     def test_02_graphics_without_extra_browser_and_existing_cli_parity(self):
-        text=self.rich_source()+'\n![Relative](./assets/one/a.png)\n\n![Nested](assets/two/a.png)\n';source(self.page,text)
+        # WORD-INLINE-01: supported inline HTML becomes native Word runs even
+        # without Pandoc. The backtick example stays literal.
+        text=self.rich_source()+'\n![Relative](./assets/one/a.png)\n\n![Nested](assets/two/a.png)\n\nH<sub>2</sub>O<BR />x<sup>3</sup>和<u>下划线</u><!-- hidden -->，示例 `<sub>`。\n'
+        # WORD-EXPORT-AUDIT-01: compare embedded pixels, exact code, and the
+        # numbered fallback of one failed diagram alongside two working graphs.
+        for folder,color in (('one','red'),('two','blue')):
+            (self.project/'assets'/folder/'plot.svg').write_text(
+                f'<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="{color}"/></svg>',encoding='utf8')
+        (self.project/'assets/edge.svg').write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="4200" height="100"><rect x="4150" width="50" height="100" fill="red"/></svg>',encoding='utf8')
+        bad={'schema':'report-figure-v1','id':'fig-bad','kind':'mermaid','source':'flowchart TB\n A[unclosed','caption':'故障流程图'}
+        text+=('\n    literal $x_i$\n\n>     quoted $y+1$\n\n![Red](./assets/one/plot.svg)\n\n'
+               '![Blue](assets/two/plot.svg)\n\n![Edge](assets/edge.svg)\n\n```mermaid\nflowchart LR\n A-->B\n```\n\n'
+               '```report-figure\n'+json.dumps(bad,ensure_ascii=False)+'\n```\n\n见 @fig:fig-bad 与 [旧位置](#object-fig-gone)。\n')
+        source(self.page,text)
         # A GUI export must succeed even if Node/second-browser lookup is broken.
         # These vars are changed only after the test's own visible-page browser starts.
         with patch.dict(os.environ,{'HRS_BRIDGE_NODE':'Z:/no-node.exe','CHROMIUM_PATH':'Z:/no-browser.exe'}),patch.object(self.server.word_export,'pandoc',return_value=None):
-            self.open_word();output=self.compile()
-        doc=Document(output);self.assertEqual(len(doc.inline_shapes),6);self.assertEqual(len(doc.tables),2)
+            self.open_word();output=self.compile(expected_note='有 2 处按原文文字保留')
+        doc=Document(output);self.assertEqual(len(doc.inline_shapes),10);self.assertEqual(len(doc.tables),2)
+        self.assertEqual(doc._element.xpath('//w:r[w:rPr/w:vertAlign[@w:val="subscript"]]/w:t/text()'),['2'])
+        self.assertEqual(doc._element.xpath('//w:r[w:rPr/w:vertAlign[@w:val="superscript"]]/w:t/text()'),['3'])
+        self.assertIn('下划线',doc._element.xpath('//w:r[w:rPr/w:u]/w:t/text()'))
+        line=next(p for p in doc.paragraphs if p.text.startswith('H2O'))
+        self.assertEqual(line.text,'H2O\nx3和下划线，示例 <sub>。')
         instructions=doc._element.xpath('//w:instrText/text()|//w:fldSimple/@w:instr')
         self.assertTrue(any('SEQ' in x for x in instructions));self.assertTrue(any('REF' in x for x in instructions))
         self.assertEqual((self.project/'report.md').read_bytes(),b'# Initial\n')
@@ -102,11 +175,35 @@ class WordLite(ManualService):
         self.assertEqual(done.returncode,0,done.stderr)
         cli=Document(cli_out)
         self.assertEqual([p.text for p in doc.paragraphs],[p.text for p in cli.paragraphs])
-        self.assertEqual(len(cli.inline_shapes),6);self.assertEqual(len(cli.tables),len(doc.tables))
+        self.assertEqual(len(cli.inline_shapes),10);self.assertEqual(len(cli.tables),len(doc.tables))
         self.assertEqual(instructions,cli._element.xpath('//w:instrText/text()|//w:fldSimple/@w:instr'))
-        for file in (output,cli_out):
+        for file,document in ((output,doc),(cli_out,cli)):
             meta=json.loads(Path(str(file)+'.hrs-bridge.json').read_text('utf8'))
             self.assertEqual(base64.b64decode(meta['source_b64']).decode('utf8'),text)
+            self.assertEqual([d['reason'] for d in meta['output_fallbacks']],['diagram_rendition','broken_link'])
+            visible='\n'.join(p.text for p in document.paragraphs)
+            for fragment in ('literal $x_i$','quoted $y+1$','A[unclosed','故障流程图','[旧位置](#object-fig-gone)'):
+                self.assertIn(fragment,visible)
+            self.assertNotIn('HRSMATH',visible)
+            pictures={}
+            for shape in document.inline_shapes:
+                name=shape._inline.docPr.get('name','').removeprefix('./')
+                if not name.endswith('.svg'):
+                    continue
+                rid=shape._inline.xpath('.//a:blip')[0].get(qn('r:embed'))
+                with Image.open(BytesIO(document.part.related_parts[rid].blob)) as image:
+                    rgb=image.convert('RGB')
+                    x=rgb.width-10 if name=='assets/edge.svg' else rgb.width//2
+                    pictures[name]=rgb.getpixel((x,rgb.height//2))
+            self.assertEqual({name:pictures[name] for name in ('assets/one/plot.svg','assets/two/plot.svg','assets/edge.svg')},
+                             {'assets/one/plot.svg':(255,0,0),'assets/two/plot.svg':(0,0,255),'assets/edge.svg':(255,0,0)})
+        recovered=self.project.parent/'roundtrip-graphics'
+        done=subprocess.run(command[:command.index('to-docx')]+['from-docx',str(cli_out),'--out',str(recovered)],
+                            capture_output=True,text=True,encoding='utf8',timeout=90)
+        self.assertEqual(done.returncode,0,done.stdout+done.stderr)
+        self.assertEqual((recovered/'report.md').read_text('utf8'),text)
+        for folder in ('one','two'):
+            self.assertEqual((recovered/'assets'/folder/'plot.svg').read_bytes(),(self.project/'assets'/folder/'plot.svg').read_bytes())
         if self.evidence:
             shutil.copyfile(cli_out,self.evidence/'existing-cli.docx')
             self.page.screenshot(path=str(self.evidence/'graphics-preview.png'))
@@ -118,6 +215,11 @@ class WordLite(ManualService):
             route.continue_(post_data=json.dumps(req))
         self.page.route('**/api/word/export',tamper);self.page.locator('#modal-ok').click()
         self.assertIn('快照不一致',self.failed());self.page.unroute('**/api/word/export',tamper)
+        def missing_graphic(route):
+            req=route.request.post_data_json;req['model']['diagrams'].pop('fig-flow')
+            route.continue_(post_data=json.dumps(req))
+        self.page.route('**/api/word/export',missing_graphic);self.page.locator('#modal-ok').click()
+        self.assertIn('图形预览不完整',self.failed());self.page.unroute('**/api/word/export',missing_graphic)
         def change_asset(route):
             Image.new('RGB',(60,30),(9,9,9)).save(self.project/'assets/one/a.png');route.continue_()
         self.page.route('**/api/word/export',change_asset);self.page.locator('#modal-ok').click()

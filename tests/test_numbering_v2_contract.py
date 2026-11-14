@@ -27,6 +27,23 @@ def compound_math(stream):
     return bytes(header)+fat+bytes(directory)+mini+stream.ljust(512,b'\0')
 
 
+def native_math_fixture(inline=False):
+    """Documented MathType 5 byte records for a fraction with paired scripts."""
+    def char(value):
+        return bytes((2,0,131))+value.encode('utf-16le')
+
+    def line(content):
+        return b'\x01\x00'+content+b'\x00'
+
+    scripts=b'\x03\x00\x1d\x00\x00'+line(char('i'))+line(char('2'))+b'\x00'
+    fraction=b'\x03\x00\x0b\x00\x00'+line(char('x')+scripts)+line(char('y'))+b'\x00'
+    stream=b'\x05\x01\x00\x07\x00DSMT7\0'+bytes([inline])+b'\x0a'+line(fraction)+b'\0'
+    header=bytearray(28)
+    struct.pack_into('<H',header,0,28)
+    struct.pack_into('<I',header,8,len(stream))
+    return compound_math(bytes(header)+stream)
+
+
 class UnifiedNumbering(unittest.TestCase):
     def test_anonymous_and_identified_display_math_share_sequence(self):
         source = '$$\nx=1\n$$\n\n<!-- hrs:eq id=eq-second -->\n$$\ny=2\n$$\n\n\\[\nz=3\n\\]\n'
@@ -55,6 +72,7 @@ class UnifiedNumbering(unittest.TestCase):
         # Captured from this project's generated y=1/2, entered in KSEE3 UI.
         data=bytes.fromhex('1c000000020097c42200000000000000e00c990054ac980000000000030101031e0a010281790002863d00030e0000010288310000010288320000000000')
         self.assertEqual(ole_to_tex(compound_math(data)),r'\mathrm{y}=\frac{1}{2}')
+        self.assertEqual(ole_to_tex(native_math_fixture()),r'\frac{x_{i}^{2}}{y}')
 
     def test_legacy_math_rejects_truncation_unknown_templates_and_cycles(self):
         for data in [b'\3\1\1\3\0\1\2', b'\3\1\1\3\0\1\3\xff\0\0\0\0\0',b'\3\1\1\3\0\1\2\x83\x00\xe0\0\0']:
@@ -89,6 +107,21 @@ class UnifiedNumbering(unittest.TestCase):
         for urls,text in [([], 'x=2(9)'),(['formula.png'],'unrelated text')]:
             with self.subTest(urls=urls,text=text),self.assertRaises(ValueError):native_formulas(buffer.getvalue(),urls,text,convert)
         with self.assertRaises(ValueError):xml(b'<!DOCTYPE x [<!ENTITY y "bad">]><x>&y;</x>')
+
+        # The clipboard's XML relationships must reach the same binary
+        # reader as DOCX import, even when no Pandoc process is configured.
+        w='http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+        rel='http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+        o='urn:schemas-microsoft-com:office:office'
+        fragment=f'<w:document xmlns:w="{w}" xmlns:o="{o}" xmlns:r="{rel}"><w:body><w:p><w:r><w:t>before</w:t></w:r><w:r><w:object><o:OLEObject ProgID="Equation.DSMT4" Type="Embed" r:id="rId1"/></w:object></w:r><w:r><w:t>after</w:t></w:r></w:p></w:body></w:document>'
+        relationships=f'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="{rel}/oleObject" Target="embeddings/math.bin"/></Relationships>'
+        buffer=BytesIO()
+        with ZipFile(buffer,'w') as archive:
+            archive.writestr('word/document.xml',fragment)
+            archive.writestr('word/_rels/document.xml.rels',relationships)
+            archive.writestr('word/embeddings/math.bin',native_math_fixture(inline=True))
+        self.assertEqual(native_formulas(buffer.getvalue(),['formula.png'],'beforeafter',None),
+                         {'formula.png':{'display':False,'source_number':'','tex':r'\frac{x_{i}^{2}}{y}'}})
 
     def test_bracket_math_identity_does_not_change_delimiter_or_sequence(self):
         raw='<!-- hrs:eq id=eq-bracket -->\r\n\\[\r\nx=2\r\n\\]\r\n'

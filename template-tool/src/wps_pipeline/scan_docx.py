@@ -33,7 +33,7 @@ def structural_hash(node):
 
 
 class Scanner:
-    def __init__(self,path,output):
+    def __init__(self,path,output,*,equation_payload=None,relationship_part=None):
         self.path=Path(path);self.output=Path(output);self.output.mkdir(parents=True,exist_ok=False)
         (self.output/'payloads').mkdir()
         with ZipFile(path) as z:self.parts={n:z.read(n) for n in z.namelist()}
@@ -42,9 +42,13 @@ class Scanner:
         self.styles={s.get('{'+W+'}styleId'):s for s in styles.findall('w:style',N)}
         (self.output/'payloads/styles.xml').write_bytes(self.parts['word/styles.xml'])
         self.default=next((k for k,s in self.styles.items() if s.get('{'+W+'}default')=='1' and s.get('{'+W+'}type')=='paragraph'),'Normal')
-        self.rels={x.get('Id'):dict(x.attrib) for x in E.fromstring(self.parts['word/_rels/document.xml.rels'])}
+        relationship_part=relationship_part or 'word/_rels/document.xml.rels'
+        raw_relationships=self.parts.get(relationship_part)
+        self.rels={x.get('Id'):dict(x.attrib) for x in E.fromstring(raw_relationships)} if raw_relationships is not None else {}
         self.blocks=[];self.objects={};self.unsupported=[]
+        self.media_payloads={};self.written_media=set()
         self.numbering_facts=NumberingFacts(self.parts)
+        self.equation_payload=equation_payload
 
     def attr(self,element,path):
         if element is None:return None
@@ -67,6 +71,15 @@ class Scanner:
               'source_path':self.root.getroottree().getpath(node)}
         self.objects[oid]=data
         return data
+
+    def media_payload(self,name):
+        if name not in self.media_payloads:
+            media=self.parts[name];digest=sha(media);dest='payloads/'+digest+Path(name).suffix
+            if dest not in self.written_media:
+                (self.output/dest).write_bytes(media)
+                self.written_media.add(dest)
+            self.media_payloads[name]={'part':name,'sha256':digest,'payload_ref':dest}
+        return self.media_payloads[name]
 
     def paragraph(self,node,container,body_index):
         block=self.new(node,'paragraph',container,body_index)
@@ -104,6 +117,12 @@ class Scanner:
                 preview=letters if simple else '[数学:'+o['object_id']+']'
                 o['preview']=preview;o['preview_status']='exact_simple_symbol' if simple else 'opaque_structure_preserved'
                 segments.append({'kind':kind,'object_id':o['object_id']});visible.append(preview);return
+            if space==W and local=='object' and self.equation_payload is not None:
+                details=self.equation_payload(e,self.rels,self.parts,self.media_payload)
+                if details is not None:
+                    o=self.obj(e,'legacy_equation');o.update(details)
+                    segments.append({'kind':'legacy_equation','object_id':o['object_id']})
+                    visible.append('[数学:'+o['object_id']+']');return
             if space==WP and local in ('inline','anchor'):
                 o=self.obj(e,'drawing');o['layout']=local;o['media']=[]
                 extent=e.find('wp:extent',N);o['extent']=dict(extent.attrib) if extent is not None else {}
@@ -111,9 +130,7 @@ class Scanner:
                     rel=self.rels[rid]
                     if rel.get('TargetMode')=='External':raise ValueError('External drawing not supported')
                     name=rel['Target'];name=name.lstrip('/') if name.startswith('/') else posixpath.normpath(posixpath.join('word',name))
-                    media=self.parts[name];digest=sha(media);dest='payloads/'+digest+Path(name).suffix
-                    (self.output/dest).write_bytes(media)
-                    o['media'].append({'relationship_id':rid,'part':name,'sha256':digest,'payload_ref':dest})
+                    o['media'].append({'relationship_id':rid,**self.media_payload(name)})
                 if not o['media']:self.unsupported.append({'block_id':block['block_id'],'reason':'drawing_without_embedded_media'})
                 segments.append({'kind':'drawing','object_id':o['object_id']});visible.append('[图片:'+o['object_id']+']');return
             if space==W and local=='t':

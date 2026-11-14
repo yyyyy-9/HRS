@@ -42,10 +42,10 @@
       "runtime": [
         {
           "path": "web/vendor/source-editor.js",
-          "bytes": 293591,
-          "sha256": "5fa0fbba0de7985c3fe75b26d370001404e949e41550564fb7f1fa47af2cb5fd",
+          "bytes": 293627,
+          "sha256": "b2bdb2c663f11cd739ec56965697c013ac95698ea0fcc664bf7cea92af1e63b4",
           "upstream_sha256": "cee9f510806337147bf3d51a9e5122c46c40e97ce251ed9bd7882c34c7159f63",
-          "local_modification": "Only the HRS adapter trailer exports existing CodeMirror primitives and its source-block field for projection/folding; upstream payload and notices are unchanged."
+          "local_modification": "The HRS adapter exposes existing editor primitives and shares its source-block state with decoration callbacks. The CodeMirror payload and notices retain their upstream bytes."
         }
       ],
       "bundled_packages": [
@@ -221,11 +221,13 @@
         },
         {
           "path": "web/vendor/mathlive/mathlive.min.js",
-          "bytes": 843924,
-          "sha256": "51e9ab5c4739209a2951a550042dcecb99ad3047269c1d791d09d7d613226eae"
+          "bytes": 844709,
+          "sha256": "157776df62c99cc1c33bdd728749dd6801665d04b16fe25a62a600c031445106",
+          "upstream_sha256": "51e9ab5c4739209a2951a550042dcecb99ad3047269c1d791d09d7d613226eae",
+          "local_modification": "HRS reduces redundant pointer-selection renders and reuses atom lookup and coordinate reads. tools/patch_mathlive_selection.py reproduces the changes against the original UMD."
         }
       ],
-      "version_note": "Official npm mathlive 0.111.1; original minified UMD and WOFF2 fonts only. KaTeX font notice retained. Loaded only for the formula dialog; no Compute Engine, sounds, online requests or output renderer replacement."
+      "version_note": "npm mathlive 0.111.1 UMD with the documented HRS pointer-selection changes and original WOFF2 fonts. KaTeX font notice retained. Used offline by the formula dialog."
     }
   ],
   "test_assets": "tests/fixtures/RIGHTS.json: project-authored synthetic fixtures",

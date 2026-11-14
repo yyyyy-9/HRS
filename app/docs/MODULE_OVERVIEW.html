@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="5f3c604147c5f060875854220c36c643bcb038c3d606fa4f1e68b4b7c0aa6838"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模块说明 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="8bd3d48cf8ba511c1188f2067b909e9f87d916b38cee9660b40db22a65befb41"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -650,7 +650,7 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 .hrs-block-times time{font:inherit}
 [data-hrs-show-timestamps="0"] .hrs-block-times{display:none!important}
 .source-code-editor .cm-block-times::after{content:attr(data-created) "\A" attr(data-modified);display:block;margin:5px 0 8px;color:var(--hrs-muted);font-family:var(--font-ui,"Microsoft YaHei UI",sans-serif);font-size:11px;font-weight:400;line-height:1.45;white-space:pre;text-align:right;user-select:none;pointer-events:none}
-</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.5.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
+</style></head><body class="theme-engineering"><div class="docs-shell"><nav class="docs-nav"><div class="docs-brand">R. HTML Report Studio</div><div class="docs-desc">离线文档 · v2.7.0<br>不需要联网，也不会读取你的报告</div><div class="docs-actions"><a href="USER_GUIDE.html">使用手册</a><a href="CHANGELOG_READABLE.html">更新记录</a><a href="MODULE_OVERVIEW.html">模块说明</a></div><a class="level2" href="#section-2">统一定义与派生缓存</a>
 <a class="level2" href="#section-3">同源桌面宿主</a>
 <a class="level2" href="#section-4">Word beta 界面适配</a>
 <a class="level2" href="#section-5">渲染与输出配置</a>
@@ -667,9 +667,11 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <a class="level2" href="#section-16">程序接口与独立下游</a>
 <a class="level2" href="#section-17">产品测试</a>
 <a class="level2" href="#section-18">混合粘贴的数学适配</a></nav><main class="docs-main"><article class="docs-paper" data-hrs-reader-root="1"><h1 id="section-1">HTML Report Studio 模块说明</h1>
-<p>预览提交由preview_commit统一保留节点、清理失效间隔；不能把移入的相邻节点再当成待清理游标。文稿撤销沿原快照与时间元数据，SourceMap提供变化范围，source_projection按CodeMirror测量生命周期定位自身滚动容器，预览独立滚动。离线Reader消费导出时原notebook索引的DOM归属元数据，筛选专题和目录层级；object_catalog同时持有共享的章节/对象编号函数。筛选只改变显示，不增加解析器或改动源归档，公式号码复用原已生成字形，无需携带数学运行库。
-公式编辑由 formula_editor.js 惰性加载离线 MathLive，等待数学字体就绪后显示；双向同步仅存在于弹窗草稿，孤立上下标拖选使用组件公开选区接口保留其容器，原 MathJax 继续负责输出。report_equations.presentation 只处理显示副本的显式 tag。section_operations（Python/JavaScript）各自消费已有 IR/SourceMap，提供章节范围与操作，不新增 Markdown 解析器。outline_tree 只在树结构变化时重建节点，普通输入更新位置与文字；阅读视图不发出移动意图。text_snippets 以受限声明式内容存储在用户数据区，插入复用对象粘贴。引用使用原定位链，不维护额外的前端反向使用索引。</p>
+<p>预览提交由preview_commit统一保留节点、清理失效间隔；不能把移入的相邻节点再当成待清理游标。文稿撤销沿原快照与时间元数据，源码编辑从 CodeMirror 事务记录改动区间和前后选区。其它整稿修改由 SourceMap 定位。source_projection 独立标记并按需滚动源码，分屏在最新预览提交后标出对应块。离线Reader消费导出时原notebook索引的DOM归属元数据，筛选专题和目录层级；object_catalog同时持有共享的章节/对象编号函数。筛选只改变显示，不增加解析器或改动源归档，公式号码复用原已生成字形，无需携带数学运行库。
+公式编辑由 formula_editor.js 惰性加载离线 MathLive，等待数学字体就绪后显示。配对上下标移动与结构间隙定位使用 MathLive 的公开接口。固定版本的 MathLive 复用每轮排版的原子节点索引，选区变化才重绘，范围合并保留单个原子的几何边界。源码包中的 tools/patch_mathlive_selection.py 可从标明摘要的上游包重建该修改。LaTeX 和可视区立即更新同一草稿，MathJax 排版示例合并连续输入，丢弃过期任务。report_equations.presentation 处理显示副本的显式 tag。section_operations（Python/JavaScript）各自消费已有 IR/SourceMap，提供章节范围与操作。outline_tree 只在树结构变化时重建节点，普通输入更新位置与文字。text_snippets 在用户数据区保存声明式内容，插入复用对象粘贴，引用沿原定位链。</p>
 <h2 id="section-2">统一定义与派生缓存</h2>
+<p>分屏的输入跟随消费已提交预览的同一 SourceMap，<code>scroll_follow</code> 仲裁手动滚动与键入定位。引用选择复用对象目录和章节路径，标签与身份分开；新锚点及其引用在同一 CodeMirror 事务提交。</p>
+<p>文档检查面板沿用 <code>preflight</code> 的完整文本检查，以当前源快照和渲染模式接收结果。自动刷新与预览排版独立，问题定位复用当前 SourceMap。</p>
 <p>document_timestamps消费原report_contract IR和section_operations章节范围，管理可选的源快照绑定时间元数据；日期独立于Markdown，未知历史日期为null。服务草稿、正式保存、CLI受控提交和HTML回编复用同一实现。浏览器document_timestamps只用CodeMirror变更映射已有位置，并渲染对象下方的信息行，不维护第二份正文或时钟规则；显示时间属于不触发内容排版的设置。临时无效对象在原载体仍存在时保留已知时间，真正删除则移除。</p>
 <p>pipe_tables持有数学感知的分列、表格范围和序列化，供原Marked表格入口、SourceBlocks折叠及表格窗口共用；Python pipe_table_contract按同一跨语言夹具提供IR。document_search的替换意图由app验证源快照和专题/全文范围后，在原编辑器提交一次事务；阅读和渲染查找没有写入入口。</p>
 <p>编辑器字号、自动折行和预览/阅读显示比例归本机视图偏好，与文稿render_options分开；统一选择范围和默认值由product_settings提供。视图适配复用CodeMirror公开扩展、SourceBlocks/SourceMap的原范围和原滚动锚点，字号仅作用正文/标题，缩放层在导出article之外；不改源文、历史、资源、编号或输出模型。公式结构样例复用惰性弹窗与原MathJax缓存，不为每个按钮创建可视编辑器；实际间距/换行仍以TeX进入原公式提交事务。</p>
@@ -680,15 +682,16 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <h2 id="section-3">同源桌面宿主</h2>
 <p>浏览器与桌面共用同一App；<code>desktop/</code>只维护窗口、私有preload、固定运行库和更新器。<code>host_services.py</code>适配私有PDF和父进程句柄，<code>portable_host/portable_window</code>继续拥有页面租约；窗口关闭共用app的原草稿冲刷，不另存正文。<code>host_capabilities.json</code>定义核心支持的宿主协议，产品版本仍来自release.json。原build_release可由同一冻结负载生成两端，独立verify_desktop核对最终包与Python/Word组件，详见源码安装说明。</p>
 <h2 id="section-4">Word beta 界面适配</h2>
-<p>word_import.py/web/word_import.js是整篇Word的薄适配：本机选择DOCX、冻结原件及同名来源映射、复用word_export的匹配运行时/Pandoc设置，在隔离子进程调用原Bridge from-docx。受限JSON通道只请求当前页面既有组图/表格/公式序列化，不执行文稿代码或任意页面操作。读取/待审/取消/失败分别处理，源摘要与暂存校验通过后沿原目录凭据、copy_project_tree和注册机制保存到新工程；登记失败保留完整新目录，原件和当前稿不覆盖。进程、请求和快照均有期限，服务关闭/取消清理所属任务。没有第二个Word或Markdown解析器。导入/核对窗口共用Word导出的beta徽标构造与主题样式；Bridge消费WPS的hyperlink_ranges事实完成目标映射，未可靠映射的目标以诊断返回。</p>
+<p>word_import.py/web/word_import.js是整篇Word的薄适配：本机选择DOCX、冻结原件及同名来源映射、复用word_export的匹配运行时/Pandoc设置，在隔离子进程调用Bridge from-docx。Bridge消费WPS共享图表布局和hyperlink_ranges，定位可保留的题注和书签，批量转换原生公式。受限JSON通道批量请求当前页面既有组图/表格/公式序列化。读取/待审/取消/失败分别处理，源摘要与暂存校验通过后沿原目录凭据、copy_project_tree和注册机制保存到新工程；登记失败保留完整新目录。进程、请求和快照均有期限，服务关闭/取消清理所属任务。导入/核对窗口共用Word导出的beta徽标构造与主题样式，未可靠映射的对象或目标以诊断返回。</p>
 <p>web/word_export.js 管模板选择、生成状态、错误和打开成品；word_export.py 只用标准库管理本机选择凭据、工程模板偏好与独立子进程。studio.py 复用现有 IR、revision 和正式／草稿附件校验冻结快照；独立便携包的 word_support 包含原 Bridge／WPS 核心与四个库，复用自带 Python；同源 browser_model.js 由当前页面提供模型，prepare／提交绑定快照，不另起 Node 或浏览器。原生公式才使用可选 Pandoc。Full 继续支持原完整 CLI。源范围、编号、模板契约和 Word 原生对象规则仍归原项目，不在 HRS 增加第二套编译器。</p>
+<p>Bridge 的 <code>docx_export.py</code> 在读取页面模型时校验图形结果，装配时复用已解码的图形；模板内章节和列表使用各自的编号实例，由同一处分配新 ID。<code>ooxml.py</code> 提供导出与回编共用的正文书签名及文档级指纹计算，按区间核对实际 Word 内容。<code>math_adapter.py</code> 只适配交给 Pandoc 的 TeX，原始文字继续由 HRS 源文和来源映射持有。</p>
 <p>report_workspace.js提供范围/恢复/管理选择与任务进度，report_workspace.py管理有界任务、分块附件和可逆生命周期；studio.py只沿原revision/资源/目录选择接口提交。operations.js集中UI租约和请求期限，避免相互解锁。临时稿默认独立；用户审查差异并确认后，可沿冻结范围/共享定义显式同步，复用原锁/备份/原子保存。独立保存另分配新身份，旧临时稿保留。图片对象转换在确认目录后应用，取消选择不改写源文。preflight.js统一页面输出诊断，Python接口只标出源码契约范围；安装cli委托这些已有读/检查/提交/HTML实现。</p>
 <h2 id="section-5">渲染与输出配置</h2>
 <p><code>web/render_profile.js</code>在原Marked和SourceMap上派生两模式的章号、摘要范围、HTML显示策略及Word装饰降级；编辑器、阅读包与Bridge共用它。<code>render_profile.py</code>验证模式与显示选项，并消费既有IR提供工程标题输出检查；文档检查、HTML CLI和Bridge调用同一规则。它们不建立第二份对象IR，不改变内容真源、编号对象身份或资源校验。</p>
 <p><code>web/color_theme.js</code>与<code>color_theme.py</code>消费统一配色目录，管理工程/草稿配置及临时输出覆盖；theme*.css集中颜色，design_tokens.css只维护尺寸结构。表格命名和简洁操作栏在object_catalog.js，Reader由它与report_reader_core.js经原生成器构建。自由HTML任务的localStorage只记录本机阅读状态，不回写源归档；帮助固定蓝色并沿用原Markdown生成器。</p>
 <p>当前发布身份以<code>release.json</code>和<a href="CURRENT_STATUS.html">当前状态</a>为准。本页说明当前程序由哪些模块组成、数据如何流转、各层负责什么。具体语法以<a href="../source_format_v1.md">源格式规范</a>为准；操作方法见<a href="USER_GUIDE.html">使用手册</a>，版本演进见<a href="CHANGELOG_READABLE.html">更新记录</a>。</p>
 <h2 id="section-6">自由台账的派生视图与交付</h2>
-<p><code>web/notebook_view.js</code> 只消费原Marked/SourceMap，派生H1专题范围、顶层额外空行和分册定义依赖；<code>object_catalog.indexSource</code> 复用原numbering函数取得全文对象序列，DOM呈现使用同一序列。主编辑器缓存一个当前全文快照的词法/范围/对象/脚注结果，聚焦只构建选定范围的显示节点。source_projection.js使用CodeMirror现有扩展点隐藏范围之外源码和定义，限制本机输入跨界；同一全文缓冲/UTF-16/撤销仍是原真源。脚注定义在独立面板通过原范围事务编辑。source-editor.js只公开既有适配层所需扩展原语，上游载荷保持逐字节原样。编号、目录、引用和全文源码仍完整；不建立第二份持久正文。分册独立派生编号并复用原HTML归档。<code>preview_images.js</code> 管理懒加载、有界尺寸缓存及原锚点恢复，成功切稿时清理。</p>
+<p><code>web/notebook_view.js</code> 消费 Marked/SourceMap，派生 H1 专题范围、顶层额外空行和分册定义依赖。<code>object_catalog.indexSource</code> 复用编号函数取得全文对象序列，DOM 呈现使用同一序列。折叠、高亮和 SourceMap 共用 CodeMirror 当前快照的结构范围，独立快照各自解析。source_projection.js 一次提交专题范围、脚注和源码装饰，用现有扩展点隐藏范围之外的源码并约束输入边界。脚注面板用同一全文缓冲和范围事务编辑，查找通过已有折叠状态展开匹配区间。source-editor.js 的调整位于 HRS 适配层。分册独立派生编号并复用 HTML 归档。<code>preview_images.js</code> 管理懒加载、有界尺寸缓存及原锚点恢复，成功切稿时清理。</p>
 <p><code>module_exports.py</code> 暂存已经通过原审计/源资源校验的HTML；全部完成后原子交付一册或ZIP，失败清理自己的临时文件。工程源、历史和共享资源不因分册删除。界面和显式programmatic调用消费同一实现；原单篇HTML CLI、A0和plan/apply契约保持。</p>
 <h2 id="section-7">内置全文查找</h2>
 <p><code>web/document_search.js</code>提供非模态Ctrl+F／F3查找栏。源码消费现有完整Markdown字符串，复用SourceBlocks折叠记录和CodeMirror范围／选区；正文消费原预览DOM，跨行内节点建立临时Range，排除隐藏源码及题注镜像重复。查找结果是临时显示状态，不是第二份持久正文或语义解析。<code>app.js</code>只负责初始化、视图准备和渲染／修改后的刷新；<code>document_search.css</code>仅作用于编辑器查找界面，原Reader／导出CSS和归档语义不变。</p>
@@ -844,7 +847,7 @@ python tools/maintain_docs.py --check
 <p>源码tools/test_catalog.py持有功能归属、具名用例与保留分组别名，run_checks生成去重计划并持有结果分类，Source/Full共用；run_python_tests仅执行明确选择并隔离所需运行时。tests/browser_support复用实际StudioServer，逐用例隔离context/工程/草稿，清理失败现场，不把模拟API当真实服务。纯测试依赖不进入普通运行包。</p>
 <p>产品测试入口与所需环境见源码README_TESTS。测试程序不参与实际文稿转换。</p>
 <h2 id="section-18">混合粘贴的数学适配</h2>
-<p>clipboard_math.py将同次WPS原生选择中的数学位置绑定到HTML图像，核对源文字、数量和关系；legacy_math.py有界读取MS-CFB/Equation Native/MTEF3常见子集，不激活OLE。OMML/MathML调用原word_export子进程与Bridge MathAdapter批量转换。rich_clipboard仅将成功的TeX接入原对象片段；资源/身份/一次提交仍由object_clipboard持有。编辑器与ZIP阅读页经同一numberObjects入口消费原SourceMap，离线HTML由原Reader重建。编号统一归object_catalog和report_contract，低层公式定界符解析不决定编号显隐。</p>
+<p>clipboard_math.py 将同一次 Word/WPS 原生选择中的数学位置绑定到 HTML 图像，核对源文字、数量和关系。legacy_math.py 为剪贴板与 Bridge 提供同一套 Equation Native MTEF3／MTEF5 字节读取。Bridge 使用 WPS 扫描得到的内嵌流和书签，按正文位置还原公式。OMML／MathML 由 Bridge MathAdapter 批量转换。rich_clipboard 将匹配的 TeX 接入原对象片段，资源、身份及一次提交由 object_clipboard 持有。编号归 object_catalog 和 report_contract，显隐由文稿的 render_options 决定。</p>
 </article><div class="docs-bottom">HTML Report Studio · 来自项目 Markdown · 离线 Marked</div></main></div><script id="hrs-reader-runtime">/* Generated by tools/build_reader_bundle.js; DO NOT edit. */
 /* Generated by tools/build_settings.js from product_settings.json; DO NOT edit. */
 (function(root){
@@ -912,7 +915,7 @@ const data={
       "label": "显示时间",
       "content_rendering": false,
       "default": true,
-      "new_free": true
+      "new_free": false
     },
     "preserve_blank_lines": {
       "label": "保留连续空行",
@@ -1231,11 +1234,11 @@ function sourceObject(record,next=null){
  }
  if(token.type==='table'){
   const suffix=next?.type==='paragraph'&&root.ReportPipeTables.parseCaption(next.raw.trim())?next.raw:'';
-  let table=root.ReportPipeTables.parseRaw(record.raw);
-  // SourceMap raw already includes the original separating newline(s).
-  // An unattached caption paragraph must not hide an otherwise valid table.
-  if(suffix)try{table=root.ReportPipeTables.parseRaw(record.raw+suffix);}catch{/* The original table remains anonymous. */}
-  return {...table.model,id:table.id,kind:'table',sourceKind:'gfm-pipe'};
+  let table,captionRecord=null;
+  if(suffix)try{table=root.ReportPipeTables.parseRaw(record.raw+suffix);captionRecord=next;}
+  catch{/* An unattached caption does not hide an otherwise valid table. */}
+  table=table||root.ReportPipeTables.parseRaw(record.raw);
+  return {...table.model,id:table.id,kind:'table',sourceKind:'gfm-pipe',captionRecord};
  }
  return null;
 }
@@ -1287,12 +1290,17 @@ function tableHeading(wrap){
  }
  wrap.dataset.captionInTools='1';
 }
+function tableHeaderName(values){
+ const text=values.map(value=>value.trim().replace(/\s+/g,' ')).filter(Boolean).join(' · ');
+ if(text.length<=80)return text;
+ const end=/[\uD800-\uDBFF]/.test(text.charAt(78))?78:79;
+ return text.slice(0,end)+'…';
+}
 function tableName(wrap){
  const caption=wrap.querySelector('caption')?.dataset.captionText?.trim();
  if(caption)return caption;
- const cells=[...(wrap.querySelector('table tr')?.cells||[])];
- const text=cells.map(cell=>cell.textContent.trim().replace(/\s+/g,' ')).filter(Boolean).join(' · ');
- return text.length>80?text.slice(0,79)+'…':text||'表格';
+ const cells=Array.from(wrap.querySelector('table tr')?.cells||[],cell=>cell.textContent);
+ return tableHeaderName(cells)||'表格';
 }
 function objectTitle(entry,show=true,profile='engineering'){
  const {node,kind}=entry;
@@ -1352,7 +1360,7 @@ function applyDisplay(article,show=true,showEquations=false,entries=indexDOM(art
  article.querySelectorAll('.report-table-wrap').forEach(tableHeading);
  return entries;
 }
-const api={tableValidate,figureValidate,validObject,headingNumbers,numbering,indexDOM,indexSource,sourceTexts,captionDisplay,tableHeading,tableName,objectTitle,tableChrome,applyDisplay};
+const api={tableValidate,figureValidate,validObject,headingNumbers,numbering,indexDOM,indexSource,sourceTexts,captionDisplay,tableHeading,tableHeaderName,tableName,objectTitle,tableChrome,applyDisplay};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.ReportObjectCatalog=api;
 })(typeof window!=='undefined'?window:globalThis);

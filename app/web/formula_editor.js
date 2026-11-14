@@ -14,7 +14,8 @@ async function fontsReady(){
  await document.fonts.ready;
 }
 function load(){
- if(loading)return loading;if(root.MathfieldElement)return fontsReady();
+ if(loading)return loading;
+ if(root.MathfieldElement)return loading=fontsReady().catch(error=>{loading=null;throw error;});
  loading=new Promise((resolve,reject)=>{
   const script=document.createElement('script');script.src='/web/vendor/mathlive/mathlive.min.js';
   const timer=setTimeout(()=>{script.remove();loading=null;reject(Error('可视公式编辑器加载超时，仍可编辑LaTeX源码'));},10000);
@@ -73,12 +74,81 @@ function mapStops(field){
  const map=(position,end)=>position<a?position:position>x?position+y-x:position===a&&!end?a:y;
  state.ranges=state.ranges.map(range=>({start:map(range.start,false),end:map(range.end,true)}));state.source=after;
 }
-function scriptSelection(math){
+function pairedScriptMove(math,event,previous){
+ if(math.readOnly||event.isComposing||event.altKey||event.ctrlKey||event.metaKey||event.shiftKey||
+    !math.selectionIsCollapsed||!['ArrowUp','ArrowDown'].includes(event.key))return;
+ const position=math.position,origin=math.getElementInfo(position);
+ if(!origin?.bounds||!origin.depth)return;
+ const info=offset=>math.getElementInfo(offset),depth=origin.depth;
+ let start=position,end=position;
+ while(start>0&&info(start).depth>=depth)start--;
+ while(end<math.lastOffset&&info(end).depth>=depth)end++;
+ const wrapper=info(end);
+ if(wrapper.depth!==depth-1||!/^[_^]/.test(wrapper.latex))return;
+ // An empty first atom marks each child branch. Verify their serialization
+ // against the parent before taking over from MathLive's normal arrows.
+ const starts=[];
+ for(let i=start+1;i<end;i++){
+  const atom=info(i);if(atom.depth===depth&&!atom.latex)starts.push(i);
+ }
+ if(starts.length!==2)return;
+ const ranges=[[starts[0],starts[1]-1],[starts[1],end-1]];
+ const [a,b]=ranges.map(range=>math.getValue(range,'latex'));
+ const script=(sign,tex)=>[sign+'{'+tex+'}',...(/^[A-Za-z0-9]$/.test(tex)?[sign+tex]:[])];
+ if(!a||!b||!script('_',a).some(lower=>script('^',b).some(upper=>wrapper.latex===lower+upper)))return;
+ const down=event.key==='ArrowDown',source=ranges[down?1:0],target=ranges[down?0:1];
+ if(position<source[0]||position>source[1])return;
+ const key=start+':'+wrapper.latex;
+ const x=previous?.key===key&&previous.position===position?previous.x:origin.bounds.right;
+ let nearest=target[0],distance=Infinity;
+ for(let i=target[0];i<=target[1];i++){
+  const atom=info(i);
+  if(atom.depth!==depth||!atom.bounds)continue;
+  const next=Math.abs(atom.bounds.right-x);
+  if(next<distance){nearest=i;distance=next;}
+ }
+ if(!Number.isFinite(distance))return;
+ event.preventDefault();event.stopImmediatePropagation();math.position=nearest;
+ return {key,x,position:nearest};
+}
+function structureGap(math,x,y){
+ // The native pointer handler already resolved this click.
+ const hit=math.position;
+ if(!Number.isInteger(hit)||(hit>0&&math.getElementInfo(hit)?.depth===0))return null;
+ let previous=null;
+ for(let i=1;i<=math.lastOffset;i++){
+  const atom=math.getElementInfo(i);
+  if(atom.depth!==0)continue;
+  const bounds=atom.bounds;
+  if(previous&&bounds&&previous.bounds.right<x&&x<bounds.left&&
+     y>Math.max(previous.bounds.top,bounds.top)&&y<Math.min(previous.bounds.bottom,bounds.bottom)){
+   // This is a gap between adjacent complete atoms, not an empty part of
+   // a fraction, radical, or script. Insert at the common parent boundary.
+   return previous.offset;
+  }
+  if(bounds&&bounds.left>x)break;
+  previous=bounds&&atom.latex?{bounds,offset:i}:null;
+ }
+ return null;
+}
+function pointerSelection(math,activate){
  let gesture=null;
- const down=event=>{if(event.button===0&&!math.readOnly)gesture={id:event.pointerId,x:event.clientX,y:event.clientY,moved:false};};
- const move=event=>{if(gesture?.id===event.pointerId&&Math.hypot(event.clientX-gesture.x,event.clientY-gesture.y)>=5)gesture.moved=true;};
+ const down=event=>{
+  if(event.button!==0||!event.isPrimary||math.readOnly)return;
+  activate();
+  const simple=event.pointerType==='mouse'&&!event.shiftKey&&!event.altKey&&!event.ctrlKey&&!event.metaKey;
+  gesture={id:event.pointerId,x:event.clientX,y:event.clientY,moved:false,simple};
+ };
+ const move=event=>{if(gesture?.id===event.pointerId&&!gesture.moved&&Math.hypot(event.clientX-gesture.x,event.clientY-gesture.y)>=5)gesture.moved=true;};
  const finish=event=>{
-  const current=gesture;gesture=null;if(!current||current.id!==event.pointerId||!current.moved||math.readOnly)return;
+  const current=gesture;if(!current||current.id!==event.pointerId)return;
+  gesture=null;if(math.readOnly)return;
+  if(!current.moved){
+   if(current.simple&&math.selectionIsCollapsed){
+    const gap=structureGap(math,current.x,current.y);if(gap!==null)math.position=gap;
+   }
+   return;
+  }
   const selection=math.selection;if(selection.ranges.length!==1)return;
   const [start,end]=selection.ranges[0];if(end-start<3)return;
   const tex=math.getValue([start,end],'latex'),atom=math.getElementInfo(end);
@@ -92,7 +162,7 @@ function scriptSelection(math){
   if(tex!==tex[0]+'{'+math.getValue(inner,'latex')+'}')return;
   math.selection={ranges:[inner],direction:event.clientX<current.x?'backward':'forward'};
  };
- const cancel=()=>{gesture=null;};
+ const cancel=event=>{if(!event||gesture?.id===event.pointerId)gesture=null;};
  math.addEventListener('pointerdown',down,true);root.addEventListener('pointermove',move,true);
  root.addEventListener('pointerup',finish,true);root.addEventListener('pointercancel',cancel,true);
  return ()=>{cancel();math.removeEventListener('pointerdown',down,true);root.removeEventListener('pointermove',move,true);root.removeEventListener('pointerup',finish,true);root.removeEventListener('pointercancel',cancel,true);};
@@ -182,17 +252,16 @@ async function open({modal,tex,id,display,validate,render}){
    const visual=document.createElement('div');visual.className='formula-visual';
    const selectionTools=document.createElement('div');selectionTools.className='formula-selection-tools';
    const selectionHint=document.createElement('span');selectionHint.textContent='单击定位 · 拖动选择 · Shift+方向键扩选';selectionTools.append(selectionHint);
-   const selectionButtons=[];
-   for(const [name,command] of [['全选公式','selectAll']]){
-    const button=document.createElement('button');button.type='button';button.className='tool';button.textContent=name;button.disabled=true;
-    // Retain an existing math selection when the tool is clicked. Keyboard
-    // activation can originate outside the field, so execute after its focus
-    // handler, using MathLive's public selection commands.
-    button.onmousedown=event=>event.preventDefault();button.onclick=()=>{
-     if(!math||math.readOnly||disposed)return;math.focus();
-     requestAnimationFrame(()=>{if(!disposed&&math.isConnected&&!math.readOnly)math.executeCommand(command);});
-    };selectionButtons.push(button);selectionTools.append(button);
-   }
+   const selectAll=document.createElement('button');selectAll.type='button';selectAll.className='tool';selectAll.textContent='全选公式';selectAll.disabled=true;
+   // Select immediately for the usual mouse path. On keyboard activation
+   // MathLive may move focus to its internal input on a later task.
+   selectAll.onmousedown=event=>event.preventDefault();selectAll.onclick=()=>{
+    if(!math||math.readOnly||disposed)return;
+    if(document.activeElement===math){math.executeCommand('selectAll');return;}
+    math.focus();
+    if(document.activeElement===math){math.executeCommand('selectAll');return;}
+    requestAnimationFrame(()=>{if(!disposed&&math.isConnected&&!math.readOnly)math.executeCommand('selectAll');});
+   };selectionTools.append(selectAll);
    const tools=document.createElement('div');tools.className='formula-tools';tools.setAttribute('aria-label','公式结构');
    field=document.createElement('textarea');field.dataset.formulaSource='1';field.setAttribute('aria-label','LaTeX源码');field.value=tex;field.spellcheck=false;field.rows=5;
    const label=document.createElement('label');label.textContent='LaTeX 源码';label.append(field);
@@ -250,55 +319,74 @@ async function open({modal,tex,id,display,validate,render}){
     idField=document.createElement('input');idField.setAttribute('aria-label','公式 ID');idField.value=id||'';idField.readOnly=!!id;idField.placeholder='未建立引用身份';
     details.append(summary,idField);outer.append(details);
    }
-   async function paint(sync=true){
-    const revision=++serial;clearTimeout(clock);
-    if(sync&&math){
-     sourceDirty=false;
-     synchronizing=true;math.setValue(ReportEquations.presentation(field.value).tex,{silenceNotifications:true});synchronizing=false;
-     const errors=math.errors||[],sourceOnly=errors.length||/\\(?:def|gdef|edef|newcommand|renewcommand|DeclareMathOperator|require|label)\b/.test(field.value);math.readOnly=!!sourceOnly;
-     for(const button of selectionButtons)button.disabled=math.readOnly||math.dataset.ready!=='1';
-     status.textContent=sourceOnly?'此写法请在LaTeX源码中编辑；原文完整保留。':'可点击分子、分母、上下标等位置直接编辑；也可在下方输入LaTeX。';
-    }
-    try{validate(field.value);const node=await render(field.value,display);if(!disposed&&revision===serial)example.replaceChildren(node.cloneNode(true));}
-    catch(error){if(!disposed&&revision===serial)example.textContent='公式提示：'+error.message;}
+   function syncVisual(){
+    if(!math||!sourceDirty)return;
+    sourceDirty=false;
+    let sourceOnly=/\\(?:def|gdef|edef|newcommand|renewcommand|DeclareMathOperator|require|label)\b/.test(field.value);
+    synchronizing=true;
+    try{
+     math.setValue(ReportEquations.presentation(field.value).tex,{silenceNotifications:true});
+     sourceOnly=sourceOnly||!!math.errors?.length;
+    }catch{sourceOnly=true;}finally{synchronizing=false;}
+    if(math.readOnly!==sourceOnly)math.readOnly=sourceOnly;
+    selectAll.disabled=math.readOnly||math.dataset.ready!=='1';
+    status.textContent=sourceOnly?'此写法请在LaTeX源码中编辑；原文完整保留。':'可点击分子、分母、上下标等位置直接编辑；也可在下方输入LaTeX。';
    }
-   paintDraft=paint;
+   let paintedTex=null,exampleTask=null;
+   function paintExample(){
+    const tex=field.value;if(paintedTex===tex)return exampleTask;
+    const revision=++serial;paintedTex=tex;
+    const current=()=>!disposed&&revision===serial&&field.value===tex;
+    exampleTask=(async()=>{
+     try{validate(tex);const node=await render(tex,display,{isCurrent:current});if(node&&current())example.replaceChildren(node.cloneNode(true));else if(revision===serial)paintedTex=null;}
+     catch(error){if(current())example.textContent='公式提示：'+error.message;else if(revision===serial)paintedTex=null;}
+    })();
+    return exampleTask;
+   }
+   paintDraft=()=>{clearTimeout(clock);sourceDirty=true;syncVisual();void paintExample();};
+   function schedulePaint(){
+    clearTimeout(clock);clock=setTimeout(()=>{syncVisual();void paintExample();},100);
+   }
    history=draftHistory(snapshot(),buttons);
    scope=outer.closest('.modal-window');scope.addEventListener('keydown',keys,true);scope.addEventListener('beforeinput',beforeInput,true);
    scope.addEventListener('compositionstart',compositionStart,true);scope.addEventListener('compositionend',compositionEnd,true);
    field.onfocus=()=>{if(active!=='source')history.boundary();active='source';};
    field.onpointerdown=()=>history.boundary();
-   field.oninput=()=>{draft=field.value;sourceDirty=true;mapStops(field);record(inputKey);clearTimeout(clock);clock=setTimeout(()=>paint(),100);};
+   field.oninput=()=>{draft=field.value;sourceDirty=true;mapStops(field);record(inputKey);schedulePaint();};
    field.onkeydown=event=>{
     if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','Tab'].includes(event.key))history.boundary();
     const stops=field._formulaStops;if(event.key!=='Tab'||!stops)return;
     const next=stops.index+(event.shiftKey?-1:1);if(next<0||next>=stops.ranges.length){field._formulaStops=null;return;}
     event.preventDefault();event.stopPropagation();stops.index=next;const range=stops.ranges[next];field.setSelectionRange(range.start,range.end);
    };
-   paint();
+   void paintExample();
    load().then(async()=>{
     if(disposed||!visual.isConnected)return;
     math=document.createElement('math-field');math.setAttribute('math-virtual-keyboard-policy','manual');math.setAttribute('aria-label','可视公式编辑');
     math.style.visibility='hidden';math.smartMode=false;math.removeExtraneousParentheses=false;visual.append(math);math.menuItems=[];
     math.keybindings=math.keybindings.filter(binding=>!(Array.isArray(binding.command)?binding.command[0]:binding.command)?.includes('VirtualKeyboard'));
-    stopSelection=scriptSelection(math);
-    const activate=()=>{if(active!=='visual')history.boundary();active='visual';if(sourceDirty)paint();};
+    let verticalMove;
+    const activate=()=>{if(active!=='visual')history.boundary();active='visual';syncVisual();};
     // MathLive may focus its internal input on a later task. A pointer tool
     // action immediately after clicking the formula already targets this field.
-    math.addEventListener('pointerdown',()=>{history.boundary();activate();},true);math.onfocus=activate;
-    math.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','Tab'].includes(event.key))history.boundary();});
+    stopSelection=pointerSelection(math,()=>{verticalMove=null;history.boundary();activate();});math.onfocus=activate;
+    math.addEventListener('keydown',event=>{
+     if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','Tab'].includes(event.key))history.boundary();
+     verticalMove=pairedScriptMove(math,event,verticalMove);
+     if(verticalMove)remember();
+    },true);
     math.addEventListener('input',()=>{
-     if(synchronizing||disposed)return;clearTimeout(clock);sourceDirty=false;
+     if(synchronizing||disposed)return;verticalMove=null;sourceDirty=false;
      const tags=ReportEquations.presentation(field.value).tags;
-     field.value=math.getValue('latex')+(tags.length?'\n'+tags.join('\n'):'');draft=field.value;field._formulaStops=null;record(inputKey);paint(false);
+     field.value=math.getValue('latex')+(tags.length?'\n'+tags.join('\n'):'');draft=field.value;field._formulaStops=null;record(inputKey);schedulePaint();
     });
-    // Mounting and the first source paint can reset the math selection. Do not
-    // expose the hit-test surface until local fonts/layout and that paint finish.
-    await paint();await document.fonts.ready;
+    // A taller final preview can shift the centered dialog. Settle the
+    // first preview and local fonts before exposing visual hit targets.
+    sourceDirty=true;syncVisual();await paintExample();await document.fonts.ready;
     await new Promise(resolve=>requestAnimationFrame(resolve));
-    if(!disposed&&math.isConnected){math.style.visibility='';math.dataset.ready='1';for(const button of selectionButtons)button.disabled=math.readOnly;}
+    if(!disposed&&math.isConnected){math.style.visibility='';math.dataset.ready='1';selectAll.disabled=math.readOnly;}
    }).catch(error=>{if(!disposed)status.textContent=error.message;});
-  },onOk:async()=>{
+  },isDirty:()=>draft.trim()!==original.trim()||(display&&(idField?.value.trim()||null)!==(id||null)),onOk:async()=>{
    const next=draft.trim(),nextId=display?idField.value.trim()||null:null;
    if(!next)throw Error('公式不能为空');await validate(next,nextId);await render(next,display);
    return {tex:next===original.trim()?original:next,id:nextId};

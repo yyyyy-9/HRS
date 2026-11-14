@@ -125,7 +125,7 @@ class WordExport:
             return {'available':bool(rt),'bundle':str(rt['root']) if rt else None,
                     'template':selected or managed or default,'template_choice':'saved' if selected else 'managed' if managed else 'default',
                     'template_missing':missing,'default_template':default,
-                    'managed_default_template':managed,'word_options':self.settings.get('word_options',{'notes_mode':'footnotes','preserve_emphasis':False}),
+                    'managed_default_template':managed,'word_options':self.settings.get('word_options',{'notes_mode':'footnotes','preserve_emphasis':False,'inline_math_mode':'native'}),
                     'runtime_kind':rt['kind'] if rt else None,'formula_available':bool(self.pandoc(rt)),
                     'request_timeout_ms':WORD_REQUEST_TIMEOUT_MS}
 

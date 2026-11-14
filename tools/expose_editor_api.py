@@ -1,8 +1,8 @@
-"""Expose named extension primitives from the pinned first-party editor adapter.
+"""Update named entry points in the pinned first-party editor adapter.
 
-The CodeMirror payload and existing adapter methods remain byte-identical.
-This is a deterministic adapter export, not a rebuild of upstream packages.
+The CodeMirror payload remains byte-identical.
 """
+import argparse
 from pathlib import Path
 
 BEFORE = 'window.SourceEditor={attach:Yu};'
@@ -19,7 +19,23 @@ def expose(text):
     raise ValueError('Pinned editor adapter export changed; inspect before rebuilding')
 
 
+def share_source_blocks(content):
+    """Pass the editor state field to the two existing decoration callbacks."""
+    for callback in (b'sourceTokens', b'sourceLineDecorations'):
+        call = b'api.' + callback + b'(text,range.from,range.to'
+        before, after = call + b')', call + b',v.state.field(Dt))'
+        if content.count(after) == 1 and before not in content:
+            continue
+        if content.count(before) != 1 or after in content:
+            raise ValueError('Pinned source decoration adapter changed')
+        content = content.replace(before, after, 1)
+    return content
+
+
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--share-source-blocks', action='store_true')
+    args = parser.parse_args()
     path = Path(__file__).resolve().parents[1] / 'app/web/vendor/source-editor.js'
-    original = path.read_bytes().decode('utf8')
-    path.write_bytes(expose(original).encode('utf8'))
+    content = expose(path.read_bytes().decode('utf8')).encode('utf8')
+    path.write_bytes(share_source_blocks(content) if args.share_source_blocks else content)

@@ -13,7 +13,7 @@ function serialize(items){
  return items.map(item=>{
   if(item.type==='image-group')return ReportLayout.groupSnippet(item.data)+'\n';
   if(item.type==='gfm')return ReportPipeTables.stringify(item.data,{id:item.id,withCaption:!!item.data.caption})+'\n';
-  if(item.type==='equation')return ReportEquations.snippet(item.tex,item.id)+'\n';
+  if(item.type==='equation')return ReportEquations.snippet(item.tex,item.id,'\n',item.delimiter)+'\n';
   throw Error('Word 组件请求了不支持的序列化操作');
  });
 }

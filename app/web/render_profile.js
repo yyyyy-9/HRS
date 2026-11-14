@@ -22,7 +22,7 @@ function plan(source,profile=null,records=null,options={}){
   if(profile==='engineering'){
    let unsupported=false;
    root.marked.walkTokens([r.token],t=>{if(t.type==='html'&&html(t.raw,profile)!=='')unsupported=true;});
-   if(unsupported)diagnostics.push({code:'ENGINEERING_HTML_LITERAL',start:r.start,end:r.end,message:'高级 HTML 已按源码显示；工程 Word 只接受已定义的转换范围。'});
+   if(unsupported)diagnostics.push({code:'ENGINEERING_HTML_LITERAL',start:r.start,end:r.end,message:'工程预览按源码显示 HTML。Word 导出保留无法映射的标签或片段原文。'});
   }
   if(r.type==='heading'){
    headings.push({start:r.start,end:r.end,level:r.token.depth,index:r.index});

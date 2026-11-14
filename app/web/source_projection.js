@@ -2,23 +2,24 @@
 (function(root){
 'use strict';
 function attach(editor,{onBoundary=()=>{}}={}){
- let typographyMap=null;
- const {StateEffect,StateField,Decoration,EditorState,EditorView,EditorSelection,external}=root.SourceEditor.extensionAPI;
- const set=StateEffect.define(),setNotes=StateEffect.define(),setEquations=StateEffect.define(),setTypography=StateEffect.define(),clamp=(n,r)=>Math.max(r.from,Math.min(r.to,n));
+ let published=null;
+ const {StateEffect,StateField,Decoration,EditorState,EditorView,EditorSelection,external,foldedRanges}=root.SourceEditor.extensionAPI;
+ const setRange=StateEffect.define(),setRecords=StateEffect.define(),clamp=(n,r)=>Math.max(r.from,Math.min(r.to,n));
  // A hidden block must not absorb the next visible line's typography.
  const hidden=Decoration.replace({block:true,inclusiveEnd:false});
- function mapRange(r,changes){return r?{from:changes.mapPos(r.from,-1),to:changes.mapPos(r.to,1),hideTo:changes.mapPos(r.hideTo,1)}:null;}
+ const initial={range:null,notes:[],equations:[],fixed:[],hiddenNotes:[],decorations:Decoration.none};
+ function mapRange(r,tr){return r&&tr.docChanged?{from:tr.changes.mapPos(r.from,-1),to:tr.changes.mapPos(r.to,1),hideTo:tr.changes.mapPos(r.hideTo,1)}:r;}
+ const mapRecords=(records,tr)=>records.map(n=>({...n,start:tr.changes.mapPos(n.start,-1),end:tr.changes.mapPos(n.end,1)}));
  const field=StateField.define({
-  create:()=>null,
+  create:()=>initial,
   update(value,tr){
-   let range=mapRange(value?.range,tr.changes);
-   let notes=(value?.notes||[]).map(n=>({...n,start:tr.changes.mapPos(n.start,-1),end:tr.changes.mapPos(n.end,1)}));
-   let equations=(value?.equations||[]).map(n=>({start:tr.changes.mapPos(n.start,-1),end:tr.changes.mapPos(n.end,1)}));
-   let fixed=(value?.fixed||[]).map(n=>({start:tr.changes.mapPos(n.start,-1),end:tr.changes.mapPos(n.end,1)}));
-   for(const effect of tr.effects)if(effect.is(set))range=effect.value;
-   for(const effect of tr.effects)if(effect.is(setNotes))notes=effect.value;
-   for(const effect of tr.effects)if(effect.is(setEquations))equations=effect.value;
-   for(const effect of tr.effects)if(effect.is(setTypography))fixed=effect.value;
+   let {range,notes,equations,fixed}=value;
+   const records=tr.effects.find(effect=>effect.is(setRecords))?.value;
+   if(records){({notes,equations,fixed}=records);}
+   else if(tr.docChanged){notes=mapRecords(notes,tr);equations=mapRecords(equations,tr);fixed=mapRecords(fixed,tr);}
+   range=mapRange(range,tr);
+   for(const effect of tr.effects)if(effect.is(setRange))range=effect.value;
+   if(range===value.range&&notes===value.notes)return equations===value.equations&&fixed===value.fixed?value:{...value,equations,fixed};
    const marks=[];
    if(range?.from>0)marks.push(hidden.range(0,range.from));
    if(range&&range.hideTo<tr.newDoc.length)marks.push(hidden.range(range.hideTo,tr.newDoc.length));
@@ -34,8 +35,8 @@ function attach(editor,{onBoundary=()=>{}}={}){
   provide:f=>[EditorView.decorations.from(f,v=>v?.decorations||Decoration.none),EditorView.atomicRanges.of(view=>view.state.field(f)?.decorations||Decoration.none)]
  });
  const filter=EditorState.transactionFilter.of(tr=>{
-  let range=mapRange(tr.startState.field(field)?.range,tr.changes);
-  for(const effect of tr.effects)if(effect.is(set))range=effect.value;
+  let range=mapRange(tr.startState.field(field).range,tr);
+  for(const effect of tr.effects)if(effect.is(setRange))range=effect.value;
   if(!range||tr.annotation(external))return tr;
   const old=tr.startState.field(field)?.range;
   if(old&&tr.docChanged&&(tr.isUserEvent('input')||tr.isUserEvent('delete')||tr.isUserEvent('move'))){
@@ -74,40 +75,72 @@ function attach(editor,{onBoundary=()=>{}}={}){
  });
  editor.view.dispatch({effects:StateEffect.appendConfig.of([field,filter,equationMarks,typographyMarks])});
  return {
-  reveal(start,end,{select=true}={}){
+  reveal(start,end,{select=true,nearest=false}={}){
    // Each pane owns its scroll position. Native scrollIntoView may walk
    // shared ancestors and cancel the preview's simultaneous navigation.
-   editor.highlightRange(start,end,{select,scroll:false});
-   const view=editor.view,doc=view.state.doc,range=view.state.field(field)?.range;
-   const current=()=>{const next=view.state.field(field)?.range;return view.state.doc===doc&&(!range?!next:next?.from===range.from&&next?.to===range.to&&next?.hideTo===range.hideTo);};
+   const view=editor.view,doc=view.state.doc,range=view.state.field(field)?.range,selection=view.state.selection;
+   const visiblePosition=position=>{
+    if(!nearest)return position;
+    let visible=position;
+    foldedRanges(view.state).between(position,position,(from,to)=>{if(from<=position&&position<to)visible=from;});
+    return visible;
+   };
+   const pointAt=visiblePosition(nearest?Math.max(start,Math.min(end,selection.main.head)):start);
+   const markFrom=visiblePosition(start);
+   editor.highlightRange(markFrom,end,{select,scroll:false});
+   const expectedSelection=view.state.selection;
+   const current=()=>{const next=view.state.field(field)?.range;return view.state.doc===doc&&(!nearest||view.state.selection.eq(expectedSelection))&&(!range?!next:next?.from===range.from&&next?.to===range.to&&next?.hideTo===range.hideTo);};
    view.requestMeasure({
-    read:measure=>current()?measure.lineBlockAt(start):null,
-    write:line=>{if(line&&current())editor.scrollTop=Math.max(0,line.top+(line.height-view.scrollDOM.clientHeight)/2);}
+    read:measure=>{
+     if(!current())return null;
+     const scroller=view.scrollDOM,height=scroller.clientHeight,line=measure.lineBlockAt(pointAt);
+     if(!nearest)return {top:line.top+(line.height-height)/2};
+     const point=measure.coordsAtPos(pointAt,1)??measure.coordsAtPos(pointAt,-1);
+     const target=point??line;
+     const bounds=scroller.getBoundingClientRect(),offset=point?bounds.top:bounds.top-measure.documentTop;
+     const margin=12;
+     let top=editor.scrollTop,left=editor.scrollLeft;
+     if(target.top<offset+margin)top+=target.top-offset-margin;
+     else if(target.bottom>offset+height-margin)top+=target.bottom-offset-height+margin;
+     if(point){
+      const edge=bounds.left+(view.dom.querySelector('.cm-gutters')?.offsetWidth??0);
+      if(point.left<edge+margin)left+=point.left-edge-margin;
+      else if(point.right>bounds.right-margin)left+=point.right-bounds.right+margin;
+     }
+     return {top,left};
+    },
+    write:position=>{
+     if(!position||!current())return;
+     editor.scrollTop=Math.max(0,position.top);
+     if(position.left!==undefined)editor.scrollLeft=Math.max(0,position.left);
+    }
    });
   },
-  set(topic){
-   const text=editor.value,range=topic?{from:topic.start,to:topic.end,hideTo:topic.end}:null;
-   if(range&&range.hideTo<text.length&&text[range.to-1]==='\n'){range.to--;if(text[range.to-1]==='\r')range.to--;}
-   const previous=editor.view.state.field(field)?.range;
-   if(JSON.stringify(previous||null)===JSON.stringify(range))return;
-   editor.view.dispatch({effects:set.of(range)});editor.requestMeasure();
-  },
-  setNotes(records){
-   const notes=records.map(r=>({start:r.start,end:r.end,key:r.token.key}));
-   if(JSON.stringify(editor.view.state.field(field)?.notes||[])!==JSON.stringify(notes))editor.view.dispatch({effects:setNotes.of(notes)});
-  },
-  setEquations(records){
-   const equations=records.map(r=>({start:r.start,end:r.end}));
-   if(JSON.stringify(editor.view.state.field(field)?.equations||[])!==JSON.stringify(equations))editor.view.dispatch({effects:setEquations.of(equations)});
-  },
-  setTypography(map){
-   if(typographyMap===map)return;typographyMap=map;
-   const fixed=[];
-   for(const record of map.blocks){
-    if(['code','html','table','reportEquation','reportImageGroup'].includes(record.type))fixed.push({start:record.start,end:record.end});
-    else fixed.push(...root.SourceMap.literalRanges(map.source,record,root.marked));
+  set(topic,model=null){
+   const doc=editor.view.state.doc;
+   if(model&&model.source!==editor.value)return;
+   const range=topic?{from:topic.start,to:topic.end,hideTo:topic.end}:null;
+   if(range&&range.hideTo<doc.length&&doc.sliceString(range.to-1,range.to)==='\n'){
+    range.to--;if(doc.sliceString(range.to-1,range.to)==='\r')range.to--;
    }
-   if(JSON.stringify(editor.view.state.field(field)?.fixed||[])!==JSON.stringify(fixed))editor.view.dispatch({effects:setTypography.of(fixed)});
+   const previous=editor.view.state.field(field).range,effects=[];
+   if(previous?.from!==range?.from||previous?.to!==range?.to||previous?.hideTo!==range?.hideTo)effects.push(setRange.of(range));
+   if(model&&(published?.map!==model.map||published?.doc!==doc)){
+    const notes=Array.from(model.notes.definitionRecords.values()).flat().sort((a,b)=>a.start-b.start)
+     .map(record=>({start:record.start,end:record.end,key:record.token.key}));
+    const equations=[],fixed=[];
+    for(const record of model.map.blocks){
+     const {start,end,type}=record;
+     if(type==='reportEquation')equations.push({start,end});
+     if(['code','html','table','reportEquation','reportImageGroup'].includes(type))fixed.push({start,end});
+     else fixed.push(...root.SourceMap.literalRanges(model.source,record,root.marked));
+    }
+    effects.push(setRecords.of({notes,equations,fixed}));
+   }
+   if(!effects.length)return;
+   editor.view.dispatch({effects});
+   if(model)published={map:model.map,doc};
+   editor.requestMeasure();
   },
   get range(){return editor.view.state.field(field)?.range||null;}
  };

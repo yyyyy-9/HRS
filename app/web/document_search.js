@@ -1,7 +1,6 @@
 /* Source search/replace and read-only rendered search over the same document. */
 (function(root){
 'use strict';
-const frame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
 function occurrences(text,query,matchCase){
  if(!query)return [];
  const escaped=query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),pattern=new RegExp(escaped,matchCase?'gu':'giu'),found=[];
@@ -34,19 +33,13 @@ function renderedMatches(article,query,matchCase){
  }
  return matches;
 }
-async function revealSource(editor,match,current){
- const snapshot=editor.value;
- editor.highlightRange(match.start,match.end,{select:false});await frame();await frame();
- if(editor.value!==snapshot||!current())return false;
- // Reuse existing fold records and the public Expand action, not a new editor.
- const block=root.SourceBlocks.scan(snapshot).find(b=>b.from<=match.start&&match.start<b.to);
- if(block)for(const card of editor.view.dom.querySelectorAll('.source-fold-summary')){
-  let position;try{position=editor.view.posAtDOM(card);}catch{continue;}
-  if(position===block.from){[...card.querySelectorAll('button')].find(b=>b.textContent==='展开')?.click();await frame();break;}
- }
- if(editor.value!==snapshot||!current())return false;
+function revealSource(editor,match){
+ const {foldedRanges,unfoldEffect}=root.SourceEditor.extensionAPI,view=editor.view,effects=[];
+ foldedRanges(view.state).between(match.start,match.end,(from,to)=>{
+  if(from<match.end&&to>match.start)effects.push(unfoldEffect.of({from,to}));
+ });
+ if(effects.length)view.dispatch({effects});
  editor.setSelectionRange(match.start,match.end);editor.highlightRange(match.start,match.end,{select:false});
- return true;
 }
 function attach({panel,editor,preview,getSource,getView,prepare,getRange=()=>({start:0,end:getSource().length}),replace,canReplace=()=>getView()!=='reading',revealSource:reveal=async()=>{},canOpen=()=>true,onError=()=>{}}){
  const query=panel.querySelector('#search-query'),scope=panel.querySelector('#search-scope'),count=panel.querySelector('#search-count');
@@ -91,7 +84,12 @@ function attach({panel,editor,preview,getSource,getView,prepare,getRange=()=>({s
    update();if(!matches.length)return;
    index=reset?0:(index+step+matches.length)%matches.length;count.textContent=(index+1)+' / '+matches.length;
    const match=matches[index];
-   if(scope.value==='source'){await reveal(match);if(!await revealSource(editor,match,()=>run===sequence&&!panel.hidden))return;}
+   if(scope.value==='source'){
+    const snapshot=editor.view.state.doc;
+    await reveal(match);
+    if(run!==sequence||panel.hidden||editor.view.state.doc!==snapshot)return;
+    revealSource(editor,match);
+   }
    else{
     for(let ancestor=match.range.startContainer.parentElement;ancestor&&preview.contains(ancestor);ancestor=ancestor.parentElement)if(ancestor.tagName==='DETAILS')ancestor.open=true;
     const rect=match.range.getBoundingClientRect(),bounds=scroller.getBoundingClientRect();

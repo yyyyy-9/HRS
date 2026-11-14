@@ -6,5 +6,5 @@ import sys
 # use that same import boundary; importing the package never starts a service.
 _app = str(Path(__file__).resolve().parent)
 if _app not in sys.path:
-    sys.path.insert(0, _app)
+    sys.path.append(_app)
 

@@ -1,2 +1,2 @@
 """Local adapters for the existing HRS and WPS contracts."""
-__version__ = '0.3.5'
+__version__ = '0.3.12'

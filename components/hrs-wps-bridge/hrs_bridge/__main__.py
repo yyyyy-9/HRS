@@ -41,6 +41,8 @@ def main(argv=None):
             p.add_argument('--accept-numbered-headings',action='store_true')
             p.add_argument('--notes-mode',choices=['footnotes','references'],default='footnotes')
             p.add_argument('--strip-body-emphasis',action='store_true',help='Omit source bold/italic; preserve template and mathematical styles')
+            p.add_argument('--inline-math-mode',choices=['native','text'],default='native',
+                           help='Use Cambria Math equations or Times New Roman text for simple inline math')
         if name=='from-docx':
             p.add_argument('--provenance',type=Path)
             p.add_argument('--structure-map',type=Path,help='Source-bound, explicit external Word group decisions')
@@ -89,7 +91,9 @@ def main(argv=None):
             result=apply(rt,args.plan,args.expect_plan_sha256)
         elif args.command=='to-docx':
             from .docx_export import convert
-            result=convert(rt,args.source,args.out,template=args.template,accept_numbered_headings=args.accept_numbered_headings,options={'notes_mode':args.notes_mode,'preserve_emphasis':not args.strip_body_emphasis})
+            result=convert(rt,args.source,args.out,template=args.template,accept_numbered_headings=args.accept_numbered_headings,
+                           options={'notes_mode':args.notes_mode,'preserve_emphasis':not args.strip_body_emphasis,
+                                    'inline_math_mode':args.inline_math_mode})
         else:
             from .docx_import import convert
             result=convert(rt,args.source,args.out,provenance=args.provenance,structure_map=args.structure_map,import_mode=args.mode)

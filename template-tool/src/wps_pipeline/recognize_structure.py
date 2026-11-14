@@ -5,12 +5,19 @@ import hashlib
 import json
 import re
 from pathlib import Path
-from .numbered_candidates import infer_numbered,rebuild_structure,authorize,list_introduction,CONTRACT,VERSION
+from .numbered_candidates import caption_prefix,infer_numbered,rebuild_structure,authorize,list_introduction,CONTRACT,VERSION
 
 ARABIC=re.compile(r'^(\d+(?:\.\d+){0,3})\s+(?=\S)')
 CHINESE=re.compile(r'^([一二三四五六七八九十百]+)、\s*')
 SUB=re.compile(r'^[（(]([一二三四五六七八九十百]+)[）)]\s*')
-CAP=re.compile(r'^(图|表|式)\s*\d+(?:[-－.]\d+)?(?:[.．、]\s*|\s+|[：:])')
+EQUATION_LABEL=re.compile(r'^式\s*\d+(?:[-－.]\d+)?(?:[.．、]\s*|\s+|[：:])')
+
+
+def caption_role(text):
+    parsed=caption_prefix(text)
+    if parsed and (not parsed['content'] or parsed['number_span'][1]<len(parsed['prefix'])):
+        return 'figure_caption' if parsed['label']=='图' else 'table_caption'
+    return 'equation_description' if EQUATION_LABEL.match(text) else None
 
 
 def recognize(scan,overrides=None,short_content_chars=20):
@@ -34,8 +41,8 @@ def recognize(scan,overrides=None,short_content_chars=20):
         elif 'drawing' in kinds and not plain:row['role']='figure';row['evidence']=['drawing_without_ordinary_text']
         elif not text and not kinds:row['role']='spacer';row['evidence']=['empty_paragraph']
         elif not text:row['role']='boundary';row['evidence']=['non_text_events']
-        elif CAP.match(text):
-            marker=CAP.match(text).group(1);row['role']={'图':'figure_caption','表':'table_caption','式':'equation_description'}[marker]
+        elif caption:=caption_role(text):
+            row['role']=caption
             row['evidence']=['caption_prefix_pending_object_pair']
         elif re.match(r'^\[\d+\]',text):
             row['role']='reference';row['evidence']=['reference_marker']

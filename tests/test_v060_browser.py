@@ -223,16 +223,24 @@ $$\boldsymbol{x}=1$$
   help_page.close()
 
  def test_10_new_free_default_and_existing_preference(self):
+  """EDITOR-UX-2.6: a fresh note hides time; explicit and legacy choices still load."""
   self.page.evaluate("()=>ReportStudioProgrammatic.open('new')")
   self.page.locator('#render-profile').select_option('free')
   self.page.wait_for_function("document.body.dataset.renderProfile==='free'")
   self.assertFalse(self.page.locator('#show-object-numbers').is_checked())
+  times=self.page.locator('#show-timestamps')
+  self.assertFalse(times.is_checked())
+  self.page.wait_for_function("document.querySelector('#preview-content').dataset.hrsShowTimestamps==='0'")
+  times.check()
   self.page.locator('#show-object-numbers').check()
   self.page.wait_for_function("document.querySelector('#preview-content').dataset.hrsShowObjectNumbers==='1'")
   for profile in ('engineering','free'):
    self.page.locator('#render-profile').select_option(profile)
    self.page.wait_for_function('p=>document.body.dataset.renderProfile===p',arg=profile)
   self.assertTrue(self.page.locator('#show-object-numbers').is_checked())
+  self.assertTrue(times.is_checked())
+  self.page.evaluate("()=>ReportStudioProgrammatic.open('legacy')")
+  self.assertTrue(times.is_checked())
 
  def test_11_palette_and_profile_survive_html_import_save_and_draft(self):
   source(self.page,table_source());self.page.wait_for_selector('.hrs-table-mini')

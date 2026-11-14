@@ -1,11 +1,14 @@
 """Map the current HRS IR into the independently configured WPS template."""
 import base64
+from bisect import bisect_right
 from copy import deepcopy
 from io import BytesIO
+from itertools import chain, takewhile
 import html
 import json
 from pathlib import Path
 import tempfile
+from typing import NamedTuple
 
 from docx import Document
 from docx.oxml.ns import qn
@@ -16,17 +19,67 @@ from lxml import etree as E
 from PIL import Image
 
 from .browser import call
-from .math_adapter import MathAdapter
-from .ooxml import N, W, element, zero_indent, field, semantic_hash, provenance_path, drawing_extents
+from .math_adapter import INLINE_TEXT_FONT, MathAdapter, inline_math_text
+from .ooxml import N, W, element, zero_indent, field, native_hasher, provenance_path, drawing_extents, number_name
 from .runtime import BridgeError, new_path, sha, source_contract_valid
+
+INLINE_FORMAT = {
+    'strong': ('bold', True), 'em': ('italic', True), 'del': ('strike', True),
+    'hrsUnderline': ('underline', True), 'hrsSubscript': ('script', 'subscript'),
+    'hrsSuperscript': ('script', 'superscript'),
+}
+TEXT_FALLBACK = 'WORD_TEXT_FALLBACK'
+FALLBACK_REASONS = {
+    'markup': '此 Markdown 或 HTML 片段没有对应的 Word 格式。',
+    'nested_script': 'Word 文字上下标无法叠加。',
+    'math_in_script': '行内公式位于 HTML 上下标内。',
+    'math_unconverted': 'Pandoc 未生成完整的原生公式。',
+    'math_invalid_output': '公式转换器未返回可核对的结果。',
+    'math_unavailable': '公式转换器无法运行。',
+    'math_timeout': '公式转换器等待超时。',
+    'math_not_configured': '未配置 Pandoc。',
+    'diagram_rendition': '流程图无法生成预览，已保留 Mermaid 原文。',
+    'svg_rendition': 'SVG 无法生成预览，已保留原件路径。',
+    'nested_note': '嵌套脚注保留引用及可找到的说明原文。',
+    'note_image': '页底脚注中的图片保留为原文链接。',
+    'empty_note': '脚注正文为空，已保留条目及其编号。',
+    'broken_link': '普通链接的目标已失效，已保留链接原文。',
+}
+GRAPHIC_FIELDS = {'diagrams': 'diagram_sources', 'svgAssets': 'svg_sources'}
+
+
+def word_tokens(value):
+    if isinstance(value, list):
+        for item in value:
+            yield from word_tokens(item)
+    elif isinstance(value, dict):
+        if 'type' in value:
+            yield value
+        for item in value.values():
+            if isinstance(item, (dict, list)):
+                yield from word_tokens(item)
+
+
+def note_keys(value):
+    return dict.fromkeys(token['key'] for token in word_tokens(value) if token['type'] == 'hrsFootnoteRef')
+
 
 def output_options(value=None):
     """Output policy is snapshot-bound and never rewrites Markdown."""
     value={} if value is None else value
-    if not isinstance(value,dict) or set(value)-{'notes_mode','preserve_emphasis'}:raise BridgeError('Word 输出选项无效')
+    if not isinstance(value,dict) or set(value)-{'notes_mode','preserve_emphasis','inline_math_mode'}:raise BridgeError('Word 输出选项无效')
     mode=value.get('notes_mode','footnotes');keep=value.get('preserve_emphasis',True)
     if mode not in ('footnotes','references') or type(keep) is not bool:raise BridgeError('Word 脚注或正文强调选项无效')
-    return {'notes_mode':mode,'preserve_emphasis':keep}
+    inline_math_mode = value.get('inline_math_mode', 'native')
+    if inline_math_mode not in ('native', 'text'):
+        raise BridgeError('Word 行内公式选项无效')
+    return {'notes_mode':mode,'preserve_emphasis':keep,'inline_math_mode':inline_math_mode}
+
+
+class Picture(NamedTuple):
+    blob: bytes
+    width: int
+    height: int
 
 
 class NoteBody:
@@ -39,28 +92,26 @@ class NoteBody:
     def part(self):
         return self._part
 
-    def add_paragraph(self):
-        node=element('w:p');self._element.append(node)
-        return Paragraph(node,self)
-
 
 class Writer:
     def __init__(self, rt, source, template=None, accept_numbered_headings=False, *, model=None, prepare_only=False, options=None):
         from wps_pipeline.resolve_styles import inspect_template, open_template_body
         self.rt = rt
         self.options=output_options(options)
-        self.derived_sections=[]
         self.source = Path(source).resolve()
         if self.source.is_file():
             self.source = self.source.parent
         self.raw = (self.source / 'report.md').read_bytes()
+        from color_theme import read as read_color_theme
         from render_profile import read as read_profile, read_options, require_output
         self.source_profile=read_profile(self.source);self.source_options=read_options(self.source)
-        self.document_key = sha(self.raw)[:16]
+        color_theme = read_color_theme(self.source)
+        self.source_sha256 = sha(self.raw)
+        self.document_key = self.source_sha256[:16]
         self.ir = rt.analyze(self.raw, self.source / 'assets')
         if not self.ir['ok'] or not source_contract_valid(self.ir):
             raise BridgeError('HRS validation prevents compilation: ' + json.dumps(self.ir['diagnostics'], ensure_ascii=False))
-        self.output_diagnostics=require_output(self.ir,'engineering',accept_numbered_headings)
+        self.diagnostics=list(require_output(self.ir,'engineering',accept_numbered_headings))
         config = json.loads((rt.wps / 'config.json').read_text('utf-8-sig'))
         self.template = Path(template).resolve() if template is not None else rt.wps / config.get('template', 'templates/target_template.docx')
         # The current WPS configuration resolves the actual mother template.
@@ -72,32 +123,35 @@ class Writer:
         self.width = self.template_info['usable_width_twips']
         self.doc = Document(self.template)
         self.body = self.doc._element.body
-        self.title_pattern=open_template_body(self.body,self.template_info)
-        self.front_nodes=list(self.body)[:-1]
-        self.front_xml=[E.tostring(node) for node in self.front_nodes]
-        self.bind_heading_numbering()
+        open_template_body(self.body,self.template_info)
+        self.section_end = self.body[-1]
+        self.front_xml = [E.tostring(node) for node in self.body[:-1]]
         self.heading_counts = [0] * 6
-        self.math = None
+        self.math = {}
+        self.inline_math_counts = {'converted': 0, 'retained': 0}
         self.note_part = None
         self.note_refs = {}
+        self.literal_notes = set()
         self.current_parent = None
+        self.current_block = None
+        self.current_note = None
+        self.line_offsets = None
+        self.paragraph_styles = {}
         self.bookmark_id = max([int(n.get(qn('w:id'))) for n in self.body.iter(qn('w:bookmarkStart')) if (n.get(qn('w:id')) or '').isdigit()]+[0])
         self.tables = 0
-        self.diagnostics = list(self.output_diagnostics)
         self.emf_parts = {}
         self.inline_text = []
         self.block_text = []
         self.block_starts = []
         self.inline_index = {}
         self.markdown_parts = {}
-        self.metadata_blocks = []
         self.origin_styles = {}
         self.word_origin = None
         self.image_layouts = {}
         origin_path = self.source / 'bridge-origin.json'
         if origin_path.is_file():
             origin = json.loads(origin_path.read_text('utf8'))
-            if origin.get('schema') == 'hrs-word-origin-v1' and origin.get('markdown_sha256') == sha(self.raw):
+            if origin.get('schema') == 'hrs-word-origin-v1' and origin.get('markdown_sha256') == self.source_sha256:
                 self.word_origin = origin
                 self.origin_styles = {b['start']:b for b in origin.get('word_styles',[])}
                 self.image_layouts = {b['id']:b for b in origin.get('image_layouts',[])}
@@ -117,7 +171,7 @@ class Writer:
                 while key in snapshot_ids:
                     suffix+=1;key=base+'-'+str(suffix)
                 snapshot_ids.add(key)
-                b.update(type='figure',id=key,data={'kind':'mermaid','source':b['body'],'caption':''})
+                b.update(word_figure_id=key,data={'kind':'mermaid','source':b['body'],'caption':''})
             texts = list(self.texts(b))
             if b['type'] == 'heading':
                 style = self.heading_style(b)
@@ -128,24 +182,27 @@ class Writer:
                 if text not in self.inline_index:
                     self.inline_index[text] = len(self.inline_text)
                     self.inline_text.append(text)
-        self.model_request={'schema':'hrs-word-model-request-v1','numbering_policy':'document-v2','render_options':self.source_options,'markdown':self.raw.decode('utf8'),
-                            'sections':self.block_text,'sectionStarts':self.block_starts,'inline':self.inline_text,
-                            'template_sha256':self.template_sha256,'source_sha256':sha(self.raw),'output_options':self.options,
-                            'assets':{name:sha((self.source/name).read_bytes()) for name in sorted(self.ir['assets'])},
-                            'diagram_sources':{b['id']:b['data']['source'] for b in self.ir['blocks'] if b['type']=='figure' and b['data']['kind']=='mermaid'},
-                            'svg_sources':{Path(name).name:base64.b64encode((self.source/name).read_bytes()).decode('ascii') for name in sorted(self.ir['assets']) if name.lower().endswith('.svg')}}
-        self.model_request['request_sha256']=sha(json.dumps(self.model_request,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode('utf8'))
-        self.model=None
-        if not prepare_only:
-            self.model=model if model is not None else call(rt,'model',project=self.source,**self.model_request)
-            self.validate_model()
-            self.diagnostics.extend(self.model['profile']['diagnostics'])
+        self.asset_hashes, svg_sources = {}, {}
+        for name in sorted(self.ir['assets']):
+            raw = self.read_asset(name)
+            self.asset_hashes[name] = sha(raw)
+            if name.lower().endswith('.svg'):
+                svg_sources[name] = base64.b64encode(raw).decode('ascii')
+        request={'schema':'hrs-word-model-request-v1','numbering_policy':'document-v2','render_options':self.source_options,'color_theme':color_theme,'markdown':self.raw.decode('utf8'),
+                 'sections':self.block_text,'sectionStarts':self.block_starts,'inline':self.inline_text,
+                 'template_sha256':self.template_sha256,'source_sha256':self.source_sha256,'output_options':self.options,
+                 'assets':self.asset_hashes,'svg_sources':svg_sources,
+                 'diagram_sources':{self.identity(b):b['data']['source'] for b in self.ir['blocks'] if b['type'] in ('figure','mermaid') and b['data']['kind']=='mermaid'}}
+        request['request_sha256']=sha(json.dumps(request,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode('utf8'))
+        if prepare_only:
+            self.model_request = request
+        else:
+            self.load_model(model if model is not None else call(rt,'model',**request), request)
         self.identities = {b['id']: b for b in self.ir['blocks'] if b.get('id')}
 
-    def validate_model(self):
+    def load_model(self, m, request):
         """The editor model is bound to this exact source/assets/template request."""
-        m=self.model
-        if not isinstance(m,dict) or m.get('schema')!='hrs-word-browser-model-v1' or m.get('request_sha256')!=self.model_request['request_sha256'] or m.get('numbering_policy')!='document-v2':
+        if not isinstance(m,dict) or m.get('schema')!='hrs-word-browser-model-v1' or m.get('request_sha256')!=request['request_sha256'] or m.get('numbering_policy')!='document-v2':
             raise BridgeError('Word 页面模型与当前源稿、附件或模板快照不一致，请重新导出')
         if m.get('render_options')!=self.source_options:raise BridgeError('Word 页面模型与当前编号设置不一致，请重新导出')
         if m.get('output_options')!=self.options:raise BridgeError('Word 页面模型与当前输出策略不一致，请重新导出')
@@ -158,34 +215,46 @@ class Writer:
         notes=m.get('footnotes',{})
         if not isinstance(notes,dict) or len(notes)>1000 or any(not isinstance(k,str) or not isinstance(v,list) for k,v in notes.items()):
             raise BridgeError('Word 脚注模型无效')
-        def check_notes(value,in_note=False):
-            if isinstance(value,list):
-                for item in value:check_notes(item,in_note)
-            elif isinstance(value,dict):
-                if value.get('type')=='hrsFootnoteRef':
-                    if in_note:raise BridgeError('Word 不支持脚注中嵌套脚注')
-                    if value.get('key') not in notes:raise BridgeError('脚注未定义：'+str(value.get('key')))
-                if in_note and value.get('type')=='image':raise BridgeError('Word 脚注暂不支持图片')
-                for key,item in value.items():
-                    if key not in ('raw','text'):check_notes(item,in_note)
-        check_notes(m['tokens']);check_notes(m['inline'])
-        for value in notes.values():check_notes(value,True)
-        for field,expected in (('diagrams',self.model_request['diagram_sources']),('svgAssets',self.model_request['svg_sources'])):
+        sources=m.get('footnote_sources',{})
+        if not isinstance(sources,dict) or sources.keys()!=notes.keys() or any(not isinstance(v,str) for v in sources.values()):
+            raise BridgeError('Word 脚注模型缺少来源文字')
+        self.used_notes = note_keys([m['tokens'],m['inline']])
+        for key in self.used_notes:
+            if key not in notes:raise BridgeError('脚注未定义：'+str(key))
+        errors=m.get('graphic_errors',{})
+        if not isinstance(errors,dict) or errors.keys()-GRAPHIC_FIELDS.keys():
+            raise BridgeError('Word 图形转换结果无效')
+        self.graphics: dict[str, dict[str, Picture | str]] = {}
+        for field,request_field in GRAPHIC_FIELDS.items():
+            expected=request[request_field]
             values=m.get(field)
-            if not isinstance(values,dict) or not set(expected)<=set(values):raise BridgeError('Word 图形预览不完整')
-            for ident,encoded in values.items():
+            failed=errors.get(field,{})
+            if (not isinstance(values,dict) or not isinstance(failed,dict) or values.keys() & failed.keys()
+                    or (values.keys() | failed.keys()) != expected.keys()):
+                raise BridgeError('Word 图形预览不完整')
+            if any(not isinstance(v,str) or not v.strip() or len(v)>240 for v in failed.values()):
+                raise BridgeError('Word 图形失败信息无效')
+            graphics = self.graphics[field] = dict(failed)
+            for key, encoded in values.items():
                 if not isinstance(encoded,str) or len(encoded)>16*1024*1024:raise BridgeError('Word 图形预览大小无效')
                 try:
                     raw=base64.b64decode(encoded,validate=True)
                     with Image.open(BytesIO(raw)) as image:
                         if image.format!='PNG' or image.width*image.height>16000000:raise ValueError()
+                        picture = Picture(raw, image.width, image.height)
                         image.verify()
-                except Exception:raise BridgeError('Word 图形预览不是有效的有界 PNG') from None
-        def math_node(value):
-            if isinstance(value,dict):return value.get('type')=='hrsMath' or any(math_node(v) for k,v in value.items() if k not in ('raw','text'))
-            return isinstance(value,list) and any(math_node(v) for v in value)
-        if not self.rt.pandoc and (any(b['type']=='equation' for b in self.ir['blocks']) or math_node(m['tokens']) or math_node(m['inline']) or math_node(notes)):
-            raise BridgeError('本文含公式；请在“公式支持”中选择 Pandoc 后重试。普通无公式报告无需该组件。')
+                except (OSError, ValueError, SyntaxError, EOFError, Image.DecompressionBombError):
+                    raise BridgeError('Word 图形预览不是有效的有界 PNG') from None
+                graphics[key] = picture
+        self.model = {'tokens':m['tokens'], 'inline':m['inline'], 'footnotes':notes, 'footnote_sources':sources}
+        self.diagnostics.extend(m['profile']['diagnostics'])
+
+    def read_asset(self, source):
+        from asset_paths import normalize_asset, asset_file
+        name = normalize_asset(source, originals=True)
+        if name is None:
+            raise BridgeError('Image must be inside project assets: ' + str(source))
+        return asset_file(self.source / 'assets', name.removeprefix('assets/')).read_bytes()
 
     @staticmethod
     def texts(block):
@@ -204,65 +273,124 @@ class Writer:
     def diagnostic(self, code, block, message):
         self.diagnostics.append({'code': code, 'block': block['index'], 'id': block.get('id'), 'message': message})
 
-    def paragraph(self, style='Normal', parent=None, compact=False):
-        from wps_pipeline.docx_formatting import style_paragraph
-        parent=parent or self.current_parent
-        if isinstance(parent,NoteBody) and style=='Normal':style='Footnote Text'
-        p = self.doc.add_paragraph() if parent is None else parent.add_paragraph()
-        # WPS helpers use plain lxml, python-docx uses registered OOXML subclasses.
-        # Cross that boundary explicitly; do not fork the shared formatting rules.
-        plain = E.fromstring(E.tostring(p._p))
-        if style.startswith('HRS ') and style not in self.doc.styles:
-            raise BridgeError('Current Word template requires '+style+'; prepare template v0.3.11 before export')
-        style_id=self.styles.get(style,self.doc.styles[style].style_id if style in self.doc.styles else style)
-        style_paragraph(plain, style_id, compact=compact)
-        formatted = parse_xml(E.tostring(plain))
-        p._p.getparent().replace(p._p, formatted)
-        p = Paragraph(formatted, p._parent)
-        if style in ('图形段', '图题', '表题', '表内正文', '公式'):
-            zero_indent(p._p)
-        return p
+    def line_at(self, offset):
+        if self.line_offsets is None:
+            self.line_offsets = [0]
+            for line in self.raw.decode('utf8').splitlines(keepends=True):
+                self.line_offsets.append(self.line_offsets[-1] + len(line.encode('utf-16-le')) // 2)
+        return bisect_right(self.line_offsets, offset)
 
-    def inline(self, p, tokens, bold=False, italic=False, strike=False, pre_wrap=False):
+    @staticmethod
+    def literal_run(p, raw, **formatting):
+        run = p.add_run(raw.replace('\r\n', '\n').replace('\r', '\n'))
+        Writer.format_run(run, **formatting)
+        return run
+
+    def write_fallback(self, p, raw, *, reason='markup', source_offset=None, formula=False, detail=None, **formatting):
+        if not isinstance(raw, str) or not raw.strip():
+            raise BridgeError('Word 页面模型缺少可保留的片段原文')
+        run = self.literal_run(p, raw, **formatting)
+        if formula:
+            run.font.name = INLINE_TEXT_FONT
+        item = {'code': TEXT_FALLBACK, 'severity': 'warning', 'kind': 'formula' if formula else 'markup',
+                'reason': reason, 'message': FALLBACK_REASONS[reason], 'excerpt': ' '.join(raw.split())[:120]}
+        if detail:
+            item['detail'] = detail
+        block = self.current_block
+        if self.current_note is not None:
+            item['footnote'] = self.current_note
+        elif block is not None:
+            item.update(block=block['index'], id=block.get('id'))
+            if type(source_offset) is int and block['start'] <= source_offset < block['end']:
+                item['line'] = self.line_at(source_offset)
+            else:
+                item.update(line=block['line'], end_line=self.line_at(block['end'] - 1))
+        self.diagnostics.append(item)
+
+    def paragraph(self, style='Normal', parent=None):
+        from wps_pipeline.docx_formatting import style_paragraph
+        parent = parent if parent is not None else self.current_parent
+        if isinstance(parent, NoteBody) and style == 'Normal':
+            style = 'Footnote Text'
+        if style not in self.paragraph_styles:
+            style_id = self.styles.get(style)
+            if style_id is None:
+                if style in self.doc.styles:
+                    style_id = self.doc.styles[style].style_id
+                elif style.startswith('HRS '):
+                    raise BridgeError('Current Word template requires '+style+'; prepare template v0.3.11 before export')
+                else:
+                    style_id = style
+            # Format an empty paragraph through the shared WPS adapter once.
+            plain = E.Element(qn('w:p'))
+            style_paragraph(plain, style_id)
+            formatted = parse_xml(E.tostring(plain))
+            if style in ('图形段', '图题', '表题', '表内正文', '公式'):
+                zero_indent(formatted)
+            self.paragraph_styles[style] = formatted
+        node = deepcopy(self.paragraph_styles[style])
+        if parent is None:
+            self.section_end.addprevious(node)
+            parent = self.doc._body
+        else:
+            parent._element.append(node)
+        return Paragraph(node, parent)
+
+    def inline(self, p, tokens, *, pre_wrap=False, **formatting):
         from report_contract import REF
         from reference_context import masked_context
+
+        def write(text):
+            self.run(p, text, pre_wrap=pre_wrap, **formatting)
+
         for t in tokens:
             kind = t['type']
-            if kind in ('strong', 'em', 'del'):
-                self.inline(p, t['tokens'], bold or kind == 'strong' and self.options['preserve_emphasis'], italic or kind == 'em' and self.options['preserve_emphasis'], strike or kind == 'del', pre_wrap)
+            if kind in INLINE_FORMAT:
+                name, value = INLINE_FORMAT[kind]
+                style = dict(formatting)
+                if name == 'script' and 'script' in style:
+                    self.write_fallback(p, t.get('opening'), reason='nested_script', **style)
+                    self.inline(p, t['tokens'], pre_wrap=pre_wrap, **style)
+                    self.literal_run(p, t['closing'], **style)
+                    continue
+                if name not in ('bold', 'italic') or self.options['preserve_emphasis']:
+                    style[name] = value
+                self.inline(p, t['tokens'], pre_wrap=pre_wrap, **style)
             elif kind in ('text', 'escape'):
                 if t.get('tokens'):
-                    self.inline(p, t['tokens'], bold, italic, strike, pre_wrap)
+                    self.inline(p, t['tokens'], pre_wrap=pre_wrap, **formatting)
                     continue
                 text = t.get('text', '')
                 cursor = 0
                 for ref in REF.finditer(masked_context(text)):
-                    self.run(p, text[cursor:ref.start()], bold, italic, strike, pre_wrap)
+                    write(text[cursor:ref.start()])
                     target = self.identities.get(ref[2])
                     if target is None:
                         raise BridgeError('Reference target missing: ' + ref[2])
                     if ref[1] in ('fig', 'tbl'):
-                        self.run(p, '图 ' if ref[1] == 'fig' else '表 ', bold, italic, strike)
-                        field(p, ' REF ' + self.number_name(ref[2]) + ' \\h ', self.output_numbers[ref[2]])
+                        write('图 ' if ref[1] == 'fig' else '表 ')
+                        field(p, ' REF ' + number_name(ref[2]) + ' \\h ', self.output_numbers[ref[2]])
                     elif ref[1] == 'sec':
-                        field(p, ' REF ' + self.number_name(ref[2]) + ' \\h ', target['text'])
+                        field(p, ' REF ' + number_name(ref[2]) + ' \\h ', target['text'])
                     else:
                         if self.source_options['show_equation_numbers']:
-                            self.run(p,'式（',bold,italic,strike)
-                            field(p,' REF '+self.number_name(ref[2])+' \\h ',self.output_numbers[ref[2]])
-                            self.run(p,'）',bold,italic,strike)
+                            write('式（')
+                            field(p,' REF '+number_name(ref[2])+' \\h ',self.output_numbers[ref[2]])
+                            write('）')
                         else:
-                            field(p,' HYPERLINK \\l "'+self.number_name(ref[2])+'" ','该公式')
+                            field(p,' HYPERLINK \\l "'+number_name(ref[2])+'" ','该公式')
                     cursor = ref.end()
-                self.run(p, text[cursor:], bold, italic, strike, pre_wrap)
+                write(text[cursor:])
             elif kind == 'codespan':
-                self.run(p, t['text'], bold, italic, strike)
+                self.run(p, t['text'], **formatting)
             elif kind == 'hrsMath':
-                if self.math is None:
-                    self.math = MathAdapter(self.rt)
-                p._p.append(self.math.omml(t['tex'], False))
+                self.write_math(p, t['tex'], t['raw'], source_offset=t.get('source_offset'), **formatting)
             elif kind == 'hrsFootnoteRef':
-                self.footnote(p,t['key'])
+                if self.current_note is None:
+                    self.footnote(p,t['key'])
+                else:
+                    detail = None if t['key'] in self.model['footnotes'] else '该脚注标识没有定义。'
+                    self.write_fallback(p,t['raw'],reason='nested_note',detail=detail,**formatting)
             elif kind == 'br':
                 p.add_run().add_break()
             elif kind == 'link':
@@ -270,19 +398,80 @@ class Writer:
                 hyperlink = element('w:hyperlink')
                 if t['href'].startswith('#object-'):
                     key=t['href'][8:]
-                    if key not in self.identities:raise BridgeError('INTERNAL_LINK_TARGET_MISSING: '+key)
-                    hyperlink.set(qn('w:anchor'),self.number_name(key));hyperlink.set(qn('w:history'),'1')
+                    if key not in self.identities:
+                        self.write_fallback(p,t['raw'],reason='broken_link',**formatting)
+                        continue
+                    hyperlink.set(qn('w:anchor'),number_name(key));hyperlink.set(qn('w:history'),'1')
                 else:hyperlink.set(qn('r:id'), p.part.relate_to(t['href'], RT.HYPERLINK, is_external=True))
                 start = len(p._p)
-                self.inline(p, t.get('tokens', [{'type': 'text', 'text': t['text']}]), bold, italic, strike, pre_wrap)
+                self.inline(p, t.get('tokens', [{'type': 'text', 'text': t['text']}]), pre_wrap=pre_wrap, **formatting)
                 for node in list(p._p)[start:]:
                     hyperlink.append(node)
                 p._p.append(hyperlink)
             elif kind == 'image':
-                self.picture(p, {'src': t['href'], 'alt': t.get('text', '')}, self.width)
-                zero_indent(p._p)
+                if self.current_parent is not None:
+                    self.write_fallback(p,t['raw'],reason='note_image',**formatting)
+                else:
+                    self.picture(p, {'src': t['href'], 'alt': t.get('text', ''), 'raw':t['raw']}, self.width)
+                    zero_indent(p._p)
             else:
-                raise BridgeError('Unsupported inline Markdown token: ' + kind)
+                self.write_fallback(p, t.get('raw'), **formatting)
+
+    def write_math(self, p, tex, raw, *, display=False, source_offset=None, **formatting):
+        result = self.math[(tex, display)] if self.rt.pandoc else None
+        reason = result.reason if result is not None else 'math_not_configured'
+        if 'script' in formatting:
+            reason = 'math_in_script'
+        if reason is not None:
+            self.write_fallback(p, raw, reason=reason, source_offset=source_offset, formula=True, **formatting)
+            return
+        if not display and self.options['inline_math_mode'] == 'text':
+            pieces = inline_math_text(result.node)
+            if pieces is not None:
+                for piece in pieces:
+                    run = p.add_run(piece.text)
+                    run.font.name = INLINE_TEXT_FONT
+                    style = {**formatting, 'bold': piece.bold or formatting.get('bold', False),
+                             'italic': piece.italic or formatting.get('italic', False), 'script': piece.script}
+                    self.format_run(run, **style)
+                self.inline_math_counts['converted'] += 1
+                return
+            self.inline_math_counts['retained'] += 1
+        p._p.append(deepcopy(result.node))
+
+    def write_note_body(self, key):
+        self.current_note = key
+        parent = self.current_parent
+        if parent is None:
+            container = self.body
+            previous = self.section_end.getprevious()
+        else:
+            container = parent._element
+            previous = container[-1] if len(container) else None
+        try:
+            self.markdown(self.model['footnotes'][key])
+            self.write_nested_note_sources(key)
+            added = previous.itersiblings() if previous is not None else iter(container)
+            first = next((node for node in added if node.tag==qn('w:p')),None)
+            if first is not None:
+                return Paragraph(first, parent if parent is not None else self.doc._body)
+            paragraph = self.paragraph()
+            self.write_fallback(paragraph,f'[^{key}]:',reason='empty_note')
+            return paragraph
+        finally:
+            self.current_note = None
+
+    def write_nested_note_sources(self, key):
+        sources = self.model['footnote_sources']
+        notes = self.model['footnotes']
+        pending = list(note_keys(notes[key]))
+        for target in pending:
+            if target == key or target in self.literal_notes or target not in sources:
+                continue
+            self.literal_notes.add(target)
+            raw = sources[target]
+            self.literal_run(self.paragraph(),f'[^{target}]:' + (' '+raw if raw else ''))
+            pending.extend(note_keys(notes[target]))
 
     def footnote(self,p,key):
         """One native footnote per definition; later mentions are live NOTEREF."""
@@ -330,22 +519,21 @@ class Writer:
             for kind,ident in [('separator',-1),('continuationSeparator',0)]:
                 if not any(n.get(qn('w:type'))==kind for n in root):
                     note=element('w:footnote',type=kind,id=ident);para=element('w:p');run=element('w:r');run.append(element('w:'+kind));para.append(run);note.append(para);root.insert(0,note)
-        root=self.note_part.element
-        ident=max([int(n.get(qn('w:id'))) for n in root if (n.get(qn('w:id')) or '').lstrip('-').isdigit()]+[0])+1
-        number=len(self.doc._element.xpath('//w:footnoteReference'))+1
+            self.next_footnote_id=max([int(n.get(qn('w:id'))) for n in root if (n.get(qn('w:id')) or '').lstrip('-').isdigit()]+[0])+1
+            self.next_footnote_number=len(self.doc._element.xpath('//w:footnoteReference'))+1
+        ident, number = self.next_footnote_id, self.next_footnote_number
+        self.next_footnote_id += 1
+        self.next_footnote_number += 1
         name='HF_'+self.document_key+'_'+sha(key.encode('utf8'))[:16]
         self.note_refs[key]=(name,number)
         run=element('w:r');props=element('w:rPr');props.append(element('w:rStyle',val=self.doc.styles['Footnote Reference'].style_id));run.append(props)
         run.append(element('w:footnoteReference',id=ident))
         self.note_bracket(p,'[');self.mark_inline(p,name,lambda:p._p.append(run));self.note_bracket(p,']')
-        note=element('w:footnote',id=ident);root.append(note)
+        note=element('w:footnote',id=ident);self.note_part.element.append(note)
         self.current_parent=NoteBody(note,self.note_part)
-        try:self.markdown(self.model['footnotes'][key])
+        try:first=self.write_note_body(key)._p
         finally:self.current_parent=None
-        paragraphs=note.findall(qn('w:p'))
-        if not paragraphs:
-            empty=element('w:p');note.append(empty);paragraphs=[empty]
-        first=paragraphs[0];marker=element('w:r');props=element('w:rPr');props.append(element('w:rStyle',val=self.doc.styles['Footnote Reference'].style_id));marker.append(props)
+        marker=element('w:r');props=element('w:rPr');props.append(element('w:rStyle',val=self.doc.styles['Footnote Reference'].style_id));marker.append(props)
         marker.append(element('w:footnoteRef'))
         space=element('w:r');text=element('w:t');text.set('{http://www.w3.org/XML/1998/namespace}space','preserve');text.text=' ';space.append(text)
         at=1 if first.find(qn('w:pPr')) is not None else 0
@@ -356,8 +544,8 @@ class Writer:
 
     def write_references(self):
         if self.options['notes_mode']!='references' or not self.note_refs:return
-        self.bookmark_id+=1;ident=self.bookmark_id;name='HB_'+self.document_key+'_references'
-        begin=element('w:bookmarkStart',id=ident,name=name);self.body.insert(len(self.body)-1,begin)
+        name='HB_'+self.document_key+'_references'
+        begin=self.open_body_range(name)
         heading=self.paragraph('Heading 1');heading.add_run('参考文献')
         # The existing TOC consumes its real outline level; numId=0 keeps this
         # unnumbered heading out of the template's chapter sequence.
@@ -366,10 +554,7 @@ class Writer:
             for old in list(pr.findall(qn('w:'+key))):pr.remove(old)
         number=element('w:numPr');number.append(element('w:numId',val=0));pr.append(number);pr.append(element('w:outlineLvl',val=0))
         for key,(target,index) in self.note_refs.items():
-            before=len(self.body);self.markdown(self.model['footnotes'][key])
-            nodes=list(self.body)[before-1:-1];paragraphs=[n for n in nodes if n.tag==qn('w:p')]
-            if not paragraphs:raise BridgeError('参考文献条目没有可输出的正文')
-            first=Paragraph(paragraphs[0],self.doc._body)
+            first=self.write_note_body(key)
             marker=self.paragraph();self.run(marker,'[')
             self.mark_inline(marker,target,lambda:field(marker,' SEQ HRSReference \\* ARABIC ',index));self.run(marker,'] ')
             at=1 if first._p.find(qn('w:pPr')) is not None else 0
@@ -377,21 +562,33 @@ class Writer:
                 if node.tag!=qn('w:pPr'):first._p.insert(at,node);at+=1
             marker._p.getparent().remove(marker._p)
             zero_indent(first._p)
-        end=element('w:bookmarkEnd',id=ident);self.body.insert(len(self.body)-1,end)
-        nodes=list(self.body)[list(self.body).index(begin)+1:list(self.body).index(end)]
-        self.derived_sections.append({'kind':'references','bookmark':name,'native_sha256':semantic_hash(nodes,self.doc.part.related_parts,self.doc.part.rels)})
+        end=self.close_body_range(begin)
+        return {'kind':'references','bookmark':name}, self.range_nodes(begin, end)
 
     @staticmethod
-    def run(p, text, bold=False, italic=False, strike=False, pre_wrap=False):
+    def format_run(run, *, bold=False, italic=None, strike=False, underline=False, script=None):
+        if bold:
+            run.bold = True
+        if italic is not None:
+            run.italic = italic
+        if strike:
+            run.font.strike = True
+        if underline:
+            run.underline = True
+        if script == 'subscript':
+            run.font.subscript = True
+        elif script == 'superscript':
+            run.font.superscript = True
+
+    @staticmethod
+    def run(p, text, *, pre_wrap=False, **formatting):
         if text:
             # Marked's soft source newline is whitespace; only its explicit br
             # token is a native line break. This also prevents a justified REF
             # line from stretching its number to the right margin in WPS.
             text=html.unescape(text)
             run = p.add_run(text.replace('\r\n','\n').replace('\r','\n') if pre_wrap else text.replace('\r\n',' ').replace('\n',' '))
-            if bold: run.bold = True
-            if italic: run.italic = True
-            if strike: run.font.strike = True
+            Writer.format_run(run, **formatting)
 
     def rich(self, p, text, pre_wrap=False):
         self.inline(p, self.model['inline'][self.inline_index[text]], pre_wrap=pre_wrap)
@@ -443,14 +640,16 @@ class Writer:
                 num = self.list_numbering(token.get('ordered', False), token.get('start') or 1, list_style)
                 for item in token['items']:
                     if item.get('task'):
-                        raise BridgeError('Task checkbox Markdown requires an explicit native output mapping')
+                        self.write_fallback(self.paragraph(), item.get('raw'))
+                        continue
                     for child in item['tokens']:
                         if child['type'] == 'space': continue
                         if child['type'] == 'list':
                             self.markdown([child], level + 1)
                             continue
                         if child['type'] not in ('text', 'paragraph'):
-                            raise BridgeError('Unsupported block inside a list: ' + child['type'])
+                            self.write_fallback(self.paragraph(), child.get('raw'))
+                            continue
                         p = self.paragraph()
                         self.inline(p, child.get('tokens', [{'type': 'text', 'text': child.get('text', '')}]))
                         pr = p._p.get_or_add_pPr()
@@ -462,8 +661,7 @@ class Writer:
                         indent.set(qn('w:left'), str((level + 1) * 420))
                         indent.set(qn('w:hanging'), '210')
             else:
-                # Raw HTML and unknown extensions must not silently disappear.
-                raise BridgeError('Unsupported ordinary Markdown block: ' + kind)
+                self.write_fallback(self.paragraph(), token.get('raw'))
 
     def list_numbering(self, ordered, start, style=None):
         # Project the five existing HRS display styles into Word numbering.
@@ -473,29 +671,47 @@ class Writer:
                   'paren-lower-alpha':('lowerLetter','（%n）')}
         if style is not None and style not in styles: raise BridgeError('Unsupported HRS list display style')
         fmt, label = styles[style] if style else (('decimal','%n.') if ordered else ('bullet','•'))
-        root = self.doc.part.numbering_part.element
-        abstract = max([int(e.get(qn('w:abstractNumId'))) for e in root.findall(qn('w:abstractNum'))] + [-1]) + 1
-        number = max([int(e.get(qn('w:numId'))) for e in root.findall(qn('w:num'))] + [0]) + 1
-        a = element('w:abstractNum', abstractNumId=abstract)
-        a.append(element('w:multiLevelType', val='multilevel'))
+        abstract = element('w:abstractNum')
+        abstract.append(element('w:multiLevelType', val='multilevel'))
         for level in range(9):
             lvl = element('w:lvl', ilvl=level)
             lvl.extend([element('w:start', val=start), element('w:numFmt', val=fmt),
                         element('w:lvlText', val=label.replace('%n','%'+str(level+1)))])
-            a.append(lvl)
-        root.append(a)
-        n = element('w:num', numId=number)
-        n.append(element('w:abstractNumId', val=abstract))
-        root.append(n)
-        return number
+            abstract.append(lvl)
+        return self.add_numbering(abstract)
+
+    def initialize_numbering(self):
+        root = self.numbering = self.doc.part.numbering_part.element
+        abstracts = root.findall(qn('w:abstractNum'))
+        numbers = root.findall(qn('w:num'))
+        self.next_abstract_id = max((int(node.get(qn('w:abstractNumId'))) for node in abstracts), default=-1) + 1
+        self.next_number_id = max((int(node.get(qn('w:numId'))) for node in numbers), default=0) + 1
+        self.numbering_cleanup = root.find(qn('w:numIdMacAtCleanup'))
+        self.first_number = numbers[0] if numbers else self.numbering_cleanup
+
+    def add_numbering(self, abstract):
+        abstract_id, number_id = self.next_abstract_id, self.next_number_id
+        self.next_abstract_id += 1
+        self.next_number_id += 1
+        abstract.set(qn('w:abstractNumId'), str(abstract_id))
+        number = element('w:num', numId=number_id)
+        number.append(element('w:abstractNumId', val=abstract_id))
+        # OOXML puts all abstract definitions before instances and cleanup.
+        if self.first_number is None:
+            self.numbering.append(abstract)
+        else:
+            self.first_number.addprevious(abstract)
+        if self.numbering_cleanup is None:
+            self.numbering.append(number)
+        else:
+            self.numbering_cleanup.addprevious(number)
+        if self.first_number is None or self.first_number is self.numbering_cleanup:
+            self.first_number = number
+        return number_id
 
     def bind_heading_numbering(self):
-        """Word output adapter for the existing 1 / 1.1 / ... template policy.
-
-        The mother template deliberately has no live heading list. Bind only
-        the six output Heading styles; keep its other style properties intact.
-        """
-        root = self.doc.part.numbering_part.element
+        """Reuse a matching template outline or bind the six output styles."""
+        root = self.numbering
         # v0.3.11 owns the live outline. Reuse it without rebuilding definitions.
         bindings=[self.doc.styles['Heading '+str(i)].element.find('.//'+qn('w:numId')) for i in range(1,7)]
         if all(n is not None for n in bindings) and len({n.get(qn('w:val')) for n in bindings})==1:
@@ -505,13 +721,13 @@ class Writer:
             levels=abstract.findall(qn('w:lvl')) if abstract is not None else []
             if len(levels)==6 and all(level.find(qn('w:lvlText')) is not None and level.find(qn('w:lvlText')).get(qn('w:val'))=='.'.join('%'+str(j) for j in range(1,i+2)) for i,level in enumerate(levels)):
                 return
-        aid = max([int(e.get(qn('w:abstractNumId'))) for e in root.findall(qn('w:abstractNum'))] + [-1]) + 1
-        nid = max([int(e.get(qn('w:numId'))) for e in root.findall(qn('w:num'))] + [0]) + 1
-        abstract = element('w:abstractNum', abstractNumId=aid)
+        abstract = element('w:abstractNum')
         abstract.append(element('w:multiLevelType', val='multilevel'))
         abstract.append(element('w:name', val='HRS Template Headings'))
+        heading_styles = []
         for level in range(6):
             style = self.doc.styles['Heading ' + str(level + 1)]
+            heading_styles.append(style)
             lvl = element('w:lvl', ilvl=level)
             lvl.extend([element('w:start', val=1), element('w:numFmt', val='decimal')])
             if level:
@@ -526,13 +742,11 @@ class Writer:
             rp.append(element('w:rFonts', ascii='Times New Roman', hAnsi='Times New Roman'))
             lvl.append(rp)
             abstract.append(lvl)
+        number_id = self.add_numbering(abstract)
+        for level, style in enumerate(heading_styles):
             np = style.element.get_or_add_pPr().get_or_add_numPr()
             np.get_or_add_ilvl().val = level
-            np.get_or_add_numId().val = nid
-        root.insert(len(root.findall(qn('w:abstractNum'))), abstract)
-        number = element('w:num', numId=nid)
-        number.append(element('w:abstractNumId', val=aid))
-        root.append(number)
+            np.get_or_add_numId().val = number_id
 
     def heading_style(self, block):
         origin = self.origin_styles.get(block['start'], {})
@@ -588,28 +802,49 @@ class Writer:
                             'Numeric or ambiguous title text is retained; no chapter prefix deletion was inferred.')
         return text
 
-    def picture(self, p, data, width, diagram=None):
+    def picture_source(self, p, data):
+        from asset_paths import normalize_asset
         source = data.get('src')
-        if diagram:
-            blob = base64.b64decode(self.model['diagrams'][diagram])
-        elif source and Path(source).suffix.lower() == '.svg':
-            blob = base64.b64decode(self.model['svgAssets'][Path(source).name])
-        else:
-            path = (self.source / (source or '')).resolve()
-            if not path.is_relative_to(self.source / 'assets'):
+        if not source:
+            raise BridgeError('Word 图片缺少来源路径')
+        raster = source
+        if Path(source).suffix.lower() == '.svg':
+            key = normalize_asset(source)
+            if key is None:
                 raise BridgeError('Image must be inside project assets: ' + str(source))
-            blob = path.read_bytes()
+            rendition = self.graphics['svgAssets'].get(key)
+            if rendition is None:
+                raise BridgeError('Word 页面模型缺少 SVG 预览：'+key)
+            if isinstance(rendition, Picture):
+                return rendition
+            raster = data.get('rasterFallback')
+            if raster is None:
+                raw = data.get('raw') or f"![{data.get('alt') or data.get('caption') or ''}]({source})"
+                self.write_fallback(p, raw, reason='svg_rendition', detail=rendition)
+                return None
+            self.diagnostic('SVG_RASTER_FALLBACK', self.current_block, 'SVG 转换失败，使用文稿声明的位图预览。')
+        blob = self.read_asset(raster)
         with Image.open(BytesIO(blob)) as img:
-            w, h = img.size
             # python-docx cannot embed WebP; this is a declared display rendition.
             if img.format not in ('PNG', 'JPEG', 'GIF', 'BMP', 'TIFF'):
                 buffer = BytesIO()
                 img.convert('RGBA').save(buffer, format='PNG')
                 blob = buffer.getvalue()
+            return Picture(blob, img.width, img.height)
+
+    def picture(self, p, data, width, *, rendition=None):
+        from asset_paths import normalize_asset
+        if rendition is None:
+            rendition = self.picture_source(p, data)
+            if rendition is None:
+                return
+        blob, w, h = rendition
         target_width = max(1, min(width, round(10000 * w / h)))
         shape = p.add_run().add_picture(BytesIO(blob), width=Twips(target_width))
-        layout=self.image_layouts.get(data.get('id'))
-        if layout and source and sha((self.source/source).read_bytes())==layout['source_sha256']:
+        source = data.get('src')
+        layout = self.image_layouts.get(data.get('id'))
+        source_digest = self.asset_hashes.get(normalize_asset(source))
+        if layout and source_digest is not None and source_digest == layout['source_sha256']:
             original_width,original_height=layout['width_emu'],layout['height_emu']
             if not isinstance(original_width,int) or not isinstance(original_height,int) or min(original_width,original_height)<=0:
                 raise BridgeError('Invalid Word-origin image extent')
@@ -623,7 +858,7 @@ class Writer:
             from docx.opc.packuri import PackURI
             from docx.opc.part import Part
             from docx.opc.constants import RELATIONSHIP_TYPE as RT
-            emf = (self.source / original).read_bytes()
+            emf = self.read_asset(original)
             digest = sha(emf)
             if digest not in self.emf_parts:
                 self.emf_parts[digest] = Part(PackURI('/word/media/hrs_' + digest[:16] + '.emf'), 'image/x-emf', emf, self.doc.part.package)
@@ -631,14 +866,10 @@ class Writer:
             shape._inline.xpath('.//a:blip')[0].set(qn('r:embed'), rid)
 
     @staticmethod
-    def number_name(ident):
-        return 'HN_' + sha(ident.encode())[:24]
-
-    @staticmethod
     def identity(block):
         # Word needs a local bookmark even for anonymous GFM tables. This value
         # never becomes an HRS ID and is meaningful only inside this snapshot.
-        return block.get('id') or 'snapshot-table-'+str(block['index'])
+        return block.get('id') or block.get('word_figure_id') or 'snapshot-table-'+str(block['index'])
 
     def mark_inline(self, p, name, callback):
         self.bookmark_id += 1
@@ -651,7 +882,7 @@ class Writer:
         p = self.paragraph('图题' if figure else '表题')
         p.add_run('图 ' if figure else '表 ')
         key=self.identity(b)
-        self.mark_inline(p, self.number_name(key), lambda: field(p,
+        self.mark_inline(p, number_name(key), lambda: field(p,
             ' SEQ ' + ('图' if figure else '表') + ' \\* ARABIC ', self.output_numbers[key]))
         text = b['data'].get('caption', '')
         if text:
@@ -763,22 +994,33 @@ class Writer:
 
     def prepare_math(self):
         """Consume the existing page tokens; do not parse source formulas again."""
-        def expressions(value):
-            if isinstance(value,list):
-                for item in value:yield from expressions(item)
-            elif isinstance(value,dict):
-                if value.get('type')=='hrsMath':yield value['tex'],False
-                else:
-                    for key,item in value.items():
-                        if key not in ('raw','text'):yield from expressions(item)
-        requests=list(expressions([self.model['tokens'],self.model['inline'],self.model.get('footnotes',{})]))
-        requests.extend((block['latex'],True) for block in self.ir['blocks'] if block['type']=='equation')
-        if requests:
-            self.math=MathAdapter(self.rt)
-            self.math.prefetch(requests)
+        if not self.rt.pandoc:
+            return
+        notes = [self.model['footnotes'][key] for key in self.used_notes]
+        requests = ((token['tex'],False) for token in word_tokens([self.model['tokens'],self.model['inline'],notes])
+                    if token['type']=='hrsMath')
+        displays = ((block['latex'], True) for block in self.ir['blocks'] if block['type'] == 'equation')
+        self.math = MathAdapter(self.rt).native_many(chain(requests, displays))
+
+    def open_body_range(self, name):
+        self.bookmark_id += 1
+        node = element('w:bookmarkStart', id=self.bookmark_id, name=name)
+        self.section_end.addprevious(node)
+        return node
+
+    def close_body_range(self, begin):
+        end = element('w:bookmarkEnd', id=begin.get(qn('w:id')))
+        self.section_end.addprevious(end)
+        return end
+
+    @staticmethod
+    def range_nodes(begin, end):
+        return list(takewhile(lambda node: node is not end, begin.itersiblings()))
 
     def write(self, output):
         self.prepare_math()
+        self.initialize_numbering()
+        self.bind_heading_numbering()
         self.output_numbers = {}
         # Output sequence is a WPS profile concern, never a replacement HRS numbering rule.
         table_number = 0
@@ -786,24 +1028,22 @@ class Writer:
             if b['type'] == 'table':
                 table_number += 1
                 self.output_numbers[self.identity(b)] = table_number
-            elif b['type'] in ('figure','image-group','equation'):
+            elif b['type'] in ('figure','mermaid','image-group','equation'):
                 self.output_numbers[self.identity(b)] = b['number']
-        self.bookmark_id+=1;scope_id=self.bookmark_id
         scope_name='HBD_'+self.document_key
-        self.body.insert(len(self.body)-1,element('w:bookmarkStart',id=scope_id,name=scope_name))
+        scope = self.open_body_range(scope_name)
+        regions = []
         previous_data_table=False
         for b in self.ir['blocks']:
-            self.bookmark_id += 1
-            ident = self.bookmark_id
+            self.current_block = b
             bookmark = 'HB_' + self.document_key + '_' + str(b['index'])
-            begin = element('w:bookmarkStart', id=ident, name=bookmark)
-            self.body.insert(len(self.body)-1, begin)
+            begin = self.open_body_range(bookmark)
             kind = b['type']
             if kind == 'heading':
                 style, heading_text = self.heading_output[b['index']]
                 p = self.paragraph(style)
                 if b.get('id'):
-                    self.mark_inline(p, self.number_name(b['id']), lambda: self.rich(p, heading_text))
+                    self.mark_inline(p, number_name(b['id']), lambda: self.rich(p, heading_text))
                 else: self.rich(p, heading_text)
             elif kind == 'markdown':
                 for role,value in self.markdown_parts[b['index']]:
@@ -817,44 +1057,55 @@ class Writer:
                 zero_indent(p._p)
             elif kind == 'equation':
                 p = self.paragraph('公式')
-                if self.math is None: self.math = MathAdapter(self.rt)
                 key=self.identity(b)
-                math=self.math.omml(b['latex'],True)
+                left, right = ('\\[', '\\]') if b['delimiter'] == 'bracket' else ('$$', '$$')
+                def write_equation():
+                    self.write_math(p, b['latex'], left + b['latex'] + right, display=True)
                 if self.source_options['show_equation_numbers']:
                     from docx.enum.text import WD_TAB_ALIGNMENT
                     p.paragraph_format.tab_stops.add_tab_stop(Twips(self.width),WD_TAB_ALIGNMENT.RIGHT)
-                    p._p.append(math);p.add_run('\t（')
-                    self.mark_inline(p,self.number_name(key),lambda:field(p,' SEQ 公式 \\* ARABIC ',self.output_numbers[key]))
+                    write_equation();p.add_run('\t（')
+                    self.mark_inline(p,number_name(key),lambda:field(p,' SEQ 公式 \\* ARABIC ',self.output_numbers[key]))
                     p.add_run('）')
                 else:
-                    self.mark_inline(p,self.number_name(key),lambda:p._p.append(math))
+                    self.mark_inline(p,number_name(key),write_equation)
             elif kind == 'table': self.data_table(b)
             elif kind == 'image-group': self.group(b)
-            elif kind == 'figure':
+            elif kind in ('figure','mermaid'):
                 p = self.paragraph('图形段')
                 d = b['data']
                 if d['kind'] == 'mermaid':
-                    self.picture(p, {}, self.width, diagram=b['id'])
-                    self.diagnostic('DIAGRAM_RENDITION', b, 'Existing HRS renderer provides a PNG view; original Mermaid source is retained.')
+                    rendition = self.graphics['diagrams'][self.identity(b)]
+                    if isinstance(rendition, Picture):
+                        self.picture(p, {}, self.width, rendition=rendition)
+                        self.diagnostic('DIAGRAM_RENDITION', b, 'Existing HRS renderer provides a PNG view; original Mermaid source is retained.')
+                    else:
+                        self.write_fallback(p,d['source'],reason='diagram_rendition',detail=rendition)
                 elif d['kind'] == 'image': self.picture(p, d, self.width)
                 else: raise BridgeError('Unsupported figure kind: ' + d['kind'])
                 p.paragraph_format.keep_with_next = True
                 self.caption(b, True)
             else: raise BridgeError('Unsupported HRS block: ' + kind)
-            end=element('w:bookmarkEnd',id=ident);self.body.insert(len(self.body)-1,end)
-            nodes = list(self.body)[list(self.body).index(begin)+1:list(self.body).index(end)]
+            nodes = self.range_nodes(begin, self.close_body_range(begin))
             if previous_data_table:self.space_after_data_table(nodes)
             if nodes:previous_data_table=kind=='table'
-            self.metadata_blocks.append({'index': b['index'], 'type':kind, 'id':b.get('id'), 'bookmark':bookmark,
-                                         'native_sha256':semantic_hash(nodes, self.doc.part.related_parts,self.doc.part.rels),
-                                         'native_drawing_extents':drawing_extents(nodes)})
+            entry = {'index': b['index'], 'type':kind, 'id':b.get('id'), 'bookmark':bookmark,
+                     'native_drawing_extents':drawing_extents(nodes)}
             if kind == 'heading':
                 # Only the output projection is additional metadata; the source
                 # level remains in the existing source snapshot/IR.
-                self.metadata_blocks[-1]['word_heading_level'] = None if style == 'Title' else int(style.split()[-1])
-        self.write_references()
-        self.body.insert(len(self.body)-1,element('w:bookmarkEnd',id=scope_id))
-        if [E.tostring(node) for node in self.front_nodes]!=self.front_xml:raise BridgeError('Template front matter changed during assembly')
+                entry['word_heading_level'] = None if style == 'Title' else int(style.split()[-1])
+            regions.append((entry, nodes))
+        self.current_block = None
+        reference_region = self.write_references()
+        self.close_body_range(scope)
+        if [E.tostring(node) for node in self.body[:len(self.front_xml)]] != self.front_xml:
+            raise BridgeError('Template front matter changed during assembly')
+        digest_native = native_hasher(self.doc.part, text_scripts=True)
+        for entry, nodes in chain(regions, (reference_region,) if reference_region else ()):
+            entry['native_sha256'] = digest_native(nodes)
+        metadata_blocks = [entry for entry, _ in regions]
+        derived_sections = [reference_region[0]] if reference_region else []
         update=self.doc.settings.element.find(qn('w:updateFields'))
         if update is None:update=element('w:updateFields');self.doc.settings.element.append(update)
         update.set(qn('w:val'),'true')
@@ -864,16 +1115,25 @@ class Writer:
                 raw = path.read_bytes()
                 digest = sha(raw)
                 assets[path.relative_to(self.source).as_posix()] = digest
-                blobs[digest] = base64.b64encode(raw).decode('ascii')
-        meta = {'schema':'hrs-wps-bridge-v1', 'document_key':self.document_key,'source_sha256':sha(self.raw), 'source_b64':base64.b64encode(self.raw).decode('ascii'),
-                'assets':assets,'blobs':blobs,'blocks':self.metadata_blocks,'derived_sections':self.derived_sections,'word_output_options':self.options,
-                'body_scope':{'bookmark':scope_name,'kind':'wps-report-body-v1'},'template_sha256':self.template_sha256, 'output_profile':'wps-template-v1','source_render_profile':self.source_profile,'source_render_options':self.source_options,'word_origin':self.word_origin}
+                if digest not in blobs:
+                    blobs[digest] = base64.b64encode(raw).decode('ascii')
+        meta = {'schema':'hrs-wps-bridge-v1', 'document_key':self.document_key,'source_sha256':self.source_sha256, 'source_b64':base64.b64encode(self.raw).decode('ascii'),
+                'assets':assets,'blobs':blobs,'blocks':metadata_blocks,'derived_sections':derived_sections,'word_output_options':self.options,
+                'native_text_scripts':True,'body_scope':{'bookmark':scope_name,'kind':'wps-report-body-v1'},'template_sha256':self.template_sha256, 'output_profile':'wps-template-v1','source_render_profile':self.source_profile,'source_render_options':self.source_options,'word_origin':self.word_origin}
+        fallbacks = [item for item in self.diagnostics if item['code'] == TEXT_FALLBACK]
+        if fallbacks:
+            meta['output_fallbacks'] = fallbacks
         self.doc.save(output)
         self.preserve_template_parts(output)
         provenance_path(output).write_text(json.dumps(meta,ensure_ascii=False,separators=(',',':')),encoding='utf8')
-        return {'ok':True, 'output':str(output), 'sha256':sha(output.read_bytes()), 'source_sha256':sha(self.raw),
+        if any(self.inline_math_counts.values()):
+            converted = self.inline_math_counts['converted']
+            retained = self.inline_math_counts['retained']
+            self.diagnostics.append({'code':'WORD_INLINE_MATH_TEXT', **self.inline_math_counts,
+                'message':f'行内公式已转为 Times New Roman 正文 {converted} 处，保留原生公式 {retained} 处。'})
+        return {'ok':True, 'output':str(output), 'sha256':sha(output.read_bytes()), 'source_sha256':self.source_sha256,
                 'template':self.template_info, 'object_styles':[self.styles[n] for n in ('图形段','图题','表题','表内正文','公式')],
-                'diagnostics':self.diagnostics, 'blocks':len(self.metadata_blocks),'word_output_options':self.options}
+                'diagnostics':self.diagnostics, 'blocks':len(metadata_blocks),'word_output_options':self.options}
 
     def preserve_template_parts(self,output):
         """The original cover/header parts remain byte-exact; only body-owned

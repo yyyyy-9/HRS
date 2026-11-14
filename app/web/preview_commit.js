@@ -17,15 +17,15 @@ function reusable(preview,model,previous,compatible){
  * they are rebound at commit, never by moving the currently displayed nodes
  * into an asynchronous staging tree. Interactive objects keep the leaf path. */
 function prepareMath(preview,staged,compatible){
- const previous=new Map(Array.from(preview.children,node=>[node.dataset.mapIndex,node]));
+ const previous=compatible?new Map(Array.from(preview.children,node=>[node.dataset.mapIndex,node])):null;
  for(const block of staged.children){
   if(!['paragraph','blockquote','list','reportEquation'].includes(block.dataset.type)||
      !block.querySelector('.markdown-math')||block.querySelector('a,input,pre,img,table,math,.object-xref-invalid,[data-hrs-footnote-ref]'))continue;
   const copy=block.cloneNode(true);
   copy.querySelectorAll('.markdown-math').forEach(span=>span.removeAttribute('data-math-id'));
   block._mathSignature=copy.innerHTML;
-  const old=previous.get(block.dataset.mapIndex);
-  if(compatible&&old?.isConnected&&old.dataset.type===block.dataset.type&&old._sourceRaw===block._sourceRaw&&
+  const old=previous?.get(block.dataset.mapIndex);
+  if(old?.isConnected&&old.dataset.type===block.dataset.type&&old._sourceRaw===block._sourceRaw&&
      old._mathSignature===block._mathSignature&&!old.querySelector('.math-error,[contenteditable="true"]'))block._reuseMath=old;
  }
  if(!compatible)return;
@@ -38,9 +38,11 @@ function prepareMath(preview,staged,compatible){
   if(retained.has(svg.closest('.doc-block')))continue;
   const id=key(svg.parentElement),items=pool.get(id)||[];items.push(svg);pool.set(id,items);
  }
+ // Pop in original order without shifting a potentially long repeated series.
+ for(const items of pool.values())items.reverse();
  for(const span of staged.querySelectorAll('.markdown-math')){
   if(span.closest('.doc-block')?._reuseMath)continue;
-  const items=pool.get(key(span));if(items?.length)span._reuseSVG=items.shift();
+  const items=pool.get(key(span));if(items?.length)span._reuseSVG=items.pop();
  }
 }
 function updateSource(old,node){
@@ -48,19 +50,33 @@ function updateSource(old,node){
  for(const [key,value] of Object.entries(node.dataset))if(old.dataset[key]!==value)old.dataset[key]=value;
  old._sourceRaw=node._sourceRaw;old._sourceDocument=node._sourceDocument;
 }
+function normalizeImageSrc(src){
+ if(!src)return '';
+ return String(src).replace(/([?&])draft_id=[a-f0-9]+(&?)/i,(_,prefix,suffix)=>suffix?prefix:'');
+}
+function sameImageNode(previous,node){
+ if(previous.isEqualNode(node))return true;
+ if(normalizeImageSrc(previous.getAttribute('src'))!==normalizeImageSrc(node.getAttribute('src')))return false;
+ return (previous.getAttribute('alt')||'')===(node.getAttribute('alt')||'')&&
+  (previous.getAttribute('title')||'')===(node.getAttribute('title')||'')&&
+  (previous.dataset.pdfAsset||'')===(node.dataset.pdfAsset||'');
+}
 /* Only move identical display leaves at commit, after async work is accepted.
  * New wrappers keep current source ranges, captions, references and listeners. */
 function reuseResources(preview,staged,retained){
  const pools=new Map(),counts={images:0,formulas:0};
- for(const span of staged.querySelectorAll('.markdown-math'))if(span._reuseSVG){span.replaceChildren(span._reuseSVG);counts.formulas++;}
- const key=node=>node.tagName==='IMG'?'image\u0000'+node.getAttribute('src'):'math\u0000'+node.parentElement.dataset.display+'\u0000'+node.parentElement.dataset.tex;
+ const restored=new Set();
+ for(const span of staged.querySelectorAll('.markdown-math'))if(span._reuseSVG){
+  restored.add(span._reuseSVG);span.replaceChildren(span._reuseSVG);counts.formulas++;
+ }
+ const key=node=>node.tagName==='IMG'?'image\u0000'+normalizeImageSrc(node.getAttribute('src')):'math\u0000'+node.parentElement.dataset.display+'\u0000'+node.parentElement.dataset.tex;
  const eligible=node=>node.tagName!=='IMG'||/^(?:\/assets\/|data:)/.test(node.getAttribute('src')||'');
  for(const node of preview.querySelectorAll('img,.markdown-math > svg')){if(!eligible(node)||retained.has(node.closest('.doc-block')))continue;
   const id=key(node),items=pools.get(id)||[];items.push(node);pools.set(id,items);
  }
  for(const node of staged.querySelectorAll('img,.markdown-math > svg')){
-  if(!eligible(node))continue;const items=pools.get(key(node));if(!items?.length)continue;
-  const index=items.findIndex(previous=>previous.isEqualNode(node));if(index<0)continue;
+  if(restored.has(node)||!eligible(node))continue;const items=pools.get(key(node));if(!items?.length)continue;
+  const index=items.findIndex(previous=>node.tagName==='IMG'?sameImageNode(previous,node):previous.isEqualNode(node));if(index<0)continue;
   const previous=items.splice(index,1)[0];node.replaceWith(previous);counts[node.tagName==='IMG'?'images':'formulas']++;
  }
  return counts;

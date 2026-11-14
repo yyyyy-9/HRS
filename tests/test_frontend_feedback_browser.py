@@ -20,6 +20,23 @@ class FrontendFeedback(ManualService):
         p.keyboard.press('Escape');p.evaluate("document.querySelector('#markdown').sourceEditor.focus()")
         p.keyboard.press('Control+z');self.assertEqual(value(p),self.initial_markdown)
         p.keyboard.press('Control+Shift+z');self.assertEqual(value(p),changed)
+        # SOURCE-HISTORY-01: a cursor move starts a new step, and highlighting
+        # the changed text must not replace the caret restored by either button.
+        start=changed.index('Original')
+        p.evaluate("n=>document.querySelector('#markdown').sourceEditor.setSelectionRange(n)",start)
+        p.keyboard.type('ab');p.keyboard.press('ArrowRight');p.keyboard.type('X')
+        position="()=>{const e=document.querySelector('#markdown').sourceEditor;return [e.hasFocus(),e.selectionStart,e.selectionEnd]}"
+        p.locator('#btn-undo').click()
+        self.assertEqual(value(p),changed.replace('Original','abOriginal'))
+        self.assertEqual(p.evaluate(position),[True,start+3,start+3])
+        self.assertIn('X → ∅',p.locator('#toast').inner_text())
+        p.wait_for_function("document.querySelector('#preview-content .navigation-highlight')?.textContent.includes('abOriginal')")
+        self.assertEqual(p.evaluate(position),[True,start+3,start+3])
+        p.locator('#btn-redo').click()
+        self.assertEqual(p.evaluate(position),[True,start+4,start+4])
+        self.assertIn('∅ → X',p.locator('#toast').inner_text())
+        p.keyboard.type('!')
+        self.assertEqual(value(p),changed.replace('Original','abOX!riginal'))
 
     def test_repeated_table_sessions_release_handlers_and_old_widgets(self):
         p=self.page;cdp=self.document.context.new_cdp_session(p)

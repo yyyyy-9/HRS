@@ -8,12 +8,14 @@ from __future__ import annotations
 
 import base64
 import hashlib
+from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
 import re
 from urllib.parse import unquote, urlsplit
 
 from clipboard_graphics import read_windows_formats, emf_to_png, dib_to_png, MAX_SOURCE
+from clipboard_math import ListLabel, native_formulas, normalize_text
 
 MAX_TOTAL = 30 * 1024 * 1024
 
@@ -28,12 +30,93 @@ def html_fragment(data):
     except UnicodeDecodeError as error:raise ValueError('Windows HTML 剪贴板不是有效 UTF-8') from error
 
 
-class ImageSources(HTMLParser):
-    def __init__(self,html):
-        super().__init__(convert_charrefs=True);self.sources=[];self.feed(html)
-    def handle_starttag(self,tag,attrs):
-        if tag=='img':self.sources.append(dict(attrs).get('src',''))
-    handle_startendtag=handle_starttag
+LIST_IGNORE = re.compile(r'(?:^|;)\s*mso-list\s*:\s*ignore\s*(?:!important\s*)?(?=;|$)', re.I)
+NON_CONTENT = {'head', 'script', 'style'}
+PARAGRAPH_TAGS = {'p', 'li', 'div', 'td', 'th', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'br'}
+
+
+class DocumentFragment(HTMLParser):
+    """Collect image positions and Office's explicit generated-label spans."""
+
+    def __init__(self, html, *, collect_text=False):
+        super().__init__(convert_charrefs=True)
+        self.collect_text = collect_text
+        self.sources = []
+        self.parts = []
+        self.image_in_list = []
+        self.span_depth = 0
+        self.label_depth = 0
+        self.label_parts = []
+        self.label_start = -1
+        self.label_spans = []
+        self.ignored_tag = None
+        self.list_item_start = False
+        self.line_starts = [0, *(match.end() for match in re.finditer('\n', html))] if collect_text else None
+        self.feed(html)
+        self.close()
+
+    def source_offset(self):
+        line, column = self.getpos()
+        return self.line_starts[line-1] + column
+
+    def handle_starttag(self, tag, attrs):
+        if self.ignored_tag is not None:
+            return
+        if tag in NON_CONTENT:
+            self.ignored_tag = tag
+            return
+        if tag in PARAGRAPH_TAGS:
+            self.list_item_start = False
+        attrs = dict(attrs)
+        if tag == 'img':
+            self.sources.append(attrs.get('src', ''))
+            if self.collect_text:
+                self.image_in_list.append(self.list_item_start)
+                self.parts.append(None)
+        elif tag == 'span' and self.collect_text:
+            self.span_depth += 1
+            if not self.label_depth and LIST_IGNORE.search(attrs.get('style') or ''):
+                self.label_depth = self.span_depth
+                self.label_start = self.source_offset() + len(self.get_starttag_text())
+
+    def handle_endtag(self, tag):
+        if self.ignored_tag is not None:
+            if self.ignored_tag == tag:
+                self.ignored_tag = None
+            return
+        if tag in PARAGRAPH_TAGS:
+            self.list_item_start = False
+        if tag != 'span' or not self.span_depth:
+            return
+        if self.label_depth == self.span_depth:
+            label = normalize_text(''.join(self.label_parts))
+            if label:
+                part = ListLabel(label)
+                self.parts.append(part)
+                self.label_spans.append((self.label_start, self.source_offset(), part))
+                self.list_item_start = True
+            self.label_parts.clear()
+            self.label_depth = 0
+        self.span_depth -= 1
+
+    def handle_data(self, data):
+        if not self.collect_text or self.ignored_tag is not None:
+            return
+        if self.label_depth:
+            self.label_parts.append(data)
+        elif data := normalize_text(data):
+            self.parts.append(data)
+
+    def with_display_labels(self, html):
+        """Keep the plain clipboard's source ordinals when Office HTML renumbers."""
+        parts = []
+        cursor = 0
+        for start, end, label in self.label_spans:
+            if label.display is not None and label.display != label.text:
+                parts.extend((html[cursor:start], escape(label.display) + '&nbsp;'))
+                cursor = end
+        parts.append(html[cursor:])
+        return ''.join(parts)
 
 
 _RTF_TOKEN=re.compile(rb'\\([a-zA-Z]+)(-?\d+)? ?|\\(.)|[{}]|[^{}\\]+',re.S)
@@ -123,11 +206,17 @@ def prepare_document(snapshot,expected_text,check_image,convert_math=None):
     except UnicodeDecodeError as error:raise ValueError('Windows 剪贴板文字无效') from error
     normalize=lambda value:re.sub(r'\r\n?','\n',value)
     if normalize(text)!=normalize(expected_text):raise ValueError('剪贴板在粘贴期间已变化，整段未插入；请重新复制')
-    html=html_fragment(snapshot['HTML Format']);sources=ImageSources(html).sources
+    html = html_fragment(snapshot['HTML Format'])
+    native_math = snapshot.get('Kingsoft WPS 9.0 Format')
+    fragment = DocumentFragment(html, collect_text=bool(native_math and 'mso-list' in html.lower()))
+    sources = fragment.sources
     if len(sources)>100:raise ValueError('Windows 剪贴板图片数量超限')
     if not sources:return {'html':html,'images':{}}
-    from clipboard_math import native_formulas
-    math_images=native_formulas(snapshot.get('Kingsoft WPS 9.0 Format'),sources,expected_text,convert_math)
+    math_images = native_formulas(native_math, sources, expected_text, convert_math,
+                                  list_parts=fragment.parts if fragment.label_spans else (),
+                                  list_images=fragment.image_in_list if fragment.label_spans else ())
+    if math_images and fragment.label_spans:
+        html = fragment.with_display_labels(html)
     pictures=None
     if snapshot.get('Rich Text Format'):
         try:

@@ -6,7 +6,7 @@ from .numbered_candidates import rebuild_structure,authorize,list_introduction,V
 ABSTRACT={'摘要','执行摘要','abstract'}
 REFERENCES={'参考文献','参考资料','参考记录','references','bibliography'}
 
-def predict(scan,overrides=None):
+def predict(scan,overrides=None,*,inline_rows_reflow=1):
     overrides=overrides or {}
     c=recognize(scan,overrides=overrides)
     byid={b['block_id']:b for b in scan['blocks']};rows=c['blocks']
@@ -50,7 +50,7 @@ def predict(scan,overrides=None):
             r.update(status='review',possible_roles=['heading','list_item','body'],possible_levels=list(range(1,6)))
             r['evidence'].append('automatic_list_conflicts_with_outline_or_heading_parent')
     from .figure_layout import apply as apply_figure_layouts
-    apply_figure_layouts(scan,c,overrides)
+    apply_figure_layouts(scan,c,overrides,inline_rows_reflow=inline_rows_reflow)
     rebuild_structure(rows);authorize(rows,scan)
     c.update(recognizer_version=VERSION,review=[dict(block_id=r['block_id'],text=byid[r['block_id']].get('display_text'),role=r['role'],level=r['level'],evidence=r['evidence']) for r in rows if r['status']=='review'],confirmed_ir=False)
     c['status']='REVIEW_REQUIRED' if c['review'] else 'RULE_CANDIDATES_READY'

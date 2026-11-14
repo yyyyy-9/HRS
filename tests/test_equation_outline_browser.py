@@ -364,7 +364,17 @@ class EquationOutline(ManualService):
         start=math.locator('.ML__mathit').filter(has_text=re.compile('^d$')).bounding_box()
         finish=math.locator('.ML__mathit').filter(has_text=re.compile('^f$')).bounding_box()
         self.page.mouse.move(start['x']+.5,start['y']+start['height']/2);self.page.mouse.down()
-        self.page.mouse.move(finish['x']+finish['width']-.5,finish['y']+finish['height']/2,steps=12);self.page.mouse.up()
+        end_x,end_y=finish['x']+finish['width']-.5,finish['y']+finish['height']/2
+        self.page.mouse.move(end_x,end_y,steps=12)
+        self.page.wait_for_function('''()=>document.querySelector('math-field').shadowRoot.querySelector('.ML__selection')''')
+        math.evaluate('''n=>{window.selectedFormula=n.shadowRoot.querySelector('.ML__latex');}''')
+        # PERF-2.6: moving repeatedly within the same final atom preserves
+        # the actual formula DOM as long as the selection has not changed.
+        for delta in (.25,0,.25,0):
+            self.page.mouse.move(end_x-delta,end_y)
+        self.page.evaluate('()=>new Promise(done=>requestAnimationFrame(()=>requestAnimationFrame(done)))')
+        self.assertTrue(math.evaluate('n=>n.shadowRoot.querySelector(".ML__latex")===window.selectedFormula'))
+        self.page.mouse.up()
         self.assertFalse(math.evaluate('n=>n.selectionIsCollapsed'))
         self.page.keyboard.type('m')
         self.page.wait_for_function('document.querySelector("[data-formula-source]").value.includes("{m}")')
@@ -373,6 +383,13 @@ class EquationOutline(ManualService):
         # modify the draft; typing afterwards replaces the selected formula.
         self.page.get_by_role('button',name='全选公式',exact=True).click()
         self.assertFalse(math.evaluate('n=>n.selectionIsCollapsed'))
+        # Keyboard activation from the button must return focus and select all.
+        select_all=self.page.get_by_role('button',name='全选公式',exact=True)
+        select_all.focus();select_all.press('Enter')
+        self.page.wait_for_function('''()=>{
+            const m=document.querySelector('math-field');
+            return document.activeElement===m&&m.getValue(m.selection,'latex')===m.getValue('latex');
+        }''')
         self.page.keyboard.type('y')
         self.page.wait_for_function('document.querySelector("[data-formula-source]").value==="y"')
         self.page.locator('#modal-cancel').click();self.assertEqual(value(self.page),raw)
@@ -401,8 +418,8 @@ h_j=\mathcal F^{-1}F_j.'''
         self.assertIn(r'F_{j}',selected);self.assertIn(r'\mathcal{F}M',selected);self.assertNotIn('h_',selected)
         self.assertEqual(self.page.locator('[data-formula-source]').input_value(),tex)
         if self.evidence:self.page.screenshot(path=str(self.evidence/'fourier-selection.png'))
-        self.page.keyboard.type('u')
-        self.page.wait_for_function('document.querySelector("[data-formula-source]").value.includes("u")')
+        self.page.keyboard.press('u')
+        self.page.wait_for_function('v=>document.querySelector("[data-formula-source]").value.includes(v)',arg=r'\{u\}')
         edited=self.page.locator('[data-formula-source]').input_value()
         self.assertIn(r'\{u\}',edited);self.assertIn(r'h_{j}=\mathcal{F}^{-1}F_{j}',edited)
         self.page.locator('#modal-ok').click();self.assertIn(edited,value(self.page))
@@ -474,6 +491,56 @@ h_j=\mathcal F^{-1}F_j.'''
         self.page.keyboard.type('2');self.page.wait_for_function('document.querySelector("[data-formula-source]").value.includes("\\\\mathcal{F}^2")')
         self.page.locator('#modal-ok').click();self.assertIn(r'\cos x+\mathcal{F}^2',value(self.page))
         self.page.locator('#markdown').evaluate('n=>n.sourceEditor.focus()');self.page.keyboard.press('Control+z');self.assertEqual(value(self.page),raw)
+
+    def test_27_vertical_caret_moves_between_paired_scripts(self):
+        """MATH-NAVIGATION-01: a physical click and arrows stay within paired slots."""
+        raw='# 配对上下标\n\n$$\nx_{jk}^{-1}+y\n$$\n';self.free(raw)
+        self.page.locator('.markdown-math').first.dblclick()
+        math=self.page.locator('math-field[data-ready="1"]');math.wait_for()
+        box=math.locator('.ML__mathit').filter(has_text=re.compile('^j$')).bounding_box()
+        self.page.mouse.click(box['x']+box['width']*.65,box['y']+box['height']/2)
+        self.page.wait_for_function('document.activeElement===document.querySelector("math-field")')
+        initial=math.evaluate('n=>n.position')
+        self.page.keyboard.press('ArrowUp')
+        upper=math.evaluate('n=>n.position')
+        self.assertNotEqual(upper,initial)
+        self.assertIn(math.evaluate('n=>n.getElementInfo(n.position)?.latex'),('', '-', '1'))
+        self.page.keyboard.press('ArrowDown')
+        self.assertEqual(math.evaluate('n=>n.position'),initial)
+        self.page.keyboard.press('ArrowUp')
+        self.page.keyboard.press('3')
+        self.page.wait_for_function(r'document.querySelector("[data-formula-source]").value.includes("^{-31}")')
+        self.page.keyboard.press('Control+z')
+        self.page.wait_for_function('v=>document.querySelector("math-field").position===v',arg=upper)
+        self.assertEqual(math.evaluate('n=>n.position'),upper)
+        self.assertEqual(math.evaluate('n=>n.getValue("latex")'),r'x_{jk}^{-1}+y')
+        self.page.locator('#modal-ok').click()
+        self.assertEqual(value(self.page),raw)
+
+        raw='# 结构间隙\n\n$$\n'+r'\frac{ab}{cd}\sqrt{ef}'+'\n$$\n'
+        self.free(raw);self.page.locator('.markdown-math').first.dblclick();math.wait_for()
+        x,y,offset=math.evaluate(r'''n=>{
+         const fraction=Array.from({length:n.lastOffset},(_,i)=>i+1).find(i=>n.getElementInfo(i).latex.startsWith("\\frac"));
+         const a=n.getElementInfo(fraction).bounds,b=n.getElementInfo(n.lastOffset).bounds;
+         return [(a.right+b.left)/2,(Math.max(a.top,b.top)+Math.min(a.bottom,b.bottom))/2,fraction];}''')
+        self.page.mouse.click(x,y)
+        self.page.wait_for_function('document.activeElement===document.querySelector("math-field")')
+        self.assertEqual(math.evaluate('n=>n.position'),offset)
+        self.page.keyboard.press('Shift+Equal')
+        self.page.wait_for_function('v=>document.querySelector("[data-formula-source]").value===v',arg=r'\frac{ab}{cd}+\sqrt{ef}')
+        self.page.locator('#modal-cancel').click()
+        self.assertEqual(value(self.page),raw)
+
+        raw='# 分式中的上下标\n\n$$\n'+r'\frac{x_i^2}{q}'+'\n$$\n'
+        self.free(raw);self.page.locator('.markdown-math').first.dblclick();math.wait_for()
+        box=math.locator('.ML__mathit').filter(has_text=re.compile('^i$')).bounding_box()
+        self.page.mouse.click(box['x']+box['width']*.8,box['y']+box['height']/2)
+        self.page.wait_for_function('document.activeElement===document.querySelector("math-field")')
+        lower=math.evaluate('m=>m.position');self.page.keyboard.press('ArrowUp')
+        self.assertNotEqual(math.evaluate('m=>m.position'),lower)
+        self.assertEqual(math.evaluate('m=>m.getElementInfo(m.position).depth'),2)
+        self.page.keyboard.press('ArrowDown');self.assertEqual(math.evaluate('m=>m.position'),lower)
+        self.page.locator('#modal-cancel').click()
 
     def test_08_outline_pointer_drag_and_unchanged_tree_reuse(self):
         raw='# 专题\n\n## 第一节\n\n甲。\n\n## 第二节\n\n乙。\n';self.free(raw)

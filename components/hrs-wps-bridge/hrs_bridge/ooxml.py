@@ -1,7 +1,6 @@
 """Bridge-owned DOCX identity/format adapters; no Markdown or numbering parser."""
 import base64
 from copy import deepcopy
-import hashlib
 import json
 from lxml import etree as E
 from docx.oxml import OxmlElement
@@ -14,6 +13,7 @@ N={'w':W,'m':M,'a':'http://schemas.openxmlformats.org/drawingml/2006/main',
    'r':'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
    'wp':'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing'}
 BRIDGE='https://html-report-studio.local/bridge/v1'
+TEXT_SCRIPT_TAGS = {'subscript': 'sub', 'superscript': 'sup'}
 
 
 def element(tag,**attrs):
@@ -33,13 +33,20 @@ def field(p,instruction,value):
     f=element('w:fldSimple',instr=instruction);r=element('w:r');t=element('w:t');t.text=str(value);r.append(t);f.append(r);p._p.append(f)
 
 
-def native_snapshot(nodes,parts,relationships=None):
+def number_name(ident):
+    return 'HN_' + sha(ident.encode('utf8'))[:24]
+
+
+def native_hasher(document_part, *, text_scripts=False):
     """Content fingerprint tolerates WPS run splitting and simple/complex fields.
 
-    This compares observed OOXML, not source text. Cached field results and
-    template layout are derived; current text, math structure, media and merges
-    are included. Unsupported edits never get replaced with old source.
+    Load document-wide parts once, after assembly or on opening a saved DOCX.
+    Cached field results and template layout are derived; current text, math
+    structure, media and merges are included.
     """
+    parts = document_part.related_parts
+    relationships = document_part.rels
+    media_hashes = {}
     ignored={'proofErr','lastRenderedPageBreak','bookmarkStart','bookmarkEnd'}
     note_part=next((p for p in parts.values() if p.content_type=='application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml'),None)
     notes={n.get(qn('w:id')):n for n in E.fromstring(note_part.blob)} if note_part is not None else {}
@@ -82,6 +89,10 @@ def native_snapshot(nodes,parts,relationships=None):
             if name in ('r','hyperlink','smartTag'):
                 if name=='r':
                     emphasis=tuple((key, e.find('w:rPr/w:'+key,N).get(qn('w:val'),'1')) for key in ('b','i','u','strike') if e.find('w:rPr/w:'+key,N) is not None)
+                    if text_scripts:
+                        align = e.find('w:rPr/w:vertAlign', N)
+                        if align is not None and align.get(qn('w:val')) in TEXT_SCRIPT_TAGS:
+                            emphasis += (('vertAlign', align.get(qn('w:val'))),)
                 for child in e:visit(child,emphasis)
                 return
             if field_stack:return
@@ -98,7 +109,9 @@ def native_snapshot(nodes,parts,relationships=None):
                 for blip in e.iter('{'+N['a']+'}blip'):
                     rid=blip.get('{'+N['r']+'}embed')
                     if not rid or rid not in parts:raise BridgeError('Unresolved native drawing relationship')
-                    media.append(sha(parts[rid].blob))
+                    if rid not in media_hashes:
+                        media_hashes[rid] = sha(parts[rid].blob)
+                    media.append(media_hashes[rid])
                 transforms=[]
                 for node in e.iter():
                     local=E.QName(node).localname
@@ -153,11 +166,11 @@ def native_snapshot(nodes,parts,relationships=None):
                               merge.get(qn('w:val'),'continue') if merge is not None else None,sequence(cell)])
             rows.append(cells)
         return ['table',rows]
-    return sequence(nodes)
 
+    def digest(nodes):
+        return sha(json.dumps(sequence(nodes), ensure_ascii=False, sort_keys=True).encode('utf8'))
 
-def semantic_hash(nodes,parts,relationships=None):
-    return sha(json.dumps(native_snapshot(nodes,parts,relationships),ensure_ascii=False,sort_keys=True).encode('utf8'))
+    return digest
 
 
 def drawing_extents(nodes):

@@ -53,7 +53,7 @@ DOC_ID = re.compile(r'^[a-f0-9]{32}$')
 DRAFT_ID = DOC_ID
 # Byte-exact first-party reader scripts shipped by earlier releases, so HTML
 # already exported to output/ by them can still pass the delivery audit.
-LEGACY_READER_SHA256 = {'285059b0e9759a0d2ddcecec186907a17f245fcfb4764251531dff1d868c8461','144e3ee2de81669c83ce3497796f2f7e62d35a9f2ebe044ecfb820e9b79b04d8','81e304255c212aae1ef28dd2e8cb51fc97580aac0c43a601054fcbd23e8958cd','1275a6830b70fb59cf07ac16be15e2dc5ce9c87b2af2345db2c3d2bf27dbeee8','4386a8a446949233a9e5170f96e453eb58e962b876451e4de88501084e0252db','43c2ccdad84ddf525d2b5f4a6bba651c37b94c53d9c65ac28dcd5c8317a3330a','4f06e316f1bdd62d20e5173f56af0ade63b8d9e326918d2b55e3e76ad96e4036','6feb1c196b0f5f231ce9fb11d68642fecd0f810ddf035284902f8778bb4b93b4','764f4333c55c29de9affc2cf53e5322f48443d400ab6cc212e6124812eb74219','782a99c76ee2b047239bc460cca74fc2895e9c275f415f3e967e40eb20a25bde','7f217047cc92ebc99211c63201762a3f89050564c20d5b5b38fb927d77ec74c3','8769a7ce7557c2c68b62c9ac1ec6e03c60c34b65e6757f3cd6121ca080bfe833','906c8d3447b0ccda8b7e71055e3bf7ef66e064506a27d33d05ad5e701a322473','949267a8c0f7b6615f723176597cc68baddfd689f3f964e8715d74d3c6dcc0c5','bb6ecd6c41f23bd618bbf109377f2895ec3fe35fa22c4d96b65da4ea818cb577','bd7ed68acf2f5d849a16142cece55b3bd5efa8dd033cb70ea7fb5d6d6a7344a3','c8ac801ae44f87fd341b1243654f33b8e867f0592e72e95435c35653fae26a97','dc69801f4091638ea113c99e29156ebac1c24ee6711f78d16b28af766f6a32c0','e311b36e32036747723d519fd7d15d341e8d69a494d5642dfa1bccefc035ff1f','e995e95d01162d97e254b75f17d34f9e460c332ef81cf40619091a91db3bc2d5','f478329753af6f59b00426e060dc2c12f95cb0000652433a861d09b0b5cce7ec','f85efdc2182e7b211fec5b39e7a840d3cefdf7ac9bbf03f1b219161ce139d144','302c3ad5d40c53a881a3d1e22d89abc3a01e738157d7e549634e8e2fb260dbc7','f7f6939204542c6bc6c73d4a4a1a57504ee287666baa68ac33f121fd706d692b'}
+LEGACY_READER_SHA256 = {'285059b0e9759a0d2ddcecec186907a17f245fcfb4764251531dff1d868c8461','144e3ee2de81669c83ce3497796f2f7e62d35a9f2ebe044ecfb820e9b79b04d8','81e304255c212aae1ef28dd2e8cb51fc97580aac0c43a601054fcbd23e8958cd','1275a6830b70fb59cf07ac16be15e2dc5ce9c87b2af2345db2c3d2bf27dbeee8','4386a8a446949233a9e5170f96e453eb58e962b876451e4de88501084e0252db','43c2ccdad84ddf525d2b5f4a6bba651c37b94c53d9c65ac28dcd5c8317a3330a','4f06e316f1bdd62d20e5173f56af0ade63b8d9e326918d2b55e3e76ad96e4036','6feb1c196b0f5f231ce9fb11d68642fecd0f810ddf035284902f8778bb4b93b4','764f4333c55c29de9affc2cf53e5322f48443d400ab6cc212e6124812eb74219','782a99c76ee2b047239bc460cca74fc2895e9c275f415f3e967e40eb20a25bde','7f217047cc92ebc99211c63201762a3f89050564c20d5b5b38fb927d77ec74c3','8769a7ce7557c2c68b62c9ac1ec6e03c60c34b65e6757f3cd6121ca080bfe833','906c8d3447b0ccda8b7e71055e3bf7ef66e064506a27d33d05ad5e701a322473','949267a8c0f7b6615f723176597cc68baddfd689f3f964e8715d74d3c6dcc0c5','bb6ecd6c41f23bd618bbf109377f2895ec3fe35fa22c4d96b65da4ea818cb577','bd7ed68acf2f5d849a16142cece55b3bd5efa8dd033cb70ea7fb5d6d6a7344a3','c8ac801ae44f87fd341b1243654f33b8e867f0592e72e95435c35653fae26a97','dc69801f4091638ea113c99e29156ebac1c24ee6711f78d16b28af766f6a32c0','e311b36e32036747723d519fd7d15d341e8d69a494d5642dfa1bccefc035ff1f','e995e95d01162d97e254b75f17d34f9e460c332ef81cf40619091a91db3bc2d5','f478329753af6f59b00426e060dc2c12f95cb0000652433a861d09b0b5cce7ec','f85efdc2182e7b211fec5b39e7a840d3cefdf7ac9bbf03f1b219161ce139d144','302c3ad5d40c53a881a3d1e22d89abc3a01e738157d7e549634e8e2fb260dbc7','f7f6939204542c6bc6c73d4a4a1a57504ee287666baa68ac33f121fd706d692b', '51d2f950a71788019dc6dac978251162f7532b92616649b27985764af8b2b8ab'}
 SVG_DOCUMENT_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox"
 
 from project_commit import commit_report, backup_report, report_lock
@@ -179,75 +179,146 @@ EXTERNAL_CSS=re.compile(r'@import\s+|url\s*\(\s*["\']?\s*(?:https?://|//|file:|j
 
 class HtmlAudit(HTMLParser):
     def __init__(self):
-        super().__init__(convert_charrefs=False);self.errors=[];self.reader_scripts=0;self.pdf_blocks=[];self.in_pdf=False;self.in_style=False
-    def handle_starttag(self,tag,attrs):
-        a=dict(attrs)
-        if tag=='style':self.in_style=True
-        if tag in {'iframe','object','embed','link','form','base','meta'}:
-            if not(tag=='meta' and (a.get('charset','').lower()=='utf-8' or
-                (a.get('name','').lower()=='viewport' and a.get('content','')=='width=device-width,initial-scale=1') or
-                (len(attrs)==2 and set(a)=={'name','content'} and a.get('name','').lower()=='hrs-render-profile' and a.get('content','') in ('free','engineering')))):
-                self.errors.append('禁止的 HTML 元素：'+tag)
-        if tag=='script':
-            if a.get('id')=='hrs-pdf-originals':self.pdf_blocks.append('');self.in_pdf=True
-            first_party_reader=a.get('id')=='hrs-reader-runtime' and len(a)==1
-            if first_party_reader:self.reader_scripts+=1
-            elif not(a.get('id') in {'report-source','hrs-pdf-originals'} and a.get('type')=='application/json' and len(a)==2):
+        super().__init__(convert_charrefs=False)
+        self.errors = []
+        self.reader_scripts = 0
+        self.pdf_blocks = []
+        self.in_pdf = False
+        self.in_style = False
+
+    def handle_starttag(self, tag, attrs):
+        attr_map = dict(attrs)
+        if tag == 'style':
+            self.in_style = True
+        if tag in {'iframe', 'object', 'embed', 'link', 'form', 'base', 'meta'}:
+            is_allowed_meta = tag == 'meta' and (
+                attr_map.get('charset', '').lower() == 'utf-8'
+                or (
+                    attr_map.get('name', '').lower() == 'viewport'
+                    and attr_map.get('content', '') == 'width=device-width,initial-scale=1'
+                )
+                or (
+                    len(attrs) == 2
+                    and set(attr_map) == {'name', 'content'}
+                    and attr_map.get('name', '').lower() == 'hrs-render-profile'
+                    and attr_map.get('content', '') in ('free', 'engineering')
+                )
+            )
+            if not is_allowed_meta:
+                self.errors.append('禁止的 HTML 元素：' + tag)
+        if tag == 'script':
+            if attr_map.get('id') == 'hrs-pdf-originals':
+                self.pdf_blocks.append('')
+                self.in_pdf = True
+            first_party_reader = attr_map.get('id') == 'hrs-reader-runtime' and len(attr_map) == 1
+            is_json_payload = (
+                attr_map.get('id') in {'report-source', 'hrs-pdf-originals'}
+                and attr_map.get('type') == 'application/json'
+                and len(attr_map) == 2
+            )
+            if first_party_reader:
+                self.reader_scripts += 1
+            elif not is_json_payload:
                 self.errors.append('可执行 JavaScript 不允许出现在交付 HTML')
-        for k,v in attrs:
-            k=k.lower();v=v or ''
-            if k=='style' and EXTERNAL_CSS.search(v):self.errors.append('CSS 引用了外部文件')
-            if k.startswith('on'):self.errors.append('事件处理属性不允许')
-            if k in {'src','href','xlink:href'}:
-                if tag=='a' and k=='href':
-                    if re.match(r'\s*(javascript:|data:)',v,re.I):self.errors.append('链接协议不安全')
-                    elif re.match(r'\s*file:',v,re.I):
+        for key, value in attrs:
+            key = key.lower()
+            value = value or ''
+            if key == 'style' and EXTERNAL_CSS.search(value):
+                self.errors.append('CSS 引用了外部文件')
+            if key.startswith('on'):
+                self.errors.append('事件处理属性不允许')
+            if key in {'src', 'href', 'xlink:href'}:
+                if tag == 'a' and key == 'href':
+                    if re.match(r'\s*(javascript:|data:)', value, re.I):
+                        self.errors.append('链接协议不安全')
+                    elif re.match(r'\s*file:', value, re.I):
                         from local_links import path_text
-                        try:path_text(v)
-                        except ValueError:self.errors.append('文件链接路径无效')
-                elif tag in {'use','a'} and v.startswith('#'):pass
-                elif tag=='img' and k=='src' and re.match(r'^data:image/(png|jpeg|gif|webp|svg\+xml);base64,',v):pass
-                else:self.errors.append(f'有外部文件依赖：{tag}.{k}')
+                        try:
+                            path_text(value)
+                        except ValueError:
+                            self.errors.append('文件链接路径无效')
+                elif tag in {'use', 'a'} and value.startswith('#'):
+                    pass
+                elif tag == 'img' and key == 'src' and re.match(r'^data:image/(png|jpeg|gif|webp|svg\+xml);base64,', value):
+                    pass
+                else:
+                    self.errors.append(f'有外部文件依赖：{tag}.{key}')
 
-    def handle_data(self,data):
-        if self.in_pdf:self.pdf_blocks[-1]+=data
-        if self.in_style and EXTERNAL_CSS.search(data):self.errors.append('CSS 引用了外部文件')
+    def handle_data(self, data):
+        if self.in_pdf:
+            self.pdf_blocks[-1] += data
+        if self.in_style and EXTERNAL_CSS.search(data):
+            self.errors.append('CSS 引用了外部文件')
 
-    def handle_endtag(self,tag):
-        if tag=='script':self.in_pdf=False
-        if tag=='style':self.in_style=False
+    def handle_endtag(self, tag):
+        if tag == 'script':
+            self.in_pdf = False
+        if tag == 'style':
+            self.in_style = False
 
 
 def audit_export(html_document: str) -> None:
     if not html_document.lstrip().lower().startswith('<!doctype html>'):
         raise ValueError('交付文档缺少 HTML doctype')
-    parser=HtmlAudit();parser.feed(html_document)
+    parser = HtmlAudit()
+    parser.feed(html_document)
     # Interactive reports may execute exactly one trusted, local reader script.
     # Content must match the shipped module BYTE FOR BYTE. A different script,
     # extra attributes, network links, handlers, or a modified copy is rejected.
-    allowed_reader=re.findall(r'<script\s+id=["\']hrs-reader-runtime["\']\s*>([\s\S]*?)</script\s*>',html_document,re.I)
+    allowed_reader = re.findall(
+        r'<script\s+id=["\']hrs-reader-runtime["\']\s*>([\s\S]*?)</script\s*>',
+        html_document,
+        re.I,
+    )
     if parser.reader_scripts or allowed_reader:
-        canonical=(WEB/'report_reader.js').read_bytes().decode('utf-8')
-        if parser.reader_scripts!=1 or len(allowed_reader)!=1 or (allowed_reader[0]!=canonical and digest(allowed_reader[0].encode('utf-8')) not in LEGACY_READER_SHA256):
+        canonical = (WEB / 'report_reader.js').read_bytes().decode('utf-8')
+        reader_matches = (
+            parser.reader_scripts == 1
+            and len(allowed_reader) == 1
+            and (
+                allowed_reader[0] == canonical
+                or digest(allowed_reader[0].encode('utf-8')) in LEGACY_READER_SHA256
+            )
+        )
+        if not reader_matches:
             parser.errors.append('交互阅读模块不符合当前软件的完整性校验，拒绝加载未知脚本')
     # Check actual style nodes/attributes, not inert Markdown in source JSON or
     # escaped code examples. Unsafe source must remain recoverable byte-for-byte.
     # Optional read-only PDF attachments are separately bounded and authenticated.
-    pdf_blocks=parser.pdf_blocks
-    if len(pdf_blocks)>1:raise ValueError('PDF 附件数据块重复')
+    pdf_blocks = parser.pdf_blocks
+    if len(pdf_blocks) > 1:
+        raise ValueError('PDF 附件数据块重复')
     if pdf_blocks:
-        entries=json.loads(pdf_blocks[0]);total=0
-        if not isinstance(entries,dict) or len(entries)>100:raise ValueError('PDF 附件清单无效')
-        for name,item in entries.items():
-            if not re.fullmatch(r'[a-f0-9]{16}\.pdf',name,re.I) or not isinstance(item,dict) or set(item)!={'base64','bytes','sha256'}:raise ValueError('PDF 附件字段无效')
-            encoded=item['base64']
-            if not isinstance(encoded,str) or len(encoded)>16*1024*1024:raise ValueError('PDF 附件超限')
-            try:raw=base64.b64decode(encoded,validate=True)
-            except ValueError as exc:raise ValueError('PDF 附件编码无效') from exc
-            validate_pdf(raw);total+=len(raw)
-            if total>30*1024*1024 or type(item['bytes']) is not int or len(raw)!=item['bytes'] or digest(raw)!=item['sha256']:raise ValueError('PDF 附件大小或摘要不符')
-    if parser.errors:raise ValueError('; '.join(parser.errors[:5]))
-    if not re.search(r'id=["\']report-source["\']',html_document):
+        entries = json.loads(pdf_blocks[0])
+        total = 0
+        if not isinstance(entries, dict) or len(entries) > 100:
+            raise ValueError('PDF 附件清单无效')
+        for name, item in entries.items():
+            if (
+                not re.fullmatch(r'[a-f0-9]{16}\.pdf', name, re.I)
+                or not isinstance(item, dict)
+                or set(item) != {'base64', 'bytes', 'sha256'}
+            ):
+                raise ValueError('PDF 附件字段无效')
+            encoded = item['base64']
+            if not isinstance(encoded, str) or len(encoded) > 16 * 1024 * 1024:
+                raise ValueError('PDF 附件超限')
+            try:
+                raw = base64.b64decode(encoded, validate=True)
+            except ValueError as exc:
+                raise ValueError('PDF 附件编码无效') from exc
+            validate_pdf(raw)
+            total += len(raw)
+            if (
+                total > 30 * 1024 * 1024
+                or type(item['bytes']) is not int
+                or len(raw) != item['bytes']
+                or digest(raw) != item['sha256']
+            ):
+                raise ValueError('PDF 附件大小或摘要不符')
+    if parser.errors:
+        raise ValueError('; '.join(parser.errors[:5]))
+    if not re.search(r'id=["\']report-source["\']', html_document):
         raise ValueError('缺少可再次编辑的源数据')
 
 
@@ -454,68 +525,133 @@ class StudioServer(ThreadingHTTPServer):
 
 
 class Handler(BaseHTTPRequestHandler):
-    server:StudioServer
-    def log_message(self,fmt,*args):print('[local] '+fmt%args)
-    def bytes(self,data,typ,status=200,filename=None):
+    server: StudioServer
+
+    def log_message(self, fmt, *args):
+        print('[local] ' + fmt % args)
+
+    def bytes(self, data, typ, status=200, filename=None, *, etag=None):
         self.send_response(status)
-        self.send_header('Content-Type',typ)
-        self.send_header('Content-Length',str(len(data)))
-        self.send_header('Cache-Control','no-store')
-        self.send_header('X-Content-Type-Options','nosniff')
-        self.send_header('Referrer-Policy','no-referrer')
+        self.send_header('Content-Type', typ)
+        self.send_header('Content-Length', str(len(data)))
+        self.send_header('Cache-Control', 'no-cache' if etag else 'no-store')
+        if etag:
+            self.send_header('ETag', etag)
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('Referrer-Policy', 'no-referrer')
         # SVG opened directly (e.g. "open original") must never run scripts in
         # the editor origin, even from an external project that skipped import.
-        if typ.startswith('image/svg+xml'):self.send_header('Content-Security-Policy',SVG_DOCUMENT_CSP)
-        if filename:self.send_header('Content-Disposition',"attachment; filename*=UTF-8''"+quote(filename))
-        self.end_headers();self.wfile.write(data)
-    def resp(self,obj,status=200):
-        self.bytes(json.dumps(obj,ensure_ascii=False).encode('utf-8'),'application/json; charset=utf-8',status)
+        if typ.startswith('image/svg+xml'):
+            self.send_header('Content-Security-Policy', SVG_DOCUMENT_CSP)
+        if filename:
+            self.send_header('Content-Disposition', "attachment; filename*=UTF-8''" + quote(filename))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def resp(self, obj, status=200):
+        payload = json.dumps(obj, ensure_ascii=False).encode('utf-8')
+        self.bytes(payload, 'application/json; charset=utf-8', status)
+
     def fail(self, message: str, status: int = 400):
         payload: ApiError = {'ok': False, 'error': str(message)}
         self.resp(payload, status)
-    def _origin_ok(self):
-        host=self.headers.get('Host','')
-        if not re.fullmatch(r'(127\.0\.0\.1|localhost)(:\d+)?',host):return False
-        origin=self.headers.get('Origin')
-        return not origin or bool(re.fullmatch(r'http://(127\.0\.0\.1|localhost):\d+',origin))
-    def _parameters(self):
-        return parse_qs(urlsplit(self.path).query)
-    def _docid(self, req=None):
-        if req is None:return self._parameters().get('document_id',['legacy'])[0]
-        return req.get('document_id','legacy')
-    def _template(self, req=None):
-        if req is None:return self._parameters().get('template',['engineering'])[0]
-        return req.get('template','engineering')
-    def _context(self,doc_id,template='engineering'):
-        if doc_id=='new':
-            info=template_info(template)
-            raw=info['markdown'].encode('utf-8')
-            return None,raw,template,info['theme']
-        p=self.server.project_path(doc_id)
-        raw=self.server.source_path(doc_id).read_bytes()
-        try:meta=json.loads((p/'meta.json').read_text(encoding='utf-8'))
-        except (FileNotFoundError,json.JSONDecodeError,OSError):meta={}
-        return p,raw,meta.get('template','engineering'),meta.get('theme','engineering')
-    def _check_revision(self,req,raw):
-        if req.get('revision')!=digest(raw):
-            self.resp({'ok':False,'error':'源文件已由其他窗口或程序修改；请重新载入，避免覆盖。','revision':digest(raw)},409)
+
+    def _check_request_origin(
+        self,
+        *,
+        require_origin: bool = False,
+        allow_referer: bool = False,
+        action_header: str | None = None,
+        exact_port: bool = False,
+    ) -> bool:
+        """Centralized localhost origin and explicit user-action header validator."""
+        if self.headers.get('Sec-Fetch-Site', '').lower() == 'cross-site':
+            return False
+        if action_header and self.headers.get(action_header) != 'user-action':
+            return False
+        host = self.headers.get('Host', '')
+        host_pattern = r'(127\.0\.0\.1|localhost):\d+' if exact_port else r'(127\.0\.0\.1|localhost)(:\d+)?'
+        if not re.fullmatch(host_pattern, host):
+            return False
+        origin = self.headers.get('Origin') or (self.headers.get('Referer') if allow_referer else None)
+        if not origin:
+            return not require_origin
+        try:
+            parsed = urlsplit(origin)
+            port = parsed.port
+        except ValueError:
+            return False
+        if parsed.scheme != 'http' or parsed.username or parsed.password:
+            return False
+        if parsed.hostname not in ('127.0.0.1', 'localhost') or port is None:
+            return False
+        if ':' in host and parsed.netloc != host:
+            return False
+        server_port = getattr(self.server, 'server_port', None)
+        if exact_port and server_port is not None and port != server_port:
             return False
         return True
-    def _conflict(self,req):
-        try: _,raw,_,_=self._context(self._docid(req),self._template(req))
-        except ValueError:return True
-        return not self._check_revision(req,raw)
-    def _draft_id(self,req):
-        did=req.get('draft_id')
-        if not isinstance(did,str) or not DRAFT_ID.fullmatch(did):raise ValueError('草稿 ID 无效')
+
+    def _origin_ok(self):
+        return self._check_request_origin()
+
+    def _parameters(self):
+        return parse_qs(urlsplit(self.path).query)
+
+    def _docid(self, req=None):
+        if req is None:
+            return self._parameters().get('document_id', ['legacy'])[0]
+        return req.get('document_id', 'legacy')
+
+    def _template(self, req=None):
+        if req is None:
+            return self._parameters().get('template', ['engineering'])[0]
+        return req.get('template', 'engineering')
+
+    def _context(self, doc_id, template='engineering'):
+        if doc_id == 'new':
+            info = template_info(template)
+            raw = info['markdown'].encode('utf-8')
+            return None, raw, template, info['theme']
+        p = self.server.project_path(doc_id)
+        raw = self.server.source_path(doc_id).read_bytes()
+        try:
+            meta = json.loads((p / 'meta.json').read_text(encoding='utf-8'))
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            meta = {}
+        return p, raw, meta.get('template', 'engineering'), meta.get('theme', 'engineering')
+
+    def _check_revision(self, req, raw):
+        if req.get('revision') != digest(raw):
+            self.resp({'ok': False, 'error': '源文件已由其他窗口或程序修改；请重新载入，避免覆盖。', 'revision': digest(raw)}, 409)
+            return False
+        return True
+
+    def _conflict(self, req):
+        try:
+            _, raw, _, _ = self._context(self._docid(req), self._template(req))
+        except ValueError:
+            return True
+        return not self._check_revision(req, raw)
+
+    def _draft_id(self, req):
+        did = req.get('draft_id')
+        if not isinstance(did, str) or not DRAFT_ID.fullmatch(did):
+            raise ValueError('草稿 ID 无效')
         return did
-    def _verify_draft_owner(self,draft_id,doc_id):
-        try:old=self.server.read_draft(draft_id)
-        except ValueError:return
-        if old['document_id']!=doc_id:raise ValueError('草稿与来源文档不匹配')
-    def _clear_draft(self,draft_id):
-        folder=self.server.draft_path(draft_id)
-        if folder.is_dir():shutil.rmtree(folder)
+
+    def _verify_draft_owner(self, draft_id, doc_id):
+        try:
+            old = self.server.read_draft(draft_id)
+        except ValueError:
+            return
+        if old['document_id'] != doc_id:
+            raise ValueError('草稿与来源文档不匹配')
+
+    def _clear_draft(self, draft_id):
+        folder = self.server.draft_path(draft_id)
+        if folder.is_dir():
+            shutil.rmtree(folder)
     def _write_draft(self,req):
         did=self._draft_id(req);doc_id=self._docid(req)
         self.server.project_path(doc_id)  # validate/locate without touching the report
@@ -560,19 +696,20 @@ class Handler(BaseHTTPRequestHandler):
         return block_times.advance(old,text,baseline,hints=req.get('timestamp_hints'),ir=ir)
     def _picker_origin_ok(self):
         # Explicit interaction header + same-origin Origin required for file dialog.
-        if self.headers.get('X-HRS-Project-Action')!='user-action':return False
-        origin=self.headers.get('Origin')
-        if not origin:return False
-        host=self.headers.get('Host','')
-        return bool(re.fullmatch(r'(127\.0\.0\.1|localhost):\d+',host)) and origin=='http://'+host
+        return self._check_request_origin(
+            require_origin=True,
+            action_header='X-HRS-Project-Action',
+            exact_port=True,
+        )
 
     def _reader_action_ok(self):
         # Native folder chooser and ZIP upload require an explicit same-origin
         # user action. A custom header forces CORS preflight on foreign sites.
-        if self.headers.get('X-HRS-Reader-Action') != 'user-action':return False
-        host=self.headers.get('Host','')
-        origin=self.headers.get('Origin')
-        return bool(re.fullmatch(r'(127\.0\.0\.1|localhost):\d+',host)) and origin=='http://'+host
+        return self._check_request_origin(
+            require_origin=True,
+            action_header='X-HRS-Reader-Action',
+            exact_port=True,
+        )
 
     def import_local_file(self,req):
         if not self._picker_origin_ok():return self.fail('请通过编辑器的导入按钮选择文稿',403)
@@ -874,19 +1011,44 @@ class Handler(BaseHTTPRequestHandler):
                 return self.bytes(content,typ,filename=(target.name if p!='/api/print' else None))
             return self.fail('页面不存在',404)
         except (ValueError,TypeError,UnicodeError) as exc:return self.fail(str(exc),400)
-    def static(self,name,root=WEB,allowed_extensions=None):
-        root=root.resolve()
-        dest=(root/name).resolve()
-        if (not dest.is_relative_to(root) or not dest.is_file() or
-                (allowed_extensions is not None and dest.suffix.lower() not in allowed_extensions)):
-            return self.fail('资源不存在',404)
-        typ={'.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8',
-             '.html':'text/html; charset=utf-8','.txt':'text/plain; charset=utf-8',
-             '.md':'text/plain; charset=utf-8','.json':'application/json; charset=utf-8',
-             '.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg',
-             '.webp':'image/webp','.svg':'image/svg+xml','.ico':'image/x-icon',
-             '.webmanifest':'application/manifest+json'}.get(dest.suffix.lower(),'application/octet-stream')
-        self.bytes(dest.read_bytes(),typ)
+    def static(self, name, root=WEB, allowed_extensions=None):
+        root = root.resolve()
+        dest = (root / name).resolve()
+        if (
+            not dest.is_relative_to(root)
+            or not dest.is_file()
+            or (allowed_extensions is not None and dest.suffix.lower() not in allowed_extensions)
+        ):
+            return self.fail('资源不存在', 404)
+        typ = {
+            '.js': 'application/javascript; charset=utf-8',
+            '.css': 'text/css; charset=utf-8',
+            '.html': 'text/html; charset=utf-8',
+            '.txt': 'text/plain; charset=utf-8',
+            '.md': 'text/plain; charset=utf-8',
+            '.json': 'application/json; charset=utf-8',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.webp': 'image/webp',
+            '.svg': 'image/svg+xml',
+            '.ico': 'image/x-icon',
+            '.woff2': 'font/woff2',
+            '.woff': 'font/woff',
+            '.ttf': 'font/ttf',
+            '.webmanifest': 'application/manifest+json',
+        }.get(dest.suffix.lower(), 'application/octet-stream')
+        raw = dest.read_bytes()
+        etag = f'"{digest(raw)}"'
+        if self.headers.get('If-None-Match') == etag:
+            self.send_response(304)
+            self.send_header('ETag', etag)
+            self.send_header('Cache-Control', 'no-cache')
+            self.send_header('X-Content-Type-Options', 'nosniff')
+            self.send_header('Referrer-Policy', 'no-referrer')
+            self.end_headers()
+            return
+        self.bytes(raw, typ, etag=etag)
     def do_POST(self):
         if not self._origin_ok():return self.fail('仅允许本机访问',403)
         if not self.headers.get('Content-Type','').startswith('application/json'):return self.fail('仅接受 JSON',415)
@@ -1053,39 +1215,59 @@ class Handler(BaseHTTPRequestHandler):
         open_target(target)
         return self.resp({'ok':True,'opened_by':'system-default-application','kind':'folder' if target.is_dir() else 'file'})
 
-    def open_external_link(self,req):
-        origin=urlsplit(self.headers.get('Origin') or self.headers.get('Referer') or '')
-        if (self.headers.get('X-HRS-External-Link')!='user-action' or
-            origin.scheme!='http' or origin.netloc!=self.headers.get('Host')):
-            return self.fail('仅接受当前编辑器的显式外链点击',403)
-        url=req.get('url')
-        if not isinstance(url,str) or not (1<=len(url)<=8192) or re.search(r'[\x00-\x20\x7f-\x9f]',url):
+    def open_external_link(self, req):
+        if not self._check_request_origin(
+            require_origin=True,
+            allow_referer=True,
+            action_header='X-HRS-External-Link',
+            exact_port=True,
+        ):
+            return self.fail('仅接受当前编辑器的显式外链点击', 403)
+        url = req.get('url')
+        if not isinstance(url, str) or not (1 <= len(url) <= 8192) or re.search(r'[\x00-\x20\x7f-\x9f]', url):
             raise ValueError('外链 URL 无效')
-        parsed=urlsplit(url)
-        if parsed.scheme.lower() not in ('http','https') or not parsed.hostname or parsed.username or parsed.password:
+        parsed = urlsplit(url)
+        if parsed.scheme.lower() not in ('http', 'https') or not parsed.hostname or parsed.username or parsed.password:
             raise ValueError('外链仅允许无登录信息的 HTTP / HTTPS 地址')
-        if os.name=='nt':os.startfile(url)
-        elif not webbrowser.open(url,new=2):raise RuntimeError('系统浏览器未能启动')
-        return self.resp({'ok':True,'opened_by':'system-default-browser'})
+        if os.name == 'nt':
+            os.startfile(url)
+        elif not webbrowser.open(url, new=2):
+            raise RuntimeError('系统浏览器未能启动')
+        return self.resp({'ok': True, 'opened_by': 'system-default-browser'})
 
-    def validate(self,req):
-        ir=analyze_report_contract(req.get('markdown'))
-        diagnostics=output_checks(ir,normalize_profile(req.get('render_profile')))+ir['diagnostics']
-        valid=project_contract(ir)['sourceContractValid'] and not any(d['severity']=='error' for d in diagnostics)
-        return self.resp({'ok':True,'valid':False,'source_contract_valid':valid,'safeToCompile':False,
-           'output_blockers':sorted(BLOCKED_DIAGNOSTICS),
-           'preflight':{'scope':'source-contract','complete':False,'next':'hrs check SOURCE --render-profile engineering'},'schema':ir['schema'],
-           'diagnostics':diagnostics, 'stats':ir['stats'],
-           'object_count':len(ir['objects']['ids']),'references':ir['references'],'offset_unit':ir['offset_unit'],'source_snapshot':ir['source_snapshot']})
+    def validate(self, req):
+        ir = analyze_report_contract(req.get('markdown'))
+        diagnostics = output_checks(ir, normalize_profile(req.get('render_profile'))) + ir['diagnostics']
+        valid = project_contract(ir)['sourceContractValid'] and not any(d['severity'] == 'error' for d in diagnostics)
+        return self.resp({
+            'ok': True,
+            'valid': False,
+            'source_contract_valid': valid,
+            'safeToCompile': False,
+            'output_blockers': sorted(BLOCKED_DIAGNOSTICS),
+            'preflight': {
+                'scope': 'source-contract',
+                'complete': False,
+                'next': 'hrs check SOURCE --render-profile engineering',
+            },
+            'schema': ir['schema'],
+            'diagnostics': diagnostics,
+            'stats': ir['stats'],
+            'object_count': len(ir['objects']['ids']),
+            'references': ir['references'],
+            'offset_unit': ir['offset_unit'],
+            'source_snapshot': ir['source_snapshot'],
+        })
+
     def _asset_housekeeping_origin_ok(self):
         # Unlike normal report preview, scanning/trashing project source files
         # requires an explicit same-origin POST with an action header.
-        if self.headers.get('X-HRS-Asset-Action')!='user-action':return False
-        host=self.headers.get('Host','')
-        origin=self.headers.get('Origin') or self.headers.get('Referer')
-        if not origin or not re.fullmatch(r'(127\.0\.0\.1|localhost):\d+',host):return False
-        url=urlsplit(origin)
-        return url.scheme=='http' and url.netloc==host and not url.username and not url.password
+        return self._check_request_origin(
+            require_origin=True,
+            allow_referer=True,
+            action_header='X-HRS-Asset-Action',
+            exact_port=True,
+        )
 
     def _asset_housekeeper(self,req):
         if not self._asset_housekeeping_origin_ok():
@@ -1557,12 +1739,12 @@ class Handler(BaseHTTPRequestHandler):
         # Prevent an arbitrary site from reading the local Windows clipboard
         # through the localhost service. A custom header forces CORS preflight
         # for cross-origin browser requests, which this server never allows.
-        if self.headers.get('X-Report-Studio-Clipboard')!='user-action':return False
-        host=self.headers.get('Host','')
-        origin=self.headers.get('Origin') or self.headers.get('Referer')
-        if not origin or not re.fullmatch(r'(127\.0\.0\.1|localhost):\d+',host):return False
-        parts=urlsplit(origin)
-        return parts.scheme=='http' and parts.netloc==host and not parts.username and not parts.password
+        return self._check_request_origin(
+            require_origin=True,
+            allow_referer=True,
+            action_header='X-Report-Studio-Clipboard',
+            exact_port=True,
+        )
 
     def _object_clipboard_context(self,req):
         if not self._native_origin_ok():raise ValueError('对象剪贴板需要当前编辑器主动操作')

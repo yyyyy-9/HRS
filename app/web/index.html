@@ -233,8 +233,9 @@
             </div>
           </div>
           <div class="toolbar-end">
+            <button id="btn-toggle-sidebar" class="tool" type="button" aria-expanded="true" title="收起或展开左侧目录栏 (Ctrl+\)">侧栏</button>
             <select id="render-profile" class="tool" aria-label="渲染模式" title="同一源稿的渲染与输出规则"></select>
-            <button id="btn-validate" class="tool" title="检查对象 ID、交叉引用和结构错误">✓ 文档检查</button>
+            <button id="btn-validate" class="tool" title="检查对象 ID、交叉引用和结构错误；面板展开时自动更新">✓ 文档检查</button>
             <div class="view-modes" role="group" aria-label="编辑模式">
               <button class="view-mode" data-view="reading" title="单栏只读阅读；目录和引用可跳转">阅读</button>
               <button class="view-mode active" data-view="split">分屏</button>
@@ -270,7 +271,7 @@
           </section>
           <div id="split-divider" class="split-divider" role="separator" aria-label="调整源码与预览宽度" aria-orientation="vertical" aria-valuemin="30" aria-valuemax="70" aria-valuenow="50" tabindex="0" title="拖动调整两栏；方向键微调，双击恢复均分"></div>
           <section class="preview-pane" id="preview-pane">
-            <div class="pane-title"><span class="pane-icon">◉</span> 文档预览 <span class="pane-hint" id="preview-hint">公式与流程图离线渲染</span><div class="preview-view-controls"><div class="preview-zoom-controls" role="group" aria-label="文稿显示比例"><button id="preview-zoom-decrease" class="source-fold-tool" type="button" title="缩小显示" aria-label="缩小文稿显示比例">−</button><label class="preview-zoom-control" title="仅调整当前预览和阅读的显示比例，不改变导出"><select id="preview-zoom" aria-label="文稿显示比例"></select></label><button id="preview-zoom-increase" class="source-fold-tool" type="button" title="放大显示" aria-label="增大文稿显示比例">＋</button></div><label class="follow-scroll-control" title="按对应源码块双向跟随，折叠内容也能定位"><input id="follow-scroll" type="checkbox">跟随滚动</label></div></div>
+            <div class="pane-title"><span class="pane-icon">◉</span> 文档预览 <span class="pane-hint" id="preview-hint">公式与流程图离线渲染</span><div class="preview-view-controls"><div class="preview-zoom-controls" role="group" aria-label="文稿显示比例"><button id="preview-zoom-decrease" class="source-fold-tool" type="button" title="缩小显示" aria-label="缩小文稿显示比例">−</button><label class="preview-zoom-control" title="仅调整当前预览和阅读的显示比例，不改变导出"><select id="preview-zoom" aria-label="文稿显示比例"></select></label><button id="preview-zoom-increase" class="source-fold-tool" type="button" title="放大显示" aria-label="增大文稿显示比例">＋</button></div><label class="follow-scroll-control" title="两侧按源码块跟随滚动，源码输入后提示对应预览"><input id="follow-scroll" type="checkbox">跟随滚动</label></div></div>
             <div class="page-scroll"><div id="preview-scale-stage" class="preview-scale-stage"><div id="preview-scale-content" class="preview-scale-content"><article id="preview-content" class="paper"></article></div></div></div>
           </section>
         </div>

@@ -18,33 +18,15 @@ const {chromium}=require(require.resolve('playwright-core',{paths:[
    if(!await page.evaluate(()=>!!window.ReportStudioProgrammatic))throw Error('Programmatic entry unavailable');
    await page.addScriptTag({path:path.join(__dirname,'browser_model.js')});
    result=await page.evaluate(async req=>{
-    await ReportStudioProgrammatic.ready();await ReportStudioProgrammatic.open('legacy');
-    // The original renderer supplies graphical renditions only. Semantic types,
-    // identities, references and source text still come from the Python IR.
-    const diagrams={},svgAssets={};
-    for(const fig of document.querySelectorAll('#preview-content figure[data-figure-id]')){
-     const svg=fig.querySelector('.report-figure-graph svg');
-     if(svg)diagrams[fig.dataset.figureId]=true;
-    }
-    for(const img of document.querySelectorAll('#preview-content img')){
-     const u=new URL(img.src,location.href);if(/\.svg$/i.test(u.pathname))svgAssets[decodeURIComponent(u.pathname.split('/').pop())]=true;
-    }
-    return {...ReportBridgeModel.build(req),diagrams,svgAssets};
+    await ReportStudioProgrammatic.ready();
+    await ReportTheme.apply(document,req.color_theme);
+    return ReportBridgeModel.render(req);
    },req);
-   for(const id of Object.keys(result.diagrams))result.diagrams[id]=(await page.locator('#preview-content figure[data-figure-id="'+id+'"] .report-figure-graph svg').screenshot()).toString('base64');
-   // Rasterize only actual SVG image elements, using the same browser rendition.
-   for(const name of Object.keys(result.svgAssets)){
-    const imgs=page.locator('#preview-content img');let found=false;
-    for(let i=0;i<await imgs.count();i++)if(await imgs.nth(i).evaluate((img,name)=>decodeURIComponent(new URL(img.src).pathname.split('/').pop())===name,name)){
-     result.svgAssets[name]=(await imgs.nth(i).screenshot()).toString('base64');found=true;break;
-    }
-    if(!found)throw Error('SVG rendition not found: '+name);
-   }
   }else if(req.operation==='serialize'){
    result=await page.evaluate(items=>items.map(item=>{
     if(item.type==='image-group')return ReportLayout.groupSnippet(item.data)+'\n';
     if(item.type==='gfm')return ReportPipeTables.stringify(item.data,{id:item.id,withCaption:!!item.data.caption})+'\n';
-    if(item.type==='equation')return ReportEquations.snippet(item.tex,item.id)+'\n';
+    if(item.type==='equation')return ReportEquations.snippet(item.tex,item.id,'\n',item.delimiter)+'\n';
     throw Error('Unknown source serializer');
    }),req.items);
   }else throw Error('Unknown browser operation');

@@ -44,7 +44,7 @@ python -X utf8 -B tools/run_checks.py --groups search --browser "C:/Program File
 工作页体验专项：--groups report_workspace，覆盖新工作页、旧notebook、保存/滚动/标题引用、表格脚注和共享公式；--plan查看去重后的具体范围。
 原生输出专项：--groups report_word，设置HRS_WORD_SUPPORT为匹配word_support目录、HRS_WORD_PYTHON为其Python3.13运行时、HRS_WORD_PANDOC为已选pandoc.exe；另设置浏览器。缺少必需组件会明确失败，不能当成通过。
 
-report_word同时包含整篇Word导入的真实服务专项（普通可编辑模式与精确回编分开）：外来DOCX的表/组图/OMML、NEEDS_REVIEW保留、自身导出映射回编、列表/内容控件/缓存域、嵌套表、无Pandoc的局部保留、取消/来源变化/无组件/登记失败与原稿保护；宿主禁止读取任何Word字节的反例保证读取/暂存清单/来源复核/工程复制在同一子进程。WORD-IMPORT-ACCESS-01增加真实Windows读/写/删除共享锁，验证已保存稿不被清理失败覆盖、解锁后回收、系统Temp短名及主错误阶段；非Windows按原生边界SKIP。只替代本机选择窗口的返回值，使用原配套组件及当前页面，不模拟转换结果；无Node/第二浏览器依赖也有反例。普通import组继续保护原Markdown/HTML入口；无浏览器Word请求边界纳入word契约。
+report_word 同时覆盖普通可编辑导入和来源映射精确回编。使用实际组件和浏览器，只替代本机选择窗口的返回值。导入用例覆盖同段多图、合并单元格组图、带表题的数据表、图题及书签、跨公式批次的局部转换差异、列表、内容控件、缓存域、嵌套表、缺少 Pandoc、取消、来源变化、登记失败和原稿保护。Windows 用例另验证真实文件共享锁下的保存和延后清理。普通 import 组保护 Markdown/HTML 导入；无浏览器的 Word 请求边界在 word 组。
 
 4. 完整自动检查与效率
 

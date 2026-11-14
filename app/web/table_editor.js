@@ -3,7 +3,7 @@
 'use strict';
 const cloneReport=root.ReportClone.clone;
 async function open(model,{modal,toast}){
- const T=root.ReportTables;
+ const T=root.ReportTables,initialSnapshot=JSON.stringify(model);
  let working=cloneReport(model),grid,scroll,caption,widthTrack,undoButton,redoButton,horizontalSelect,verticalSelect;
  let selected=null,anchor=null,range=null,index=0,lastKind=null,lastAt=0;
  const entries=[capture()];
@@ -103,6 +103,45 @@ async function open(model,{modal,toast}){
    field.dataset.r=r;field.dataset.c=c;field.setAttribute('aria-label',`第 ${r+1} 行第 ${c+1} 列`);
    field.style.gridRow=`${r+1} / span ${value.rowspan}`;field.style.gridColumn=`${c+1} / span ${value.colspan}`;
    field.onclick=event=>{selected=[r,c];if(event.shiftKey&&anchor)range=[anchor,[r,c]];else{anchor=[r,c];range=null;}highlight();horizontalSelect.disabled=false;horizontalSelect.value=working.align?.[c]||'default';};
+   field.onkeydown=event=>{
+    if(event.isComposing)return;
+    if(event.key==='Tab'&&!event.ctrlKey&&!event.altKey&&!event.metaKey){
+     requestAnimationFrame(()=>{
+      const active=document.activeElement;
+      if(active?.tagName==='TEXTAREA'&&active.dataset.r!==undefined){
+       const nr=+active.dataset.r,nc=+active.dataset.c;
+       selected=[nr,nc];anchor=[nr,nc];range=null;highlight();
+       if(horizontalSelect){horizontalSelect.disabled=false;horizontalSelect.value=working.align?.[nc]||'default';}
+      }
+     });
+     return;
+    }
+    const dirs={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]};
+    const delta=dirs[event.key];if(!delta||event.ctrlKey||event.metaKey)return;
+    const [dr,dc]=delta,collapsed=field.selectionStart===field.selectionEnd;
+    const atBoundary=event.altKey||(collapsed&&(
+     (dc<0&&field.selectionStart===0)||
+     (dc>0&&field.selectionEnd===field.value.length)||
+     (dr<0&&!field.value.slice(0,field.selectionStart).includes('\n'))||
+     (dr>0&&!field.value.slice(field.selectionEnd).includes('\n'))
+    ));
+    if(!atBoundary||(event.shiftKey&&!event.altKey&&field.value.length>0))return;
+    const g=T.logicalGrid(working),base=event.shiftKey&&range?range[1]:[r,c],baseOwner=g.owners[base[0]][base[1]];
+    const nextR=dr<0?baseOwner.r-1:dr>0?baseOwner.r+baseOwner.value.rowspan:baseOwner.r;
+    const nextC=dc<0?baseOwner.c-1:dc>0?baseOwner.c+baseOwner.value.colspan:baseOwner.c;
+    if(nextR<0||nextR>=g.height||nextC<0||nextC>=g.width)return;
+    const target=g.owners[nextR][nextC],nextField=grid.querySelector(`textarea[data-r="${target.r}"][data-c="${target.c}"]`);
+    if(!nextField)return;
+    event.preventDefault();
+    selected=[target.r,target.c];
+    if(event.shiftKey&&(event.altKey||!field.value.length)){if(!anchor)anchor=[r,c];range=[anchor,[target.r,target.c]];}
+    else{anchor=[target.r,target.c];range=null;}
+    highlight();
+    if(horizontalSelect){horizontalSelect.disabled=false;horizontalSelect.value=working.align?.[target.c]||'default';}
+    nextField.focus();
+    const caret=dr<0||dc<0?nextField.value.length:0;
+    nextField.setSelectionRange(caret,caret);
+   };
    field.oninput=()=>{working.rows[r][c].text=field.value;field.rows=Math.max(1,Math.min(8,field.value.split(/\r?\n/).length));record(`typing:${r}:${c}`);};
    field.onpaste=event=>{
     const plain=event.clipboardData?.getData('text/plain')||'',html=event.clipboardData?.getData('text/html')||'';
@@ -174,7 +213,7 @@ async function open(model,{modal,toast}){
    scroll=document.createElement('div');scroll.className='table-grid-scroll';outer.append(scroll);grid=document.createElement('div');grid.className='table-edit-grid';scroll.append(grid);
    owner=outer;owner.addEventListener('keydown',keys);
    rebuild();
-  },onOk:()=>{T.logicalGrid(working);T.validateWidths(working.columnWidths,working.rows[0].length);return cloneReport(working);},okText:'应用表格修改'});
+  },isDirty:()=>JSON.stringify(working)!==initialSnapshot,onOk:()=>{T.logicalGrid(working);T.validateWidths(working.columnWidths,working.rows[0].length);return cloneReport(working);},okText:'应用表格修改'});
  }finally{owner?.removeEventListener('keydown',keys);}
 }
 root.ReportTableEditor={open};

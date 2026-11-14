@@ -44,19 +44,38 @@ class UnifiedNumbering(ManualService):
 
     def test_05_plain_objects_gain_identity_only_when_referenced(self):
         p=self.page
-        original='# 统一引用\n\n| 参数 | 值 |\n|---|---|\n| 电压 | 2.30 V |\n\n$$\nx=1\n$$\n\n```mermaid\nflowchart LR\n A-->B\n```\n\n参考：\n'
+        original='# 统一引用\n\n| 参数 | 值 |\n|---|---|\n| 电压 | 2.30 V |\n\n$$ x=1 $$\n\n```mermaid\nflowchart LR\n A-->B\n```\n\n参考：\n'
         source(p,original)
         p.wait_for_function("document.querySelectorAll('#preview-content .report-table-wrap,#preview-content .report-equation,#preview-content .mermaid-card').length===3")
-        for kind in ['tbl','eq','fig']:
+        p.locator('#show-object-numbers').uncheck()
+        # EDITOR-UX-2.6: anonymous objects are described before acquiring an ID.
+        for kind,label in [('tbl','表格 · 参数 · 值'),('eq','公式 · x=1'),('fig','流程图')]:
             select(p,len(original),len(original));p.locator('[data-insert="object-ref"]').click()
-            p.locator('.reference-tab[data-kind="'+kind+'"]').click();p.locator('#modal-ok').click()
+            p.locator('.reference-tab[data-kind="'+kind+'"]').click()
+            self.assertEqual(p.get_by_label('选择引用对象').locator('option').all_text_contents(),[label+' · 统一引用'])
+            p.locator('#modal-ok').click()
             p.wait_for_function("kind=>document.querySelector('#markdown').sourceEditor.value.includes('@'+kind+':')",arg=kind)
             ir=analyze(value(p));self.assertTrue(ir['ok'],ir['diagnostics'])
             self.assertEqual(len(ir['references']),1)
             self.assertIn(ir['references'][0]['target'],ir['objects']['ids'])
             self.assertIn('2.30 V',value(p))
+            self.assertIn('$$ x=1 $$\n',value(p))
             p.locator('#btn-undo').click()
             p.wait_for_function("md=>document.querySelector('#markdown').sourceEditor.value===md",arg=original)
+        table='| 参数 | 值 |\n|---|---|\n| 电压 | 2.30 V |\n'
+        duplicate='# 重名\n\n'+table+'\n'+table+'\n见：\n'
+        source(p,duplicate)
+        select(p,len(duplicate)-1,len(duplicate)-1)
+        p.locator('[data-insert="object-ref"]').click()
+        picker=p.get_by_role('combobox',name='选择引用对象')
+        self.assertEqual(picker.locator('option').all_text_contents(),[
+            '表格 · 参数 · 值 · 重名 · 第 3 行','表格 · 参数 · 值 · 重名 · 第 7 行',
+        ])
+        picker.select_option(index=1);p.locator('#modal-ok').click()
+        self.assertRegex(value(p),r'\| 电压 \| 2.30 V \|\n: \{#(tbl-[a-f0-9]+)\}\n\n见：@tbl:\1\n')
+        self.assertTrue(value(p).startswith('# 重名\n\n'+table+'\n'+table))
+        p.locator('#btn-undo').click()
+        self.assertEqual(value(p),duplicate)
 
     def test_06_formula_option_survives_archive_and_reading_pack(self):
         p=self.page;p.wait_for_selector('#preview-content .report-equation')

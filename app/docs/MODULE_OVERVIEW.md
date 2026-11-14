@@ -1,9 +1,13 @@
 # HTML Report Studio 模块说明
 
-预览提交由preview_commit统一保留节点、清理失效间隔；不能把移入的相邻节点再当成待清理游标。文稿撤销沿原快照与时间元数据，SourceMap提供变化范围，source_projection按CodeMirror测量生命周期定位自身滚动容器，预览独立滚动。离线Reader消费导出时原notebook索引的DOM归属元数据，筛选专题和目录层级；object_catalog同时持有共享的章节/对象编号函数。筛选只改变显示，不增加解析器或改动源归档，公式号码复用原已生成字形，无需携带数学运行库。
-公式编辑由 formula_editor.js 惰性加载离线 MathLive，等待数学字体就绪后显示；双向同步仅存在于弹窗草稿，孤立上下标拖选使用组件公开选区接口保留其容器，原 MathJax 继续负责输出。report_equations.presentation 只处理显示副本的显式 tag。section_operations（Python/JavaScript）各自消费已有 IR/SourceMap，提供章节范围与操作，不新增 Markdown 解析器。outline_tree 只在树结构变化时重建节点，普通输入更新位置与文字；阅读视图不发出移动意图。text_snippets 以受限声明式内容存储在用户数据区，插入复用对象粘贴。引用使用原定位链，不维护额外的前端反向使用索引。
+预览提交由preview_commit统一保留节点、清理失效间隔；不能把移入的相邻节点再当成待清理游标。文稿撤销沿原快照与时间元数据，源码编辑从 CodeMirror 事务记录改动区间和前后选区。其它整稿修改由 SourceMap 定位。source_projection 独立标记并按需滚动源码，分屏在最新预览提交后标出对应块。离线Reader消费导出时原notebook索引的DOM归属元数据，筛选专题和目录层级；object_catalog同时持有共享的章节/对象编号函数。筛选只改变显示，不增加解析器或改动源归档，公式号码复用原已生成字形，无需携带数学运行库。
+公式编辑由 formula_editor.js 惰性加载离线 MathLive，等待数学字体就绪后显示。配对上下标移动与结构间隙定位使用 MathLive 的公开接口。固定版本的 MathLive 复用每轮排版的原子节点索引，选区变化才重绘，范围合并保留单个原子的几何边界。源码包中的 tools/patch_mathlive_selection.py 可从标明摘要的上游包重建该修改。LaTeX 和可视区立即更新同一草稿，MathJax 排版示例合并连续输入，丢弃过期任务。report_equations.presentation 处理显示副本的显式 tag。section_operations（Python/JavaScript）各自消费已有 IR/SourceMap，提供章节范围与操作。outline_tree 只在树结构变化时重建节点，普通输入更新位置与文字。text_snippets 在用户数据区保存声明式内容，插入复用对象粘贴，引用沿原定位链。
 
 ## 统一定义与派生缓存
+
+分屏的输入跟随消费已提交预览的同一 SourceMap，`scroll_follow` 仲裁手动滚动与键入定位。引用选择复用对象目录和章节路径，标签与身份分开；新锚点及其引用在同一 CodeMirror 事务提交。
+
+文档检查面板沿用 `preflight` 的完整文本检查，以当前源快照和渲染模式接收结果。自动刷新与预览排版独立，问题定位复用当前 SourceMap。
 
 document_timestamps消费原report_contract IR和section_operations章节范围，管理可选的源快照绑定时间元数据；日期独立于Markdown，未知历史日期为null。服务草稿、正式保存、CLI受控提交和HTML回编复用同一实现。浏览器document_timestamps只用CodeMirror变更映射已有位置，并渲染对象下方的信息行，不维护第二份正文或时钟规则；显示时间属于不触发内容排版的设置。临时无效对象在原载体仍存在时保留已知时间，真正删除则移除。
 
@@ -25,9 +29,11 @@ pipe_tables持有数学感知的分列、表格范围和序列化，供原Marked
 
 ## Word beta 界面适配
 
-word_import.py/web/word_import.js是整篇Word的薄适配：本机选择DOCX、冻结原件及同名来源映射、复用word_export的匹配运行时/Pandoc设置，在隔离子进程调用原Bridge from-docx。受限JSON通道只请求当前页面既有组图/表格/公式序列化，不执行文稿代码或任意页面操作。读取/待审/取消/失败分别处理，源摘要与暂存校验通过后沿原目录凭据、copy_project_tree和注册机制保存到新工程；登记失败保留完整新目录，原件和当前稿不覆盖。进程、请求和快照均有期限，服务关闭/取消清理所属任务。没有第二个Word或Markdown解析器。导入/核对窗口共用Word导出的beta徽标构造与主题样式；Bridge消费WPS的hyperlink_ranges事实完成目标映射，未可靠映射的目标以诊断返回。
+word_import.py/web/word_import.js是整篇Word的薄适配：本机选择DOCX、冻结原件及同名来源映射、复用word_export的匹配运行时/Pandoc设置，在隔离子进程调用Bridge from-docx。Bridge消费WPS共享图表布局和hyperlink_ranges，定位可保留的题注和书签，批量转换原生公式。受限JSON通道批量请求当前页面既有组图/表格/公式序列化。读取/待审/取消/失败分别处理，源摘要与暂存校验通过后沿原目录凭据、copy_project_tree和注册机制保存到新工程；登记失败保留完整新目录。进程、请求和快照均有期限，服务关闭/取消清理所属任务。导入/核对窗口共用Word导出的beta徽标构造与主题样式，未可靠映射的对象或目标以诊断返回。
 
 web/word_export.js 管模板选择、生成状态、错误和打开成品；word_export.py 只用标准库管理本机选择凭据、工程模板偏好与独立子进程。studio.py 复用现有 IR、revision 和正式／草稿附件校验冻结快照；独立便携包的 word_support 包含原 Bridge／WPS 核心与四个库，复用自带 Python；同源 browser_model.js 由当前页面提供模型，prepare／提交绑定快照，不另起 Node 或浏览器。原生公式才使用可选 Pandoc。Full 继续支持原完整 CLI。源范围、编号、模板契约和 Word 原生对象规则仍归原项目，不在 HRS 增加第二套编译器。
+
+Bridge 的 `docx_export.py` 在读取页面模型时校验图形结果，装配时复用已解码的图形；模板内章节和列表使用各自的编号实例，由同一处分配新 ID。`ooxml.py` 提供导出与回编共用的正文书签名及文档级指纹计算，按区间核对实际 Word 内容。`math_adapter.py` 只适配交给 Pandoc 的 TeX，原始文字继续由 HRS 源文和来源映射持有。
 
 report_workspace.js提供范围/恢复/管理选择与任务进度，report_workspace.py管理有界任务、分块附件和可逆生命周期；studio.py只沿原revision/资源/目录选择接口提交。operations.js集中UI租约和请求期限，避免相互解锁。临时稿默认独立；用户审查差异并确认后，可沿冻结范围/共享定义显式同步，复用原锁/备份/原子保存。独立保存另分配新身份，旧临时稿保留。图片对象转换在确认目录后应用，取消选择不改写源文。preflight.js统一页面输出诊断，Python接口只标出源码契约范围；安装cli委托这些已有读/检查/提交/HTML实现。
 
@@ -41,7 +47,7 @@ report_workspace.js提供范围/恢复/管理选择与任务进度，report_work
 
 ## 自由台账的派生视图与交付
 
-`web/notebook_view.js` 只消费原Marked/SourceMap，派生H1专题范围、顶层额外空行和分册定义依赖；`object_catalog.indexSource` 复用原numbering函数取得全文对象序列，DOM呈现使用同一序列。主编辑器缓存一个当前全文快照的词法/范围/对象/脚注结果，聚焦只构建选定范围的显示节点。source_projection.js使用CodeMirror现有扩展点隐藏范围之外源码和定义，限制本机输入跨界；同一全文缓冲/UTF-16/撤销仍是原真源。脚注定义在独立面板通过原范围事务编辑。source-editor.js只公开既有适配层所需扩展原语，上游载荷保持逐字节原样。编号、目录、引用和全文源码仍完整；不建立第二份持久正文。分册独立派生编号并复用原HTML归档。`preview_images.js` 管理懒加载、有界尺寸缓存及原锚点恢复，成功切稿时清理。
+`web/notebook_view.js` 消费 Marked/SourceMap，派生 H1 专题范围、顶层额外空行和分册定义依赖。`object_catalog.indexSource` 复用编号函数取得全文对象序列，DOM 呈现使用同一序列。折叠、高亮和 SourceMap 共用 CodeMirror 当前快照的结构范围，独立快照各自解析。source_projection.js 一次提交专题范围、脚注和源码装饰，用现有扩展点隐藏范围之外的源码并约束输入边界。脚注面板用同一全文缓冲和范围事务编辑，查找通过已有折叠状态展开匹配区间。source-editor.js 的调整位于 HRS 适配层。分册独立派生编号并复用 HTML 归档。`preview_images.js` 管理懒加载、有界尺寸缓存及原锚点恢复，成功切稿时清理。
 
 `module_exports.py` 暂存已经通过原审计/源资源校验的HTML；全部完成后原子交付一册或ZIP，失败清理自己的临时文件。工程源、历史和共享资源不因分册删除。界面和显式programmatic调用消费同一实现；原单篇HTML CLI、A0和plan/apply契约保持。
 
@@ -167,4 +173,4 @@ Word/WPS 编译与逆向识别由独立项目负责，独立桥接试用包消�
 
 ## 混合粘贴的数学适配
 
-clipboard_math.py将同次WPS原生选择中的数学位置绑定到HTML图像，核对源文字、数量和关系；legacy_math.py有界读取MS-CFB/Equation Native/MTEF3常见子集，不激活OLE。OMML/MathML调用原word_export子进程与Bridge MathAdapter批量转换。rich_clipboard仅将成功的TeX接入原对象片段；资源/身份/一次提交仍由object_clipboard持有。编辑器与ZIP阅读页经同一numberObjects入口消费原SourceMap，离线HTML由原Reader重建。编号统一归object_catalog和report_contract，低层公式定界符解析不决定编号显隐。
+clipboard_math.py 将同一次 Word/WPS 原生选择中的数学位置绑定到 HTML 图像，核对源文字、数量和关系。legacy_math.py 为剪贴板与 Bridge 提供同一套 Equation Native MTEF3／MTEF5 字节读取。Bridge 使用 WPS 扫描得到的内嵌流和书签，按正文位置还原公式。OMML／MathML 由 Bridge MathAdapter 批量转换。rich_clipboard 将匹配的 TeX 接入原对象片段，资源、身份及一次提交由 object_clipboard 持有。编号归 object_catalog 和 report_contract，显隐由文稿的 render_options 决定。

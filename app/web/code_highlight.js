@@ -126,11 +126,13 @@ function fenceRegions(input){
  lastFenceSource=text;lastFenceRanges=ranges;
  return ranges;
 }
-let lastPipeSource=null,lastPipeRanges=[];
-function pipeRegions(input){
- const text=String(input||'');if(text===lastPipeSource)return lastPipeRanges;
- lastPipeSource=text;
- lastPipeRanges=root.SourceBlocks?root.SourceBlocks.scan(text).filter(block=>block.language==='gfm-pipe'):[];
+let lastSourceBlocks=null,lastPipeSource=null,lastPipeRanges=[];
+function pipeRegions(text,blocks){
+ if(blocks?blocks===lastSourceBlocks:text===lastPipeSource)return lastPipeRanges;
+ const records=blocks??root.SourceBlocks?.scan(text);
+ if(records&&records!==lastSourceBlocks){
+  lastSourceBlocks=records;lastPipeSource=text;lastPipeRanges=records.filter(block=>block.language==='gfm-pipe');
+ }
  return lastPipeRanges;
 }
 function sourcePipes(line){
@@ -150,11 +152,11 @@ function sourcePipes(line){
  }
  return positions;
 }
-function sourceLineDecorations(input,start=0,end=String(input).length){
+function sourceLineDecorations(input,start=0,end=String(input).length,blocks){
  const text=String(input||''),output=[];
  start=Math.max(0,Math.min(text.length,Math.floor(start)||0));
  end=Math.max(start,Math.min(text.length,Math.floor(end)||0));
- const regions=fenceRegions(text),tables=pipeRegions(text);
+ const regions=fenceRegions(text),tables=pipeRegions(text,blocks);
  for(const table of tables){
   if(table.to<start||table.from>=end)continue;
   let at=table.from,number=0;
@@ -213,11 +215,11 @@ function sourceMathTokens(line){
  return marks;
 }
 
-function sourceTokens(input,start=0,end=String(input).length){
+function sourceTokens(input,start=0,end=String(input).length,blocks){
  const text=String(input);start=Math.max(0,start|0);end=Math.min(text.length,Math.max(0,end|0));
  const from=Math.max(0,start-48000);let lineStart=from?text.lastIndexOf('\n',from)+1:0;
  const enclosing=fenceRegions(text).find(region=>region.bodyStart<=lineStart&&region.closeStart>=lineStart);
- const tables=pipeRegions(text);
+ const tables=pipeRegions(text,blocks);
 
  const result=[];let fence=enclosing?{char:enclosing.char,length:enclosing.length,lang:enclosing.lang}:null,maxLines=32000;
  const add=(a,b,kind)=>{if(b>a&&a<end&&b>start&&result.length<2200)result.push({from:Math.max(a,start),to:Math.min(b,end),kind});};

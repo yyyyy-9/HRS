@@ -1,11 +1,13 @@
 """Restricted native DOCX recovery, using WPS facts and the existing HRS contract."""
 import base64
-from collections import Counter
+from collections import Counter, defaultdict
 from copy import deepcopy
 from contextlib import contextmanager
+from dataclasses import dataclass
 import json
 from pathlib import Path
 import re
+from shutil import copyfile
 import tempfile
 from urllib.parse import quote,unquote,urlsplit
 
@@ -15,8 +17,17 @@ from lxml import etree as E
 
 from .browser import call
 from .math_adapter import MathAdapter
-from .ooxml import N, W, bookmark_regions, read_provenance, semantic_hash, drawing_extents
+from .ooxml import N, W, TEXT_SCRIPT_TAGS, bookmark_regions, read_provenance, native_hasher, drawing_extents, number_name
 from .runtime import BridgeError, new_path, sha
+
+MATH_SEGMENTS=frozenset({'math_inline','math_display','legacy_equation'})
+EQUATION_FIELD=re.compile(r'^\s*SEQ\s+(?:公式|Equation|MTEquation|MTEqn)(?=\s|$)',re.I)
+MATHTYPE_MACRO=re.compile(r'\s*MACROBUTTON\s+MTPlaceRef(?:\s+\\\*\s+MERGEFORMAT)?\s*',re.I)
+MATHTYPE_SEQ=re.compile(r'\s*SEQ\s+(MTEqn|MTChap|MTSec)(?:\s+(?:\\[hc]|\\r\s+\d+|\\\*\s+(?:ARABIC|MERGEFORMAT)))*\s*',re.I)
+MATHTYPE_REF=re.compile(r'\s*REF\s+(ZEqnNum[0-9]+)(?:\s+(?:\\h|\\!|\\\*\s+(?:CHARFORMAT|MERGEFORMAT)))*\s*',re.I)
+MATHTYPE_GOTO=re.compile(r'\s*GOTOBUTTON\s+(ZEqnNum[0-9]+)(?:\s+\\\*\s+MERGEFORMAT)?\s*',re.I)
+EQUATION_NUMBER=re.compile(r'[（(]\s*([0-9]+(?:[.\-][0-9]+)*)\s*[)）]')
+WRAPPED_EQUATION_REF=re.compile(r'(?:式[ \t]*)?[（(][ \t]*(@eq:eq-[A-Za-z0-9_-]+)[ \t]*[)）]')
 
 
 @contextmanager
@@ -29,9 +40,8 @@ def import_stage(name,label):
         raise error from cause
 
 
-def read_document(path,stage='snapshot_read'):
-    label='读取转换副本' if stage=='projection_read' else '读取Word工作副本'
-    with import_stage(stage,label):
+def read_document(path):
+    with import_stage('snapshot_read','读取Word工作副本'):
         # Explicit ownership avoids the path existence/is_zipfile probes that
         # can turn access denial into python-docx's generic PackageNotFound.
         with Path(path).open('rb') as stream:return Document(stream)
@@ -59,12 +69,155 @@ def fenced(kind, data):
     return '```' + kind + '\n' + json.dumps(data, ensure_ascii=False, indent=2) + '\n```\n'
 
 
+def without_segments(block, excluded):
+    kept=[];positions=[0]
+    for segment in block['segments']:
+        if not excluded(segment):kept.append(segment)
+        positions.append(len(kept))
+    if len(kept)==len(block['segments']):return block
+    result={**block,'segments':kept}
+    if block.get('hyperlink_ranges'):
+        result['hyperlink_ranges']=[{**span,'start':positions[span['start']],'end':positions[span['end']]}
+                                    for span in block['hyperlink_ranges']]
+    return result
+
+
+def legacy_payload(node,relations,parts,store):
+    from legacy_math import LIMIT,embedded_equation,equation_part
+    ole=embedded_equation(node)
+    if ole is None:return None
+    try:
+        name=equation_part(ole,relations)
+        if name not in parts:raise ValueError('旧公式数学部件缺失')
+        if len(parts[name])>LIMIT:raise ValueError('旧公式数学部件超过大小限制')
+        return {'equation_media':store(name)}
+    except ValueError as error:
+        return {'equation_error':str(error)}
+
+
+@dataclass(frozen=True)
+class DisplayEquation:
+    segment: dict
+    number: str | None
+    anchors: tuple[str,...]
+    number_label: str
+
+
+def mathtype_number_suffix(reader,segments):
+    # Interpret the saved results of known MathType fields as data. The
+    # original template may use nested MTEqn/MTSec/MTChap sequence counters.
+    stack=[];visible=[]
+    for s in segments:
+        kind=s['kind']
+        if kind=='field_evidence':
+            node=reader.object_xml(s['object_id']);local=E.QName(node).localname
+            if local=='fldSimple':
+                if len(stack)!=1 or not stack[0][1] or not MATHTYPE_SEQ.fullmatch(node.get(qn('w:instr'),'')):return None
+                visible.extend(t.text or '' for t in node.iter(qn('w:t')))
+            elif local=='instrText' and stack and not stack[-1][1]:
+                stack[-1][0].append(node.text or '')
+            elif local=='fldChar':
+                mode=node.get(qn('w:fldCharType'))
+                if mode=='begin' and len(stack)<2 and (not stack or stack[0][1]):
+                    stack.append(([],False))
+                elif mode=='separate' and stack and not stack[-1][1]:
+                    instruction=''.join(stack[-1][0])
+                    rule=MATHTYPE_MACRO if len(stack)==1 else MATHTYPE_SEQ
+                    if not rule.fullmatch(instruction):return None
+                    stack[-1]=(stack[-1][0],True)
+                elif mode=='end' and stack and stack[-1][1]:stack.pop()
+                else:return None
+            else:return None
+        elif kind=='text' and all(frame[1] for frame in stack):visible.append(s['text'])
+    if stack:return None
+    return EQUATION_NUMBER.fullmatch(''.join(visible).strip())
+
+
+def display_equation(reader,block):
+    """Recognize a standalone equation from Word layout and explicit fields."""
+    if (block['kind']!='paragraph' or block.get('hyperlinks')
+            or block.get('outline_level_raw') in range(6)
+            or block.get('numbering_effective',{}).get('num_id') not in (None,'0')):
+        return None
+    segments=block['segments']
+    math=[(i,s) for i,s in enumerate(segments) if s['kind'] in MATH_SEGMENTS]
+    if len(math)!=1:return None
+    position,segment=math[0]
+    before=[];after=[];anchors={}
+    closing={s['bookmark_id']:i for i,s in enumerate(segments) if s['kind']=='bookmarkEnd'}
+    has_field=False;has_tab=False
+    for i,s in enumerate(segments):
+        kind=s['kind']
+        if kind=='bookmarkStart':anchors[s['bookmark_id']]=(i,s['name'])
+        elif kind=='bookmarkEnd':continue
+        elif kind=='field_evidence':
+            if i<position:return None
+            has_field=True
+        elif kind=='text':(before if i<position else after).append(s['text'])
+        elif kind=='tab':
+            if i>position:has_tab=True
+        elif i!=position:return None
+    if ''.join(before).strip():return None
+    enclosing=[name for ident,(start,name) in anchors.items() if start<position<closing.get(ident,-1) and name]
+    suffix=''.join(after).strip()
+    number=None
+    if has_field:
+        if block.get('container_id') is not None:return None
+        from wps_pipeline.native_output import SEQ_FIELD,field_views,number_bookmarks
+        p=reader.body[block['source_locator']['body_child_index']]
+        views=field_views(p)
+        if len(views)==1 and EQUATION_FIELD.match(views[0]['instruction']):
+            view=views[0];cache=view['cache'].strip()
+            if not SEQ_FIELD.fullmatch(view['instruction']) or not re.fullmatch(r'[0-9]+',cache):return None
+            # In a complex field the cache also appears as text in the scan.
+            expected='[（(][ \t]*'+(re.escape(cache) if view['simple'] is None else '')+'[ \t]*[)）]'
+            if suffix and not re.fullmatch(expected,suffix) and (view['simple'] is not None or suffix!=cache):
+                return None
+            number=cache
+        elif has_tab and segment['kind']=='legacy_equation':
+            label=mathtype_number_suffix(reader,segments[position+1:])
+            if label is None:return None
+            number=label[1];suffix=label[0]
+        else:return None
+        # MathType may bookmark the digits or the entire parenthesized label.
+        for label in {number,suffix}:
+            enclosing.extend(name for name in number_bookmarks(p,label) if name and label)
+    elif suffix:
+        label=EQUATION_NUMBER.fullmatch(suffix)
+        if not label or not has_tab:return None
+        number=label[1]
+    if segment['kind']=='math_inline' and not number and (block.get('style_name') or '').casefold()!='公式':
+        return None
+    if segment['kind']=='legacy_equation' and not number:
+        try:
+            if reader.legacy(segment['object_id']).inline is True:return None
+        except BridgeError:return None
+    if segment['kind']!='legacy_equation':
+        # WPS may move a bookmark from around the formula into its first and
+        # last slots on Save As. Preserve its target at the enclosing equation.
+        native=reader.object_xml(segment['object_id'])
+        inner_ends={n.get(qn('w:id')) for n in native.iter(qn('w:bookmarkEnd'))}
+        enclosing.extend(n.get(qn('w:name')) for n in native.iter(qn('w:bookmarkStart'))
+                         if (n.get(qn('w:id')) in inner_ends or closing.get(n.get(qn('w:id')),-1)>position)
+                         and n.get(qn('w:name')))
+        enclosing.extend(name for ident,(start,name) in anchors.items() if start<position and ident in inner_ends and name)
+    return DisplayEquation(segment,number,tuple(dict.fromkeys(enclosing)),suffix)
+
+
 class NativeReader:
-    def __init__(self, rt, docx, work, assets, identities=None, editable=False):
+    def __init__(self, rt, docx, work, assets, identities=None, editable=False, *, object_seed=None, relationship_part=None):
         from wps_pipeline.scan_docx import Scanner
         self.rt, self.path, self.work, self.assets = rt, Path(docx), Path(work), Path(assets)
         with import_stage('scan','扫描Word工作副本'):
-            self.scan = Scanner(self.path, self.work/'scan').run()
+            scanner=Scanner(self.path, self.work/'scan',equation_payload=legacy_payload,
+                            relationship_part=relationship_part)
+            self.scan=scanner.run()
+            self.body=scanner.body
+            self.word_bookmarks=Counter(n.get(qn('w:name')) for n in self.body.iter(qn('w:bookmarkStart')))
+        self.stored_images=set()
+        self.prepared_images={}
+        self.picture_ids={}
+        self.object_seed=object_seed or self.scan['source_sha256'][:16]
         self.diagnostics = []
         self.editable = editable
         self.detached = []
@@ -73,26 +226,20 @@ class NativeReader:
         # These empty Word editing/rendering markers have no document content.
         # Keep the original scan on disk; adapt only the reader's event stream.
         ignored = Counter();nonempty_markers=[]
-        for block in self.scan['blocks']:
-            segments = []
-            for segment in block.get('segments', []):
-                if segment['kind'] in ('unsupported','layout_marker'):
-                    node = self.object_xml(segment['object_id'])
-                    if node.tag in (qn('w:proofErr'), qn('w:lastRenderedPageBreak')) and not len(node) and not (node.text or '').strip():
-                        local = E.QName(node).localname
-                        if segment['kind']=='unsupported':ignored[(block['block_id'], local)] += 1
-                        self.diagnostics.append({'code':'WORD_EDITOR_MARKER_IGNORED', 'block':block['block_id'], 'marker':local})
-                        continue
-                    if segment['kind']=='layout_marker':
-                        nonempty_markers.append({'block_id':block['block_id'],'reason':E.QName(node).localname,'object_id':segment['object_id']})
-                segments.append(segment)
+        def editor_marker(block,segment):
+            kind=segment['kind']
+            if kind not in ('unsupported','layout_marker'):return False
+            node=self.object_xml(segment['object_id']);local=E.QName(node).localname
+            if node.tag in (qn('w:proofErr'),qn('w:lastRenderedPageBreak')) and not len(node) and not (node.text or '').strip():
+                if kind=='unsupported':ignored[(block['block_id'],local)]+=1
+                self.diagnostics.append({'code':'WORD_EDITOR_MARKER_IGNORED','block':block['block_id'],'marker':local})
+                return True
+            if kind=='layout_marker':
+                nonempty_markers.append({'block_id':block['block_id'],'reason':local,'object_id':segment['object_id']})
+            return False
+        for i,block in enumerate(self.scan['blocks']):
             if 'segments' in block:
-                original=block['segments']
-                if len(original)!=len(segments) and block.get('hyperlink_ranges'):
-                    kept={id(s) for s in segments};positions=[0]
-                    for s in original:positions.append(positions[-1]+(id(s) in kept))
-                    block['hyperlink_ranges']=[{**r,'start':positions[r['start']],'end':positions[r['end']]} for r in block['hyperlink_ranges']]
-                block['segments'] = segments
+                self.scan['blocks'][i]=without_segments(block,lambda segment:editor_marker(block,segment))
         unsupported = []
         for item in self.scan['unsupported']:
             key = (item['block_id'], item['reason'])
@@ -104,6 +251,8 @@ class NativeReader:
         self.facts = {b['block_id']:b for b in self.scan['blocks']}
         self.top = [self.facts[i] for i in self.scan['top_level_ids'] if self.facts[i]['kind'] != 'boundary']
         self.math = None
+        self.import_math = None
+        self.legacy_math = {}
         self.identities = identities or {}
         self.link_targets=dict(self.identities);self.link_heading_ids={};self.link_review={}
 
@@ -112,20 +261,25 @@ class NativeReader:
         roles={r['block_id']:r for r in recognition['roles']}
         captions={v['block']:target for target,v in recognition['captions'].items()}
         groups={b:g['blocks'][0] for g in decisions.get('groups',[]) for b in g['blocks']}
-        referenced={x['attributes'].get(qn('w:anchor')) for b in self.scan['blocks'] for x in b.get('hyperlinks',[])}
-        referenced.update(x['attributes'].get(qn('w:docLocation')) for b in self.scan['blocks'] for x in b.get('hyperlinks',[]))
+        referenced=set()
         for b in self.scan['blocks']:
             for item in b.get('hyperlinks',[]):
+                referenced.update(item['attributes'].get(qn('w:'+attribute)) for attribute in ('anchor','docLocation'))
                 value=(item.get('relationship') or {}).get('Target','')
                 if value.startswith('#'):referenced.add(unquote(value[1:]))
-        counts=Counter(s.get('name') for b in self.scan['blocks'] for s in b.get('segments',[]) if s['kind']=='bookmarkStart')
-        targets={}
+        referenced.discard(None)
+        targets={};prepared_pictures=set(self.picture_ids.values())
         for b in self.top:
             r=roles[b['block_id']];kind=None
             if r['status']!='review' and (r['role']=='document_title' or r['role']=='heading' and 1<=r.get('level',0)<=5):kind='sec'
             elif b['kind']=='table':kind='fig' if r.get('figure_layout') else 'tbl'
             elif r['role']=='figure' or b['block_id'] in groups:kind='fig'
-            if kind:targets[b['block_id']]=(kind,kind+'-'+self.scan['source_sha256'][:16]+'-'+groups.get(b['block_id'],b['block_id']))
+            if kind:
+                target=self.object_id(kind,groups.get(b['block_id'],b['block_id']))
+                if kind!='fig' or not self.editable or target in prepared_pictures:
+                    targets[b['block_id']]=(kind,target)
+        if not referenced:return targets
+        counts=self.word_bookmarks
         for b in self.top:
             target=targets.get(captions.get(b['block_id'],b['block_id']))
             if not target:continue
@@ -135,6 +289,7 @@ class NativeReader:
                 if name in self.link_targets and self.link_targets[name]!=target:raise BridgeError('WORD_BOOKMARK_AMBIGUOUS: '+name)
                 self.link_targets[name]=target
                 if target[0]=='sec':self.link_heading_ids[b['block_id']]=target[1]
+        return targets
 
     def link_destination(self,record):
         attrs=record['attributes'];relation=record.get('relationship');anchor=attrs.get(qn('w:anchor')) or attrs.get(qn('w:docLocation'))
@@ -193,13 +348,46 @@ class NativeReader:
         parts.append(part(segments[cursor:]));return ''.join(parts)
 
     def object_xml(self, ident):
-        return E.fromstring((self.work/'scan'/self.scan['objects'][ident]['payload_ref']).read_bytes())
+        return E.fromstring(self.payload(self.scan['objects'][ident]['payload_ref']).read_bytes())
+
+    def object_id(self, kind, ident):
+        return kind+'-'+self.object_seed+'-'+ident
 
     def tex(self, ident):
+        if self.scan['objects'][ident]['kind']=='legacy_equation':
+            return self.legacy(ident).tex
+        if self.editable:
+            if self.import_math is None:
+                self.math=MathAdapter(self.rt)
+                expressions={}
+                for obj in self.scan['objects'].values():
+                    if obj['kind'] in ('math_inline','math_display'):
+                        expressions.setdefault(obj['xml_sha256'],obj['payload_ref'])
+                payloads=((self.payload(path).read_bytes(),digest) for digest,path in expressions.items())
+                self.import_math=dict(self.math.tex_import(payloads))
+            result=self.import_math[self.scan['objects'][ident]['xml_sha256']]
+            if result.reason:raise BridgeError(result.reason)
+            return result.tex
         if self.math is None: self.math = MathAdapter(self.rt)
         return self.math.tex(self.object_xml(ident))
 
-    def field(self, instruction, caption=False):
+    def legacy(self,ident):
+        from legacy_math import read_ole
+        obj=self.scan['objects'][ident]
+        if 'equation_error' in obj:raise BridgeError(obj['equation_error'])
+        source=obj['equation_media']
+        key=source['sha256']
+        if key not in self.legacy_math:
+            try:self.legacy_math[key]=read_ole(self.payload(source['payload_ref']).read_bytes())
+            except ValueError as error:self.legacy_math[key]=str(error)
+        value=self.legacy_math[key]
+        if isinstance(value,str):raise BridgeError(value)
+        return value
+
+    def payload(self, name):
+        return self.work/'scan'/name
+
+    def field(self, instruction, caption=False, *, nested_reference=None):
         from wps_pipeline.assemble_reports import REF_FIELD
         from wps_pipeline.native_output import SEQ_FIELD
         # The WPS validator restricts the first identifier character to ASCII.
@@ -214,14 +402,26 @@ class NativeReader:
         match = REF_FIELD.fullmatch(instruction)
         if match and match[1] in self.identities:
             kind, ident = self.identities[match[1]]
+            if kind=='eq':return ' @eq:'+ident+' '
             return '@'+kind+':'+ident
+        link=re.fullmatch(r'\s*HYPERLINK\s+\\l\s+"([\w]+)"\s*',instruction,re.I)
+        if link and (target:=self.identities.get(link[1])) and target[0]=='eq':
+            return ' @eq:'+target[1]+' '
+        ref=MATHTYPE_REF.fullmatch(instruction)
+        if nested_reference:
+            jump=MATHTYPE_GOTO.fullmatch(instruction)
+            if jump and jump[1]==nested_reference:ref=jump
+        if ref and (target:=self.identities.get(ref[1])) and target[0]=='eq':
+            return ' @eq:'+target[1]+' '
         raise BridgeError('UNSUPPORTED_NATIVE_FIELD: ' + instruction.strip())
 
     def paragraph(self, b, caption=False, plain=False, text_skip=0, formatting=True):
         if self.editable:
             from .editable_import import paragraph
-            return paragraph(self,b,caption,plain,text_skip,formatting)
-        return self._paragraph(b,caption,plain,text_skip,formatting)
+            text=paragraph(self,b,caption,plain,text_skip,formatting)
+        else:text=self._paragraph(b,caption,plain,text_skip,formatting)
+        text=WRAPPED_EQUATION_REF.sub(r' \1 ',text)
+        return re.sub(r'(@eq:eq-[A-Za-z0-9_-]+) (?=[，。！？、；,.!?;]|$)',r'\1',text)
 
     def _paragraph(self, b, caption=False, plain=False, text_skip=0, formatting=True):
         if b.get('hyperlinks'):return self.linked_paragraph(b,caption,plain,text_skip,formatting)
@@ -253,8 +453,12 @@ class NativeReader:
                     if value and props.get('b') not in (None,'0','false','off'):value='**'+value+'**'
                     if value and props.get('i') not in (None,'0','false','off'):value='*'+value+'*'
                     if value and props.get('strike') not in (None,'0','false','off'):value='~~'+value+'~~'
+                    if value and props.get('u') not in (None,'none','0','false','off'):value='<u>'+value+'</u>'
+                script = TEXT_SCRIPT_TAGS.get(props.get('vertAlign'))
+                if value and not plain and script:
+                    value = f'<{script}>{value}</{script}>'
                 text.append(value)
-            elif kind in ('math_inline','math_display'):
+            elif kind in MATH_SEGMENTS:
                 if plain:raise BridgeError('Native equation in a plain HRS caption needs an explicit mapping')
                 tex=self.tex(s['object_id'])
                 text.append(('$$\n'+tex+'\n$$') if kind=='math_display' else '$'+tex+'$')
@@ -290,18 +494,27 @@ class NativeReader:
     def image(self, drawing):
         if self.editable:
             from .editable_import import image
-            return image(self,drawing)
+            if drawing not in self.prepared_images:
+                self.prepared_images[drawing]=image(self,drawing)
+            return dict(self.prepared_images[drawing])
         self.check_drawing(drawing)
         obj=self.scan['objects'][drawing]
         if len(obj['media'])!=1 or obj.get('layout')!='inline':
             raise BridgeError('Only one embedded inline image per drawing is supported')
         media=obj['media'][0]
-        data=(self.work/'scan'/media['payload_ref']).read_bytes()
         ext=Path(media['part']).suffix.lower()
         if ext not in ('.png','.jpg','.jpeg','.gif','.webp','.svg'):
             raise BridgeError('Edited/external '+ext+' image requires a verified PNG rendition; original source is not substituted')
-        name=sha(data)[:16]+ext
-        (self.assets/name).write_bytes(data)
+        return self.store_image(media,ext)
+
+    def store_image(self, media, ext, raw=None):
+        digest=media['sha256'] if raw is None else sha(raw)
+        name=digest[:16]+ext
+        if name not in self.stored_images:
+            target=self.assets/name
+            if raw is None:copyfile(self.payload(media['payload_ref']),target)
+            else:target.write_bytes(raw)
+            self.stored_images.add(name)
         return {'src':'assets/'+name,'caption':''}
 
     def check_drawing(self, drawing):
@@ -365,7 +578,7 @@ class NativeReader:
             if separate_captions:
                 caption_paragraphs,caption_drawings=content(b['cells'][cell_index+cols])
                 if caption_drawings:raise BridgeError('Group caption row must not contain drawings')
-                if any(p.get('plain_text','').strip() or any(s['kind'] in ('math_inline','math_display','field_evidence','unsupported') for s in p.get('segments',[])) for p in paragraphs):
+                if any(p.get('plain_text','').strip() or any(s['kind'] in MATH_SEGMENTS or s['kind'] in ('field_evidence','unsupported') for s in p.get('segments',[])) for p in paragraphs):
                     raise BridgeError('Unexpected text in group image row; move it to the caption row')
             else:
                 # Existing exports placed each caption below its picture in
@@ -391,7 +604,7 @@ class NativeReader:
         return d
 
 
-def scan_range(rt, path, nodes, work, assets, identities, editable=False):
+def scan_range(rt, path, nodes, work, assets, identities, editable=False, *, object_seed=None, relationship_part=None):
     doc=read_document(path);body=doc._element.body;section=body.find(qn('w:sectPr'))
     section=deepcopy(section) if section is not None else None
     for child in list(body):body.remove(child)
@@ -400,22 +613,39 @@ def scan_range(rt, path, nodes, work, assets, identities, editable=False):
     work.mkdir()
     scoped=work/'range.docx'
     with import_stage('range_write','写入Word局部副本'):doc.save(scoped)
-    return NativeReader(rt,scoped,work,assets,identities,editable=editable)
+    return NativeReader(rt,scoped,work,assets,identities,editable=editable,object_seed=object_seed,
+                        relationship_part=relationship_part)
 
 
 def restore_provenance(rt, path, meta, work, staged):
+    from asset_paths import RESERVED, asset_file
     raw=base64.b64decode(meta['source_b64'],validate=True)
     if sha(raw)!=meta['source_sha256']:raise BridgeError('Provenance source hash mismatch')
     if meta.get('document_key')!=sha(raw)[:16]:raise BridgeError('Provenance document binding mismatch')
     if len(raw)>10*1024*1024:raise BridgeError('Provenance source exceeds HRS limit')
+    assets_root=(staged/'assets').resolve()
     total=0
     for name,digest in meta['assets'].items():
-        target=(staged/name).resolve()
-        if target.parent!=(staged/'assets').resolve():raise BridgeError('Unsafe provenance asset path')
+        if not name.startswith('assets/'):
+            raise BridgeError('Unsafe provenance asset path')
+        relative=name.removeprefix('assets/')
+        if '/' in relative:
+            try:
+                target=asset_file(assets_root,relative)
+            except ValueError as error:
+                raise BridgeError('Unsafe provenance asset path: '+name) from error
+        else:
+            # Older sidecars also include incidental flat files in assets/.
+            target=(assets_root/relative).resolve()
+            if (target.parent!=assets_root or '\\' in relative or ':' in relative
+                    or relative.rstrip(' .')!=relative or relative.split('.')[0].upper() in RESERVED):
+                raise BridgeError('Unsafe provenance asset path: '+name)
         data=base64.b64decode(meta['blobs'][digest],validate=True)
         total+=len(data)
         if total>30*1024*1024 or sha(data)!=digest:raise BridgeError('Provenance asset limit/hash mismatch')
-        target.write_bytes(data)
+        target.parent.mkdir(parents=True,exist_ok=True)
+        with target.open('xb') as output:
+            output.write(data)
     ir=rt.analyze(raw,staged/'assets')
     if not ir['ok']:raise BridgeError('Provenance source fails the current HRS contract')
     blocks=ir['blocks'];mapping=meta['blocks']
@@ -423,6 +653,10 @@ def restore_provenance(rt, path, meta, work, staged):
     scope=meta.get('body_scope')
     if scope is not None and scope!={'bookmark':'HBD_'+meta['document_key'],'kind':'wps-report-body-v1'}:raise BridgeError('Invalid provenance body scope')
     doc=read_document(path);regions=bookmark_regions(doc,(scope or {}).get('bookmark'))
+    text_scripts = meta.get('native_text_scripts', False)
+    if type(text_scripts) is not bool:
+        raise BridgeError('Invalid native text script fingerprint policy')
+    digest_native = native_hasher(doc.part, text_scripts=text_scripts)
     derived=meta.get('derived_sections',[])
     if not isinstance(derived,list) or len(derived)>1:raise BridgeError('Invalid derived section map')
     for section in derived:
@@ -430,14 +664,13 @@ def restore_provenance(rt, path, meta, work, staged):
         if not isinstance(section,dict) or section.get('kind')!='references' or section.get('bookmark')!=expected:
             raise BridgeError('Invalid references identity')
         nodes=regions.pop(expected,None)
-        if nodes is None or semantic_hash(nodes,doc.part.related_parts,doc.part.rels)!=section.get('native_sha256'):
+        if nodes is None or digest_native(nodes)!=section.get('native_sha256'):
             raise BridgeError('REFERENCE_EDIT_UNSUPPORTED: 文末参考文献已修改或身份丢失，不能用旧源文覆盖当前内容')
     if set(regions)!={b['bookmark'] for b in mapping}:raise BridgeError('BRIDGE_IDENTITY_LOST or unknown block bookmarks')
     identities={}
     for b in blocks:
         if b.get('id'):
-            from .docx_export import Writer
-            identities[Writer.number_name(b['id'])]=({'table':'tbl','figure':'fig','image-group':'fig','heading':'sec','equation':'eq'}[b['type']],b['id'])
+            identities[number_name(b['id'])]=({'table':'tbl','figure':'fig','image-group':'fig','heading':'sec','equation':'eq'}[b['type']],b['id'])
     result=[];changed=[];serializers=[];diagnostics=[]
     for entry in mapping:
         index=entry['index']
@@ -450,7 +683,7 @@ def restore_provenance(rt, path, meta, work, staged):
         entry=byname[name];index=entry['index'];original=blocks[index]
         if entry.get('native_drawing_extents')!=[list(e) for e in drawing_extents(nodes)]:
             raise BridgeError('IMAGE_LAYOUT_EDIT_UNSUPPORTED: current image dimensions differ from the mapped native layout')
-        if semantic_hash(nodes,doc.part.related_parts,doc.part.rels)==entry['native_sha256']:
+        if digest_native(nodes)==entry['native_sha256']:
             result.append(original['source']);continue
         if any(n.tag==qn('w:footnoteReference') or (n.tag==qn('w:fldSimple') and 'NOTEREF' in n.get(qn('w:instr'),'').split()) for node in nodes for n in node.iter()):
             raise BridgeError('FOOTNOTE_EDIT_UNSUPPORTED: Word 中的脚注或含脚注块已经修改，当前不能准确回编；原文件保留。')
@@ -479,10 +712,11 @@ def restore_provenance(rt, path, meta, work, staged):
             data['caption']=reader.caption(caption,'图')
             serializers.append({'type':'image-group','data':data});result.append(('serialize',len(serializers)-1))
         elif kind=='equation':
-            math=[s for p in paragraphs for s in p.get('segments',[]) if s['kind'] in ('math_display','math_inline')]
-            if len(math)!=1 or tables or any(p.get('plain_text','').strip() for p in paragraphs):
+            equation=display_equation(reader,paragraphs[0]) if len(paragraphs)==1 and not tables else None
+            if equation is None:
                 raise BridgeError('Edited block equation requires one native equation without discarded prose')
-            serializers.append({'type':'equation','tex':reader.tex(math[0]['object_id']),'id':original.get('id')})
+            serializers.append({'type':'equation','tex':reader.tex(equation.segment['object_id']),'id':original.get('id'),
+                                'delimiter':original.get('delimiter','dollar')})
             result.append(('serialize',len(serializers)-1))
         elif kind=='heading':
             if len(paragraphs)!=1 or tables:raise BridgeError('Edited heading requires one native paragraph')
@@ -534,10 +768,10 @@ def restore_provenance(rt, path, meta, work, staged):
 
 
 def external_groups(reader, plan, recognition):
-    """Serialize confirmed cross-row groups and layout-supported single rows with HRS."""
+    """Prepare image assets and geometry before resolving captions or references."""
     groups = plan.get('groups',[])
     positions = {b['block_id']:i for i,b in enumerate(reader.top)}
-    consumed = set(); pending = []
+    consumed = set(); prepared = {}
     for group in groups:
         if not isinstance(group, dict): raise BridgeError('Invalid Word image-group mapping')
         blocks = group.get('blocks'); columns = group.get('columns'); rows = group.get('rows')
@@ -558,142 +792,284 @@ def external_groups(reader, plan, recognition):
             for segment in block['segments']:
                 kind = segment['kind']
                 if kind == 'drawing': images.append(reader.image(segment['object_id']))
-                elif kind in ('bookmarkStart','bookmarkEnd'): continue
+                elif kind in ('bookmarkStart','bookmarkEnd','tab'): continue
                 elif kind == 'text' and not segment['text'].strip(): continue
                 else: raise BridgeError('Word group would consume non-image content; decision rejected')
         if not 2 <= len(images) <= 12 or not (rows-1)*columns < len(images) <= rows*columns:
             raise BridgeError('Word group image count does not match the declared grid')
-        data = {'schema':'report-image-group-v1','id':'fig-'+reader.scan['source_sha256'][:16]+'-'+blocks[0],
+        data = {'schema':'report-image-group-v1','id':reader.object_id('fig',blocks[0]),
                 'columns':columns,'rows':rows,'showSubfigureLabels':labels,'caption':caption,'images':images}
-        pending.append((blocks[0],data))
+        prepared[blocks[0]]=data
         consumed.update(blocks)
         reader.diagnostics.append({'code':'EXPLICIT_WORD_GROUP_APPLIED','blocks':blocks,'columns':columns,'rows':rows,
                                    'message':'Source-bound caller decision applied; following paragraphs remain unchanged.'})
     for group in recognition['groups']:
-        if consumed.intersection(group['blocks']):continue
-        images=[reader.image(v) for v in group['drawings']]
-        if group['labels']:
-            for image,label in zip(images,group['labels']):image['caption']=escaped(label)
-        caption=reader.caption(reader.facts[group['caption_block']],'图') if group['caption_block'] and not group['labels'] else ''
-        data={'schema':'report-image-group-v1','id':'fig-'+reader.scan['source_sha256'][:16]+'-'+group['blocks'][0],
-              'columns':group['columns'],'rows':1,'showSubfigureLabels':False,'caption':caption,'images':images}
-        pending.append((group['blocks'][0],data));consumed.update(group['blocks'])
-        reader.diagnostics.append({'code':'WORD_INLINE_ROW_AS_GROUP','blocks':group['blocks'],
-                                   'message':'Inline pictures fit one row without forced breaks; serialized with the existing HRS group module.'})
-    if not pending:return {},set()
-    sources = call(reader.rt,'serialize',items=[{'type':'image-group','data':data} for _,data in pending])
-    return {ident:text for (ident,_),text in zip(pending,sources)}, consumed
+        block=group['blocks'][0];drawings=group['drawings']
+        if block in consumed:continue
+        reader.current_block=block
+        try:images=[reader.image(drawing) for drawing in drawings]
+        except (BridgeError,ValueError,OSError) as error:
+            if not reader.editable:raise
+            from .editable_import import warn
+            warn(reader,'WORD_GROUP_AS_INDIVIDUAL_IMAGES','这组图片不能完整组合，已按原顺序保留可读取的图片。',detail=str(error))
+            continue
+        ident=reader.object_id('fig',block)
+        prepared[block]=dict(schema='report-image-group-v1',id=ident,columns=group['columns'],rows=group['rows'],
+                             showSubfigureLabels=False,caption='',images=images)
+        reader.picture_ids[drawings[0]]=ident
+        consumed.add(block)
+    return prepared,consumed
 
 
-def external_picture_table(reader, block, role, captions):
-    """Project a WPS-classified figure container through the existing HRS schema.
-
-    All image instances and cell text are consumed once. Grids outside that
-    schema fail explicitly; they are never silently converted into data tables.
-    """
-    layout=role['figure_layout'];drawings=layout['drawings'];ident='fig-'+reader.scan['source_sha256'][:16]+'-'+block['block_id']
-    caption=reader.caption(reader.facts[captions[block['block_id']]['block']],'图') if block['block_id'] in captions else ''
-    def text(cell):
-        paragraphs=[]
+def external_picture_table(reader, block, layout):
+    """Bind unambiguous native cells to HRS slots, in physical drawing order."""
+    from .recognition import picture_row
+    drawings=layout['drawings'];cells=layout['cells'];ident=reader.object_id('fig',block['block_id'])
+    for cell in cells:
+        physical=reader.facts[cell['block_id']]
+        if physical['children']!=cell['paragraphs'] or cell['v_merge_raw'] is not None:
+            raise BridgeError('图片布局含嵌套表或纵向合并')
         for bid in cell['paragraphs']:
-            p=deepcopy(reader.facts[bid]);p['segments']=[s for s in p['segments'] if s['kind']!='drawing']
-            value=reader.paragraph(p,formatting=False).strip()
-            if value:paragraphs.append(value)
-        if len(paragraphs)>1:reader.diagnostics.append({'code':'WORD_CELL_CAPTION_PARAGRAPHS_JOINED','block':cell['block_id'],'paragraphs':len(paragraphs)})
-        return ' '.join(paragraphs)
+            p=reader.facts[bid]
+            for span in p.get('hyperlink_ranges',[]):
+                if any(s['kind']=='drawing' for s in p['segments'][span['start']:span['end']]):
+                    raise BridgeError('图片本身带有链接，需保留其所在段落')
     if len(drawings)==1:
-        image=reader.image(drawings[0]);notes=[text(c) for c in layout['cells']];notes=[v for v in notes if v]
-        image.update(schema='report-figure-v1',id=ident,kind='image',alt='',caption=' '.join(notes+([caption] if caption else [])))
-        reader.diagnostics.append({'code':'WORD_IMAGE_TABLE_AS_FIGURE','block':block['block_id'],'images':1})
-        return fenced('report-figure',image)
-    columns=layout['columns'];images=[];image_rows=0;last_row={}
-    for ri in range(layout['rows']):
-        cells=[c for c in layout['cells'] if c['row']==ri]
-        if any(c['col_span']!=1 or c['v_merge_raw'] is not None for c in cells):
-            raise BridgeError('HRS_IMAGE_TABLE_LAYOUT_UNSUPPORTED: merged figure cells require an explicit representable mapping')
-        if any(c['drawings'] for c in cells):
-            if image_rows and len(images)%columns:
-                raise BridgeError('HRS_IMAGE_TABLE_LAYOUT_UNSUPPORTED: an incomplete intermediate image row cannot be shifted into another row')
-            image_rows+=1;last_row={};gap=False
+        data=dict(reader.image(drawings[0]),schema='report-figure-v1',id=ident,kind='image',alt='')
+        return data,[cells],[]
+
+    rows=defaultdict(list)
+    for cell in cells:rows[cell['row']].append(cell)
+    physical_columns=layout['columns'];columns=physical_columns
+    image_rows=[];last_row={};captions=defaultdict(list);unplaced=[]
+    for cells in rows.values():
+        if any(cell['drawings'] for cell in cells):
+            if len(cells)==1 and cells[0]['col_span']==physical_columns==1:
+                columns=max(columns,len(cells[0]['drawings']))
+            last_row={}
             for cell in cells:
-                notes=text(cell)
-                if not cell['drawings']:
-                    gap=True
-                    if notes:raise BridgeError('HRS_IMAGE_TABLE_LAYOUT_UNSUPPORTED: text-only cell beside pictures has no corresponding HRS slot')
-                    continue
-                if gap or len(cell['drawings'])!=1:
-                    raise BridgeError('HRS_IMAGE_TABLE_LAYOUT_UNSUPPORTED: noncontiguous or multiple images per cell exceed the current HRS grid contract')
-                image=reader.image(cell['drawings'][0]);image['caption']=notes;images.append(image);last_row[cell['col']]=image
+                col=cell['col'];pictures=cell['drawings'];span=cell['col_span']
+                if not pictures:
+                    unplaced.append(cell);continue
+                if len(pictures)>1:
+                    in_one_row=any(picture_row(reader.facts[bid])==pictures for bid in cell['paragraphs'])
+                    if not in_one_row or (physical_columns!=1 and len(pictures)!=span):
+                        raise BridgeError('单元格内的图片无法按同一行对应到子图')
+                    unplaced.append(cell)
+                else:captions[pictures[0]].append(cell)
+                last_row.update((col+offset,drawing) for offset,drawing in enumerate(pictures))
+            if sorted(last_row)!=list(range(len(last_row))):
+                raise BridgeError('图片行包含无法保留的空列')
+            image_rows.append(list(last_row.values()))
         else:
             for cell in cells:
-                notes=text(cell)
-                if not notes:continue
-                if cell['col'] not in last_row:raise BridgeError('HRS_IMAGE_TABLE_LAYOUT_UNSUPPORTED: cell text cannot be assigned without losing its layout')
-                image=last_row[cell['col']];image['caption']=' '.join(v for v in (image['caption'],notes) if v)
-    if not 1<=columns<=4 or not 1<=image_rows<=3 or not 2<=len(images)<=12 or not (image_rows-1)*columns<len(images)<=image_rows*columns:
-        raise BridgeError('HRS_IMAGE_TABLE_LAYOUT_UNSUPPORTED: figure grid exceeds existing HRS 3-row / 4-column / 12-image limits')
-    if len(images)!=len(drawings):raise BridgeError('HRS_IMAGE_TABLE_CONTENT_MISMATCH: not every source image was consumed')
-    data=dict(schema='report-image-group-v1',id=ident,columns=columns,rows=image_rows,showSubfigureLabels=False,caption=caption,images=images)
-    reader.diagnostics.append({'code':'WORD_IMAGE_TABLE_AS_GROUP','block':block['block_id'],'images':len(images),'rows':image_rows,'columns':columns})
-    return call(reader.rt,'serialize',items=[{'type':'image-group','data':data}])[0]
+                single_slot=cell['col_span']==1 and (physical_columns!=1 or len(last_row)==1)
+                drawing=last_row.get(cell['col']) if single_slot else None
+                if drawing:captions[drawing].append(cell)
+                else:unplaced.append(cell)
+    if (not 1<=columns<=4 or not 1<=len(image_rows)<=3 or not 2<=len(drawings)<=12
+            or any(len(row)!=columns for row in image_rows[:-1]) or len(image_rows[-1])>columns
+            or [drawing for row in image_rows for drawing in row]!=drawings):
+        raise BridgeError('图片布局超出 3 行、4 列或 12 张图，或无法保持原顺序')
+    data=dict(schema='report-image-group-v1',id=ident,columns=columns,rows=len(image_rows),showSubfigureLabels=False,
+              caption='',images=[reader.image(drawing) for drawing in drawings])
+    return data,[captions[drawing] for drawing in drawings],unplaced
 
 
-def import_external(rt,path,work,staged,structure_map=None,editable=False):
-    from .recognition import analyze,load_decisions,picture_row
+def picture_caption(text):
+    """Check the caption slot before sending the group to the HRS serializer."""
+    return len(text.encode('utf-16-le'))//2<=300 and (not text or text.splitlines()==[text])
+
+
+def put_picture_caption(value, target, remainder):
+    if picture_caption(value) and not value.startswith((':::','![')):
+        target['caption']=value
+    elif value:
+        remainder.append(value+'\n')
+
+
+def picture_table_captions(reader, picture, cell_captions, unplaced, caption):
+    def paragraphs(cells):
+        return [value for cell in cells for bid in cell['paragraphs']
+                if (value:=reader.paragraph(without_segments(reader.facts[bid],lambda segment:segment['kind']=='drawing'),
+                                            caption=True,formatting=False).strip())]
+
+    remainder=[]
+    if 'images' in picture:
+        for image,cells in zip(picture['images'],cell_captions):
+            put_picture_caption(' '.join(paragraphs(cells)),image,remainder)
+        put_picture_caption(caption,picture,remainder)
+    else:
+        put_picture_caption(' '.join(paragraphs(cell_captions[0])+([caption] if caption else [])),picture,remainder)
+    remainder.extend(text+'\n' for text in paragraphs(unplaced))
+    return remainder
+
+
+def prepare_pictures(reader,decisions,recognition,roles):
+    from .editable_import import warn
+    from .recognition import picture_row
+    groups,group_blocks=external_groups(reader,decisions,recognition)
+    tables={};singles={};failures={}
+    for block in reader.top:
+        bid=block['block_id'];layout=roles[bid].get('figure_layout')
+        if bid in group_blocks:continue
+        reader.current_block=bid
+        try:
+            if block['kind']=='table' and layout:
+                tables[bid]=external_picture_table(reader,block,layout)
+                reader.picture_ids[layout['drawings'][0]]=tables[bid][0]['id']
+            elif block['kind']=='paragraph' and (drawings:=picture_row(block)):
+                if len(drawings)==1 and (not reader.editable or not block.get('hyperlinks')):
+                    singles[bid]=reader.image(drawings[0])
+                    reader.picture_ids[drawings[0]]=reader.object_id('fig',bid)
+        except (BridgeError,ValueError,OSError) as error:
+            if not reader.editable:raise
+            failures[bid]=error
+            if block['kind']=='table':
+                # When a layout cannot fit, keep the first surviving image as
+                # the destination of the original figure's native bookmarks.
+                for drawing in layout['drawings']:
+                    try:reader.image(drawing)
+                    except (ValueError,OSError):continue
+                    reader.picture_ids[drawing]=reader.object_id('fig',bid)
+                    break
+        if bid in failures and block['kind']=='paragraph':
+            warn(reader,'WORD_IMAGE_AS_CONTENT','这张图需按原位置核对。',detail=str(failures[bid]))
+    # An automatic inline group that could not prepare can still retain the
+    # native reference on the first readable image in its paragraph.
+    for group in recognition['groups']:
+        bid=group['blocks'][0]
+        if bid in groups or bid in group_blocks:continue
+        reader.current_block=bid
+        for drawing in group['drawings']:
+            try:reader.image(drawing)
+            except (ValueError,OSError):continue
+            reader.picture_ids[drawing]=reader.object_id('fig',bid)
+            break
+    reader.current_block=None
+    return groups,group_blocks,tables,singles,failures
+
+
+def serialize_import_objects(reader, chunks, pending):
+    # The page request accepts at most 1000 records. Valid group captions and
+    # image slots are bounded by the existing HRS source contract.
+    for start in range(0,len(pending),1000):
+        batch=pending[start:start+1000]
+        sources=call(reader.rt,'serialize',items=[item for _,item in batch])
+        if len(sources)!=len(batch):raise BridgeError('HRS 对象序列化结果与导入批次不一致')
+        for (index,_),source in zip(batch,sources):chunks[index]=source
+
+
+def import_external(rt,path,work,staged,structure_map=None,editable=False,*,source_sha256=None):
+    from .recognition import analyze,load_decisions
     from . import editable_import as ordinary
-    original_path=path;projection_diagnostics=[]
+    projection_diagnostics=[]
     if editable:
-        path=work/'editable.docx'
-        projection_diagnostics=ordinary.project(original_path,path)
-    reader=NativeReader(rt,path,work,staged/'assets',editable=editable)
+        path,projection_diagnostics=ordinary.project(path,work/'editable.docx')
+    reader=NativeReader(rt,path,work,staged/'assets',editable=editable,
+                        object_seed=source_sha256[:16] if source_sha256 else None)
     reader.diagnostics.extend(projection_diagnostics)
     decisions=load_decisions(reader,structure_map)
     recognition=analyze(reader,decisions)
-    reader.map_hyperlink_targets(recognition,decisions)
     roles={r['block_id']:r for r in recognition['roles']}
-    (staged/'word-recognition.json').write_text(json.dumps(recognition,ensure_ascii=False,indent=2),encoding='utf8')
-    chunks=[];skip=set();style_fragments=[];image_layouts=[]
+    groups,group_blocks,tables,singles,picture_failures=prepare_pictures(reader,decisions,recognition,roles)
+    equations={};unavailable={};equation_targets={}
+    equation_anchors=[];bookmark_counts=reader.word_bookmarks
+    for b in reader.top:
+        equation=display_equation(reader,b)
+        if equation is None:continue
+        bid=b['block_id']
+        try:tex=reader.tex(equation.segment['object_id'])
+        except (BridgeError,ValueError,RuntimeError,OSError) as error:
+            if not editable:raise
+            unavailable[bid]=(equation,error)
+            continue
+        equations[bid]=(equation,tex)
+        target=('eq',reader.object_id('eq',bid));equation_targets[bid]=target
+        equation_anchors.extend((name,target) for name in equation.anchors if bookmark_counts[name]==1)
+    targets=reader.map_hyperlink_targets(recognition,decisions)
+    for name,target in equation_anchors:
+        reader.identities[name]=target;reader.link_targets[name]=target
+    chunks=[];style_fragments=[];image_layouts=[];pending=[]
     def heading(text, style, level, prefix=''):
         projection='heading-list' if level>6 else 'heading'
         ident=reader.link_heading_ids.get(b['block_id'])
         source=('- ' if level>6 else '#' * level+' ')+text+(' {#'+ident+'}' if ident else '')+'\n'
         style_fragments.append((len(chunks),style,projection,prefix))
         chunks.append(source)
-    try:groups,group_blocks=external_groups(reader,decisions,recognition)
-    except (BridgeError,ValueError,OSError) as error:
-        if not editable:raise
-        ordinary.warn(reader,'WORD_GROUP_AS_INDIVIDUAL_IMAGES','组图布局暂不能完整表示，图片将分别保留。',detail=str(error))
-        groups,group_blocks={},set()
-        recognition['captions']={k:v for k,v in recognition['captions'].items() if k not in {i for g in recognition['groups'] for i in g['blocks']}}
+    def queue(item):
+        pending.append((len(chunks),item));chunks.append('')
+
+    def queue_group(data):
+        queue({'type':'image-group','data':data})
+
     explicit_blocks={ident for g in decisions.get('groups',[]) for ident in g['blocks']}
     captions=recognition['captions']
     # Only native number bookmarks of identified captions acquire HRS object
     # semantics. Literal @fig / [[...]] text remains ordinary Word text.
     from wps_pipeline.native_output import sequence_field,number_bookmarks
-    native_body=E.fromstring(E.tostring(read_document(path)._element.body))
     for target,cap in captions.items():
-        p=native_body[reader.facts[cap['block']]['source_locator']['body_child_index']]
+        if target not in targets:continue
+        p=reader.body[reader.facts[cap['block']]['source_locator']['body_child_index']]
         field=sequence_field(p)
         if field is not None:
             for name in number_bookmarks(p,field['cache']):
-                kind='fig' if cap['kind']=='figure' else 'tbl'
-                reader.identities[name]=(kind,kind+'-'+reader.scan['source_sha256'][:16]+'-'+target)
-    skip.update(v['block'] for target,v in captions.items() if target not in explicit_blocks)
+                if bookmark_counts[name]==1:reader.identities[name]=targets[target]
+    captioned={*groups,*tables,*singles,*(bid for bid,r in roles.items() if r['role']=='table')}-explicit_blocks
+    skip={v['block'] for target,v in captions.items() if target in captioned}
     top=reader.top
     for i,b in enumerate(top):
-        if b['block_id'] in skip:continue
-        if b['block_id'] in group_blocks:
-            if b['block_id'] in groups: chunks.append(groups[b['block_id']])
-            continue
-        reader.current_block=b['block_id']
+        bid=b['block_id']
+        if bid in skip:continue
+        reader.current_block=bid
         pending_start=len(reader.detached)
         try:
+            if bid in unavailable:
+                equation,error=unavailable[bid]
+                label=equation.number_label
+                if equation.number is not None and (not label or re.fullmatch(r'[（(][ \t]*[)）]',label)):
+                    label='（'+equation.number+'）'
+                chunks.append(ordinary.unavailable_math(reader,equation.segment,error)+label+'\n')
+                continue
+            if bid in equations:
+                equation,tex=equations[bid]
+                queue({'type':'equation','tex':tex,'id':equation_targets[bid][1]})
+                if equation.number is not None:
+                    reader.diagnostics.append({'code':'WORD_EQUATION_NUMBER_NORMALIZED','block':bid,'source_number':equation.number,
+                        'message':'已保留公式引用，显示编号由 HRS 按文档顺序生成。'})
+                continue
+            if bid in group_blocks:
+                if bid not in groups:continue
+                group=groups[bid];cap=captions.get(bid) if bid not in explicit_blocks else None
+                remainder=[]
+                if cap:
+                    p=reader.facts[cap['block']]
+                    if cap.get('labels') and not p.get('hyperlinks') and all(picture_caption(escaped(label)) for label in cap['labels']):
+                        for image,label in zip(group['images'],cap['labels']):image['caption']=escaped(label)
+                    else:put_picture_caption(reader.caption(p,'图'),group,remainder)
+                queue_group(group);chunks.extend(remainder)
+                if bid not in explicit_blocks:reader.diagnostics.append({'code':'WORD_INLINE_ROW_AS_GROUP','block':bid})
+                continue
+            if bid in picture_failures:raise picture_failures[bid]
             if b['kind']=='table':
-                if roles[b['block_id']].get('figure_layout'):
-                    chunks.append(external_picture_table(reader,b,roles[b['block_id']],captions));continue
-                data={'schema':'report-table-v1','id':'tbl-'+reader.scan['source_sha256'][:16]+'-'+b['block_id'],
+                cap=reader.facts[captions[bid]['block']] if bid in captions else None
+                if bid in tables:
+                    picture,cells,unplaced=tables[bid]
+                    remainder=picture_table_captions(reader,picture,cells,unplaced,reader.caption(cap,'图') if cap else '')
+                    if 'images' in picture:
+                        queue_group(picture)
+                        reader.diagnostics.append({'code':'WORD_IMAGE_TABLE_AS_GROUP','block':bid,'images':len(picture['images']),
+                                                   'rows':picture['rows'],'columns':picture['columns']})
+                    else:
+                        chunks.append(fenced('report-figure',picture))
+                        reader.diagnostics.append({'code':'WORD_IMAGE_TABLE_AS_FIGURE','block':bid,'images':1})
+                    if remainder:
+                        ordinary.warn(reader,'WORD_FIGURE_TEXT_AS_PARAGRAPH','图中未能唯一对应的文字保留在图旁，请核对位置。')
+                        chunks.extend(remainder)
+                    continue
+                data={'schema':'report-table-v1','id':reader.object_id('tbl',bid),
                       'caption':'','rows':reader.table(b)}
-                if b['block_id'] in captions:data['caption']=reader.caption(reader.facts[captions[b['block_id']]['block']],'表')
+                if cap:data['caption']=reader.caption(cap,'表')
                 chunks.append(fenced('report-table',data));continue
             if b['kind']!='paragraph':raise BridgeError('Unknown native top-level block')
             kinds=[s['kind'] for s in b['segments'] if s['kind'] not in ('bookmarkStart','bookmarkEnd')]
@@ -702,11 +1078,10 @@ def import_external(rt,path,work,staged,structure_map=None,editable=False):
                 if i+1>=len(top) or top[i+1]['kind']!='table':raise BridgeError('Unpaired native table caption')
                 continue
             if role=='图题' and not editable:raise BridgeError('Unpaired native figure caption')
-            if 'drawing' in kinds and (not editable or len(picture_row(b))==1):
-                if len(picture_row(b))!=1:raise BridgeError('Mixed or multiple native drawing paragraph')
+            if bid in singles:
                 drawing=next(s['object_id'] for s in b['segments'] if s['kind']=='drawing')
-                data=reader.image(drawing)
-                data.update(schema='report-figure-v1',id='fig-'+reader.scan['source_sha256'][:16]+'-'+b['block_id'],kind='image',alt='')
+                data=singles[bid]
+                data.update(schema='report-figure-v1',id=reader.object_id('fig',bid),kind='image',alt='')
                 obj=reader.scan['objects'][drawing]
                 layout=None
                 try:
@@ -716,9 +1091,11 @@ def import_external(rt,path,work,staged,structure_map=None,editable=False):
                 except (KeyError,TypeError,ValueError):
                     if not editable:raise
                     ordinary.warn(reader,'WORD_IMAGE_EXTENT_UNRESOLVED','图片缺少有效显示尺寸，按原图比例导入。',object=drawing)
-                if b['block_id'] in captions:data['caption']=reader.caption(reader.facts[captions[b['block_id']]['block']],'图')
+                remainder=[]
+                if bid in captions:put_picture_caption(reader.caption(reader.facts[captions[bid]['block']],'图'),data,remainder)
                 if layout:image_layouts.append(layout)
-                chunks.append(fenced('report-figure',data));continue
+                chunks.append(fenced('report-figure',data));chunks.extend(remainder);continue
+            if 'drawing' in kinds and not editable:raise BridgeError('Mixed or multiple native drawing paragraph')
             text=reader.paragraph(b)
             if editable:
                 number=b.get('numbering_effective') or {}
@@ -763,15 +1140,18 @@ def import_external(rt,path,work,staged,structure_map=None,editable=False):
             if not editable:raise
             del reader.detached[pending_start:]
             chunks.append(ordinary.fallback_block(reader,b,error))
-            if b['block_id'] in captions:
-                chunks.append(reader.paragraph(reader.facts[captions[b['block_id']]['block']])+'\n')
+            if bid in captioned and bid in captions:
+                chunks.append(reader.paragraph(reader.facts[captions[bid]['block']])+'\n')
         finally:
             chunks.extend(reader.detached);reader.detached.clear()
     if reader.notes:chunks.extend(reader.notes.definitions(reader))
     chunks.extend(reader.detached)
+    serialize_import_objects(reader,chunks,pending)
     candidate='\n'.join(chunks).encode('utf8')
-    ir=rt.analyze(candidate,staged/'assets')
-    origin={'schema':'hrs-word-origin-v1','markdown_sha256':sha(candidate),'word_styles':[],'image_layouts':image_layouts,'source_docx_sha256':reader.scan['source_sha256']}
+    source_sha256=source_sha256 or reader.scan['source_sha256']
+    origin={'schema':'hrs-word-origin-v1','markdown_sha256':sha(candidate),'word_styles':[],'image_layouts':image_layouts,'source_docx_sha256':source_sha256}
+    if source_sha256!=reader.scan['source_sha256']:recognition['scan_sha256']=reader.scan['source_sha256']
+    recognition['source_sha256']=source_sha256
     recognition['review'].extend(reader.link_review.values())
     if editable:
         recognition['review'].extend({'block':d.get('block'),'text':d['message'],'role':'import_difference','evidence':[d['code']]} for d in reader.diagnostics if d.get('review'))
@@ -787,7 +1167,8 @@ def import_external(rt,path,work,staged,structure_map=None,editable=False):
         origin['word_styles'].append({'start':start,'end':start+len(source.encode('utf-16-le'))//2,
             'source_sha256':sha(source.encode('utf8')),'style':style,'projection':projection,
             **({'source_number_prefix':prefix} if prefix else {})})
-    return candidate,[],reader.diagnostics,origin
+    options={'show_equation_numbers':any(equation.number is not None for equation,_ in equations.values())}
+    return candidate,[],reader.diagnostics,origin,options
 
 
 def convert(rt,source,output,provenance=None,structure_map=None,import_mode='roundtrip'):
@@ -807,7 +1188,7 @@ def convert(rt,source,output,provenance=None,structure_map=None,import_mode='rou
         doc=read_document(source)
         if any(b.get(qn('w:name'),'').startswith('HB_') for b in doc._element.iter(qn('w:bookmarkStart'))):
             raise BridgeError('PROVENANCE_REQUIRED: provide the original .hrs-bridge.json for this bridge DOCX')
-    maintenance={}
+    maintenance={};imported_options=None
     with import_workspace(output.parent,maintenance) as work:
         staged=work/'project';(staged/'assets').mkdir(parents=True)
         if meta:
@@ -817,8 +1198,8 @@ def convert(rt,source,output,provenance=None,structure_map=None,import_mode='rou
                 if getattr(error,'import_stage',None):raise
                 if not editable or provenance is not None:raise
                 meta=None;mapping_diagnostics.append({'code':'WORD_MAPPING_NOT_USED','message':'来源映射不能完整回编当前 Word，已按当前内容建立新工程。','detail':str(error)})
-                candidate,changed,diagnostics,origin=import_external(rt,source,work,staged,editable=True)
-        else:candidate,changed,diagnostics,origin=import_external(rt,source,work,staged,structure_map,editable=editable)
+                candidate,changed,diagnostics,origin,imported_options=import_external(rt,source,work,staged,editable=True,source_sha256=before)
+        else:candidate,changed,diagnostics,origin,imported_options=import_external(rt,source,work,staged,structure_map,editable=editable,source_sha256=before)
         diagnostics=mapping_diagnostics+diagnostics
         ir=rt.analyze(candidate,staged/'assets')
         from .runtime import source_contract_valid
@@ -831,18 +1212,17 @@ def convert(rt,source,output,provenance=None,structure_map=None,import_mode='rou
         (staged/'report.md').write_bytes(candidate)
         from render_profile import normalize as normalize_profile, normalize_options
         profile=normalize_profile(meta.get('source_render_profile') if meta else 'free' if editable else 'engineering')
-        (staged/'meta.json').write_text(json.dumps({'render_profile':profile,'render_options':normalize_options(meta.get('source_render_options') if meta else None)})+'\n',encoding='utf8')
+        (staged/'meta.json').write_text(json.dumps({'render_profile':profile,'render_options':normalize_options(meta.get('source_render_options') if meta else imported_options)})+'\n',encoding='utf8')
         if origin:(staged/'bridge-origin.json').write_text(json.dumps(origin,ensure_ascii=False,indent=2),encoding='utf8')
         link_reviews=[{'block':d.get('block'),'text':d['text'],'role':'hyperlink','evidence':[d['code']],'target':d.get('target'),'anchor':d.get('anchor'),'doc_location':d.get('doc_location')} for d in diagnostics if d['code']=='WORD_HYPERLINK_UNRESOLVED']
         if meta and link_reviews:
             record={'schema':'hrs-word-recognition-v1','source_sha256':before,'recognizer_version':'provenance-hyperlinks-v1','model_calls':0,
                     'roles':[],'review':link_reviews,'unresolved':len(link_reviews)}
             (staged/'word-recognition.json').write_text(json.dumps(record,ensure_ascii=False,indent=2),encoding='utf8')
-        if sha(source.read_bytes())!=before:raise BridgeError('Source DOCX changed during import')
+        with import_stage('snapshot_read','核对Word工作副本'):source_copy=source.read_bytes()
+        if sha(source_copy)!=before:raise BridgeError('Source DOCX changed during import')
         if editable:
             (staged/'output').mkdir(exist_ok=True)
-            source_copy=source.read_bytes()
-            if sha(source_copy)!=before:raise BridgeError('Source DOCX changed during import')
             (staged/'output/word-import-source.docx').write_bytes(source_copy)
             if mapping_diagnostics:
                 record_path=staged/'word-recognition.json'

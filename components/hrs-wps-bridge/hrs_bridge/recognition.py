@@ -1,5 +1,4 @@
 """Bridge relations over WPS facts/candidates, before Markdown serialization."""
-from copy import deepcopy
 import json
 from pathlib import Path
 import re
@@ -27,8 +26,8 @@ def analyze(reader, decisions=None):
     from wps_pipeline.recognize_reports import predict
     from wps_pipeline.numbered_candidates import manual_prefix,numeric_expression,list_introduction
     decisions=decisions or {};overrides=decisions.get('roles',{})
-    initial=predict(reader.scan,overrides=overrides)
-    rows={r['block_id']:deepcopy(r) for r in initial['blocks']}
+    initial=predict(reader.scan,overrides=overrides,inline_rows_reflow=3)
+    rows={r['block_id']:r for r in initial['blocks']}
     top=reader.top
     captions={};groups=[];consumed=set();relations=[]
     for i,b in enumerate(top):
@@ -61,7 +60,7 @@ def analyze(reader, decisions=None):
         layout=rows[b['block_id']].get('figure_layout',{})
         if layout.get('kind')!='inline-row':continue
         cap=captions.get(b['block_id'],{})
-        groups.append({'blocks':[b['block_id']],'drawings':layout['drawings'],'columns':layout['columns'],'rows':1,
+        groups.append({'blocks':[b['block_id']],'drawings':layout['drawings'],'columns':layout['columns'],'rows':layout['rows'],
                        'caption_block':cap.get('block'),'labels':cap.get('labels')})
     # Reuse WPS numeric parsing/guards; require an established peer and a real
     # intervening section, rather than promoting every Normal numeric line.

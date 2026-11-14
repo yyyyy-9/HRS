@@ -37,10 +37,12 @@ class WordUI(ManualService):
         if working.is_visible():self.page.locator('#modal-ok').click()
         self.page.wait_for_selector('#word-template')
 
-    def compile(self):
+    def compile(self, *, expected_note=None):
         self.page.locator('#modal-ok').click()
         self.page.wait_for_function("document.querySelector('#modal-title').textContent.includes('Word 已生成') || document.querySelector('#word-export-status')?.textContent.startsWith('导出未完成')",timeout=90000)
         self.assertIn('Word 已生成',self.page.locator('#modal-title').inner_text(),self.page.locator('#word-export-status').all_inner_texts())
+        if expected_note is not None:
+            self.assertIn(expected_note,self.page.locator('#modal-layer').inner_text())
         output=max((self.project/'output').glob('*.docx'),key=lambda p:p.stat().st_mtime_ns)
         self.assertTrue(Path(str(output)+'.hrs-bridge.json').is_file())
         if self.evidence:
@@ -126,15 +128,20 @@ class WordUI(ManualService):
         self.assertEqual(hashlib.sha256(template.read_bytes()).hexdigest(),before)
         self.open_word();self.assertEqual(Path(self.page.locator('#word-template').input_value()).resolve(),template.resolve())
         self.page.locator('#modal-cancel').click()
-        count=len(list((self.project/'output').glob('*.docx')))
-        # Real Bridge output policy rejects unsupported free HTML; no half DOCX.
-        source(self.page,'# Advanced\n\n## Chapter\n\n<div style="display:flex">Card</div>\n')
-        self.open_word();self.page.locator('#modal-ok').click()
-        self.page.wait_for_function("document.querySelector('#word-export-status').textContent.startsWith('导出未完成')",timeout=90000)
-        self.assertEqual(len(list((self.project/'output').glob('*.docx'))),count)
-        self.assertTrue(self.page.locator('#modal-layer').is_visible())
-        if self.evidence:self.page.screenshot(path=str(self.evidence/'unsupported-html.png'))
-        self.page.locator('#modal-cancel').click()
+        # WORD-EXPORT-FALLBACK-01: unrelated markup is retained locally.
+        # Matched subscript still converts next to an unmatched underline.
+        raw=('# Advanced\n\n## Chapter\n\nHere <u>unclosed, H<sub>2</sub>O and <small>label</small>.\n\n'
+             '<div style="display:flex">Card &amp; $c+1$</div>\n\n- [x] Checked $u+2$\n\nTail.\n')
+        source(self.page,raw);self.open_word();output=self.compile(expected_note='有 5 处按原文文字保留')
+        document=Document(output)
+        visible='\n'.join(p.text for p in document.paragraphs)
+        for fragment in ('Here <u>unclosed, H2O and <small>label</small>.',
+                         '<div style="display:flex">Card &amp; $c+1$</div>', '- [x] Checked $u+2$', 'Tail.'):
+            self.assertIn(fragment,visible)
+        self.assertEqual(document._element.xpath('//w:r[w:rPr/w:vertAlign[@w:val="subscript"]]/w:t/text()'),['2'])
+        meta=json.loads(Path(str(output)+'.hrs-bridge.json').read_text('utf8'))
+        self.assertEqual([item['kind'] for item in meta['output_fallbacks']],['markup']*5)
+        self.assertEqual(value(self.page),raw)
 
 
     def test_04_managed_default_survives_original_move_and_new_project(self):
@@ -174,7 +181,7 @@ class WordUI(ManualService):
         self.assertFalse(doc._element.xpath('//w:footnoteReference'))
         self.assertEqual(value(self.page),raw)
         meta=json.loads(Path(str(output)+'.hrs-bridge.json').read_text('utf8'))
-        self.assertEqual(meta['word_output_options'],{'notes_mode':'references','preserve_emphasis':False})
+        self.assertEqual(meta['word_output_options'],{'notes_mode':'references','preserve_emphasis':False,'inline_math_mode':'native'})
         self.assertEqual(len(meta['derived_sections']),1)
         self.open_word();self.assertEqual(self.page.locator('#word-notes-mode').input_value(),'references');self.page.locator('#modal-cancel').click()
 

@@ -87,18 +87,20 @@ class FootnotesTables(ManualService):
         """Every marker reaches footnotes.xml, with preserved code and rich note text."""
         # WORD-MATH-PERF-03: used note math is native; an unused unsupported
         # definition stays in provenance without becoming a new export error.
-        raw=TEXT.replace('正文脚注 **加粗说明**。',r'正文脚注 **加粗说明**，$a\Rightarrow b$。')+'\n[^unused-math]: $\\HRSUnknownCommand{x}$\n'
+        raw=TEXT.replace('再次引用[^shared]。','再次引用[^shared]，空条目[^empty]。')
+        raw=raw.replace('正文脚注 **加粗说明**。',r'正文脚注 **加粗说明**，$a\Rightarrow b$，另见 [^child]。')
+        raw+='\n[^unused-math]: $\\HRSUnknownCommand{x}$\n\n[^unused]: 不可见 [^unneeded]。\n\n[^child]: 嵌套说明，返回 [^body]。\n\n[^empty]:\n'
         source(self.page,raw);self.open_word()
         # R25 defaults to stripping extra emphasis. This case explicitly tests
         # the supported rich-note policy; keep its original native assertions.
-        self.page.locator('#word-keep-emphasis').check();output=self.compile()
+        self.page.locator('#word-keep-emphasis').check();output=self.compile(expected_note='有 2 处按原文文字保留')
         with zipfile.ZipFile(output) as z:
             body=E.fromstring(z.read('word/document.xml'))
             notes=E.fromstring(z.read('word/footnotes.xml'))
             refs=body.xpath('//w:footnoteReference/@w:id',namespaces=NS)
-            self.assertEqual(len(refs),3)
+            self.assertEqual(len(refs),4)
             definitions=notes.xpath('w:footnote[not(@w:type)]',namespaces=NS)
-            self.assertEqual(len(definitions),3)
+            self.assertEqual(len(definitions),4)
             self.assertEqual(set(refs),{n.get('{'+NS['w']+'}id') for n in definitions})
             self.assertEqual(len(body.xpath('//w:fldSimple[contains(@w:instr,"NOTEREF")]',namespaces=NS)),3)
             self.assertEqual(len(body.xpath('//w:tbl//w:fldSimple[contains(@w:instr,"NOTEREF")]',namespaces=NS)),2)
@@ -108,9 +110,19 @@ class FootnotesTables(ManualService):
             self.assertTrue(notes.xpath('//w:hyperlink[@r:id]',namespaces={**NS,'r':'http://schemas.openxmlformats.org/officeDocument/2006/relationships'}))
             self.assertTrue(z.read('word/_rels/footnotes.xml.rels'))
             self.assertEqual(len(notes.xpath('//m:oMath',namespaces={'m':'http://schemas.openxmlformats.org/officeDocument/2006/math'})),1)
+            visible='\n'.join(notes.xpath('//w:t/text()',namespaces=NS))
+            self.assertIn('[^child]: 嵌套说明，返回 [^body]。',visible)
+            self.assertIn('[^empty]:',visible)
+            self.assertNotIn('不可见',visible)
         self.assertIn('[^literal]','\n'.join(p.text for p in Document(output).paragraphs))
         receipt=json.loads(Path(str(output)+'.hrs-bridge.json').read_text('utf8'))
         self.assertEqual(base64.b64decode(receipt['source_b64']).decode('utf8'),raw)
+        self.assertEqual([item['reason'] for item in receipt['output_fallbacks']],['nested_note','empty_note'])
+        self.open_word();self.page.locator('#word-notes-mode').select_option('references')
+        references=Document(self.compile(expected_note='有 2 处按原文文字保留'))
+        self.assertEqual(len(references._element.xpath('//w:fldSimple[contains(@w:instr,"SEQ HRSReference")]')),4)
+        self.assertIn('[^empty]:','\n'.join(p.text for p in references.paragraphs))
+        self.assertIn('[^child]: 嵌套说明','\n'.join(p.text for p in references.paragraphs))
         self.assertEqual((self.project/'report.md').read_bytes(),b'# Initial\n')
         self.assertEqual(value(self.page),raw)
 

@@ -11,13 +11,13 @@ async function open({api,modal,toast,getRequest,validate=async()=>{}}){
  let options;
  const post=(action,body={})=>api('/api/word/'+action,'POST',{document_id:context.document_id,draft_id:context.draft_id,template:context.template,...body},headers,{timeout:options?.request_timeout_ms});
  options=await post('options');let choice=options.template_choice,busy=false,picking=false;
- let templateField,filename,status,runState,formulaState,pickTemplate,pickRuntime,pickFormula,useDefault,setDefault,notesMode,keepEmphasis;
- const controls=()=>[pickTemplate,pickRuntime,pickFormula,useDefault,setDefault,notesMode,keepEmphasis,filename,document.querySelector('#modal-ok'),document.querySelector('#modal-cancel'),document.querySelector('#modal-close')];
+ let templateField,filename,status,runState,formulaState,pickTemplate,pickRuntime,pickFormula,useDefault,setDefault,notesMode,keepEmphasis,inlineMath;
+ const controls=()=>[pickTemplate,pickRuntime,pickFormula,useDefault,setDefault,notesMode,keepEmphasis,inlineMath,filename,document.querySelector('#modal-ok'),document.querySelector('#modal-cancel'),document.querySelector('#modal-close')];
  function sync(){
   templateField.value=options.template||'尚未配置默认母模板';
   runState.textContent=options.available?'基础 Word 导出已就绪':'基础 Word 组件缺失，请使用完整便携版或选择当前配套组件。';
   runState.dataset.ready=String(!!options.available);
-  formulaState.textContent=options.formula_available?'原生公式转换已就绪。':'尚未配置；不含公式的报告可直接导出。';
+  formulaState.textContent=options.formula_available?'原生公式转换已就绪。':'未配置 Pandoc，公式将以原始 TeX 文字导出。';
   document.querySelector('#modal-ok').disabled=busy||picking;
  }
  async function pick(action){
@@ -58,6 +58,13 @@ async function open({api,modal,toast,getRequest,validate=async()=>{}}){
    const emphasis=element('label',null,'word-emphasis-option');keepEmphasis=element('input');keepEmphasis.type='checkbox';keepEmphasis.id='word-keep-emphasis';keepEmphasis.checked=options.word_options?.preserve_emphasis===true;
    emphasis.append(keepEmphasis,document.createTextNode('保留正文 Markdown 加粗／斜体'));form.append(emphasis);
    form.append(element('p','默认清除正文的额外加粗、斜体；标题和题注继续使用母模板，公式中的数学粗体／斜体保留。摘要只加粗“摘要：”。','modal-help'));
+   const inlineLabel=element('label','行内公式');inlineLabel.htmlFor='word-inline-math-mode';form.append(inlineLabel);
+   inlineMath=element('select');inlineMath.id='word-inline-math-mode';inlineMath.className='table-caption-input';
+   for(const [value,text] of [['native','可编辑公式（Cambria Math）'],['text','转为西文正文（Times New Roman）']]){
+    const option=element('option',text);option.value=value;inlineMath.append(option);
+   }
+   inlineMath.value=options.word_options?.inline_math_mode==='text'?'text':'native';form.append(inlineMath);
+   form.append(element('p','文字模式保留普通符号、单位和上下标。可转换的复杂行内式及独立公式保留原生格式。','modal-help'));
    const nameLabel=element('label','文件名（自动附加时间，不覆盖已有文件）');nameLabel.htmlFor='word-filename';form.append(nameLabel);
    filename=element('input');filename.id='word-filename';filename.className='table-caption-input';filename.maxLength=60;filename.value='报告_Word';form.append(filename);
    form.append(element('p','输出到：'+(options.output_directory||'当前工程 output/'),'word-export-path'));
@@ -77,7 +84,7 @@ async function open({api,modal,toast,getRequest,validate=async()=>{}}){
    busy=true;controls().forEach(e=>e.disabled=true);status.textContent='正在检查工程输出要求…';
    let jobToken=null;
    try{
-    const request={...getRequest(),word_options:{notes_mode:notesMode.value,preserve_emphasis:keepEmphasis.checked}};
+    const request={...getRequest(),word_options:{notes_mode:notesMode.value,preserve_emphasis:keepEmphasis.checked,inline_math_mode:inlineMath.value}};
     if(request.document_id!==context.document_id)throw Error('工程已切换，请重新打开 Word 导出');
     const validation=await validate();
     if(!validation?.preflight?.complete)throw Error('请先完成当前文稿的工程预检');
@@ -113,6 +120,22 @@ async function open({api,modal,toast,getRequest,validate=async()=>{}}){
    outer.append(element('p',result.path,'word-export-path'));
    outer.append(element('p',result.working_copy?'已导出当前工作快照，工程 report.md 保持不变。':'已导出当前文稿，工程源文件保持不变。','modal-help'));
    if(result.preference_warning)outer.append(element('p',result.preference_warning,'modal-help'));
+   const mathSummary=result.receipt?.diagnostics?.find(item=>item.code==='WORD_INLINE_MATH_TEXT');
+   if(mathSummary)outer.append(element('p',mathSummary.message,'modal-help'));
+   const fallbacks=(result.receipt?.diagnostics||[]).filter(item=>item.code==='WORD_TEXT_FALLBACK');
+   if(fallbacks.length){
+    const details=element('details',null,'word-export-formula');
+    details.append(element('summary',`有 ${fallbacks.length} 处按原文文字保留`));
+    const list=element('ul',null,'modal-help');
+    for(const item of fallbacks.slice(0,20)){
+     const location=item.footnote?`脚注 [^${item.footnote}]`:item.line?
+      `第 ${item.line}${item.end_line>item.line?'–'+item.end_line:''} 行`:'文稿';
+     list.append(element('li',`${location} · ${item.message}${item.detail?' '+item.detail:''} ${item.excerpt}`));
+    }
+    details.append(list);
+    if(fallbacks.length>20)details.append(element('p','完整位置记录随 Word 保存于同名 .hrs-bridge.json。','modal-help'));
+    outer.append(details);
+   }
    const row=element('div',null,'word-export-actions');
    for(const [text,folder] of [['打开 Word',false],['打开输出文件夹',true]]){
     const button=element('button',text,'btn btn-quiet');button.type='button';button.onclick=async()=>{try{await post('open',{result_token:result.result_token,folder});}catch(error){toast(error.message);}};row.append(button);

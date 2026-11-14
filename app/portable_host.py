@@ -158,16 +158,14 @@ class PortableHandler(Handler):
             self.close_connection = True
 
     def _portable_origin_ok(self):
-        if not self._origin_ok():
-            return False
-        origin = self.headers.get('Origin')
-        if origin:
-            try:
-                parsed = urlsplit(origin)
-                return parsed.hostname in ('127.0.0.1', 'localhost') and parsed.port == self.server.server_port
-            except ValueError:
-                return False
-        return self.headers.get('Sec-Fetch-Site') not in ('cross-site', 'same-site')
+        return (
+            self._check_request_origin(exact_port=False)
+            and (
+                not self.headers.get('Origin')
+                or self._check_request_origin(require_origin=True, exact_port=True)
+            )
+            and self.headers.get('Sec-Fetch-Site') not in ('cross-site', 'same-site')
+        )
 
     def _portable_body(self, limit=4096):
         if not self._portable_origin_ok():

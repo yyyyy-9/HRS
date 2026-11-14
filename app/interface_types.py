@@ -94,6 +94,12 @@ class ObjectBundle(TypedDict):
     operation: NotRequired[Literal['copy', 'cut', 'import']]
 
 
+class WordOutputOptions(TypedDict):
+    notes_mode: NotRequired[Literal['footnotes', 'references']]
+    preserve_emphasis: NotRequired[bool]
+    inline_math_mode: NotRequired[Literal['native', 'text']]
+
+
 class WordBrowserModel(TypedDict):
     schema: Literal['hrs-word-browser-model-v1']
     tokens: list[list[JsonValue]]
@@ -101,10 +107,13 @@ class WordBrowserModel(TypedDict):
     numbering_policy: NotRequired[Literal['document-v2']]
     request_sha256: NotRequired[str]
     render_options: NotRequired[dict[str, JsonValue]]
+    output_options: NotRequired[WordOutputOptions]
     profile: NotRequired[dict[str, JsonValue]]
     diagrams: NotRequired[dict[str, JsonValue]]
     svgAssets: NotRequired[dict[str, JsonValue]]
+    graphic_errors: NotRequired[dict[str, dict[str, str]]]
     footnotes: NotRequired[dict[str, list[JsonValue]]]
+    footnote_sources: NotRequired[dict[str, str]]
 
 
 class WorkspaceStatus(TypedDict):
@@ -117,7 +126,7 @@ class WorkspaceStatus(TypedDict):
 
 
 WIRE_TYPES = (ApiSuccess, ApiError, BlockTimeRecord, BlockTimestamps, SaveResponse, SourceSnapshot, DocumentResponse, DraftResponse,
-              ClipboardAsset, ObjectBundle, WordBrowserModel, WorkspaceStatus)
+              ClipboardAsset, ObjectBundle, WordOutputOptions, WordBrowserModel, WorkspaceStatus)
 WIRE_ALIASES = {'ApiResponse': ApiResponse}
 
 

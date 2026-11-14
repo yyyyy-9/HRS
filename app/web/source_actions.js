@@ -16,7 +16,7 @@ function attach(editor,{copy,replace,onError}={}){
  }
  function select(card){
   let from;try{from=editor.view.posAtDOM(card);}catch{return null;}
-  const range=SourceBlocks.scan(editor.value).find(r=>r.from===from);
+  const range=editor.view.state.field(root.SourceEditor.extensionAPI.sourceBlocks).find(r=>r.from===from);
   if(!range)return null;
   selectRange(range);editor.focus();card.classList.add('source-object-selected');return selected;
  }

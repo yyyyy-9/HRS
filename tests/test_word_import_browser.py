@@ -4,14 +4,21 @@ Only the system file/folder selection is substituted. The shipped component,
 scanner, recognition, OMML adapter, serializers and project API all execute.
 """
 from pathlib import Path
+from types import SimpleNamespace
 import hashlib,json,os,unittest
 from unittest.mock import patch
 from docx import Document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
+from docx.opc.packuri import PackURI
+from docx.opc.part import Part
+from docx.shared import Inches
+from docx.text.paragraph import Paragraph
+from lxml import etree as E
 from PIL import Image
 from browser_support import ManualService,source,value
+from test_numbering_v2_contract import compound_math, native_math_fixture
 import studio
 
 
@@ -64,6 +71,9 @@ class WordImport(ManualService):
         self.assertEqual(self.page.locator('#modal-title .beta-badge').inner_text(),'beta')
 
     def save_import(self,name):
+        # Bind the result to this import, including failures after an earlier
+        # successful import has already displayed a toast.
+        self.page.locator('#toast').evaluate('n=>{n.textContent=""}')
         self.choose_destination(name)
         self.page.wait_for_function("document.querySelector('#toast').textContent.includes('Word 已导入')||document.querySelector('#toast').textContent.includes('导入失败')",timeout=30000)
 
@@ -74,6 +84,11 @@ class WordImport(ManualService):
         self.page.locator('.confirm-window button').filter(has_text='确认位置').click()
 
     def test_real_docx_table_math_group_save_reopen_and_archive_without_node(self):
+        # WORD-IMPORT-GROUPS-01: an inline-only paragraph is still a group
+        # when the two native extents exceed the page width before scaling.
+        doc=Document(self.input);row=doc.paragraphs[-2];row.clear()
+        row.add_run().add_picture(str(self.png),width=Inches(3.4));row.add_run('\t');row.add_run().add_picture(str(self.png),width=Inches(3.4))
+        doc.save(self.input);self.original=self.input.read_bytes()
         # The page's browser is already running; GUI import must never launch
         # another one or depend on a system Node executable.
         with patch.dict(os.environ,{'HRS_BRIDGE_NODE':'Z:/absent-node.exe','CHROMIUM_PATH':'Z:/absent-browser.exe'}):
@@ -107,6 +122,47 @@ class WordImport(ManualService):
         self.page.wait_for_function("!document.querySelector('#app').inert")
         self.assertEqual(value(self.page),before);self.assertEqual(self.input.read_bytes(),self.original)
         self.assertFalse(self.server.word_import.jobs)
+
+    def test_figure_tables_keep_subcaptions_and_do_not_take_the_next_table_title(self):
+        """WORD-IMPORT-GROUPS-01: layout tables, literal tables and local failure."""
+        doc=Document();doc.add_paragraph('布局表导入',style='Title')
+        wrapped=doc.add_paragraph()
+        for _ in range(5):wrapped.add_run().add_picture(str(self.png))
+        second=self.folder/'second.png';Image.new('RGB',(40,30),'gold').save(second)
+        layout=doc.add_table(rows=2,cols=2);wide=layout.cell(0,0).merge(layout.cell(0,1))
+        paragraph=wide.paragraphs[0];paragraph.add_run().add_picture(str(self.png));paragraph.add_run('\t');paragraph.add_run().add_picture(str(second))
+        layout.cell(1,0).text='（a）信号 12.34';layout.cell(1,1).text='（b）背景 56.78'
+        native_bookmark(doc.add_paragraph('图2 光路  对照'),'layout-photo',17)
+        doc.add_paragraph('表3.2.1 实测参数')
+        data=doc.add_table(rows=1,cols=2);data.cell(0,0).text='实测 1.25 nm';data.cell(0,1).paragraphs[0].add_run().add_picture(str(second))
+        doc.add_paragraph('独立段落。')
+        untitled=doc.add_table(rows=2,cols=1);p=untitled.cell(0,0).paragraphs[0]
+        p.add_run().add_picture(str(second));p.add_run().add_picture(str(self.png))
+        untitled.cell(1,0).text='整行共用说明 7.81'
+        doc.add_paragraph('另一段正文。')
+        not_a_row=doc.add_paragraph();not_a_row.add_run().add_picture(str(second));not_a_row.add_run().add_break();not_a_row.add_run().add_picture(str(self.png))
+        unrepresentable=doc.add_table(rows=1,cols=5)
+        for cell in unrepresentable.rows[0].cells:cell.paragraphs[0].add_run().add_picture(str(self.png))
+        native_bookmark(doc.add_paragraph('图4 五幅原图'),'five-photos',18)
+        p=doc.add_paragraph('对照 ');native_link(p,'组图',anchor='layout-photo');native_link(p,'五幅图',anchor='five-photos')
+        doc.save(self.input);self.original=self.input.read_bytes();self.read_word();self.save_import('布局表和数据表')
+        target=self.destination/'布局表和数据表';model=studio.analyze_report_contract(value(self.page),assets=target/'assets')
+        self.assertTrue(model['ok'],model['diagnostics'])
+        groups=[b['data'] for b in model['blocks'] if b['type']=='image-group']
+        self.assertEqual([(g['caption'],g['rows'],g['columns']) for g in groups],[('',2,4),('光路  对照',1,2),('',1,2)])
+        self.assertEqual(len(groups[0]['images']),5)
+        self.assertEqual([i['caption'] for i in groups[1]['images']],['（a）信号 12.34','（b）背景 56.78'])
+        self.assertEqual([(target/i['src']).read_bytes() for i in groups[1]['images']],[self.png.read_bytes(),second.read_bytes()])
+        self.assertEqual([(target/i['src']).read_bytes() for i in groups[2]['images']],[second.read_bytes(),self.png.read_bytes()])
+        self.assertEqual([i['caption'] for i in groups[2]['images']],['',''])
+        self.assertIn('\n整行共用说明 7.81\n',value(self.page))
+        self.assertEqual([b['data']['caption'] for b in model['blocks'] if b['type']=='table'],['实测参数'])
+        self.assertEqual(len([b for b in model['blocks'] if b['type']=='figure']),8)
+        self.assertIn('[组图](<#object-'+groups[1]['id']+'>)',value(self.page))
+        fallback=next(b['id'] for b in model['blocks'] if b['type']=='figure' and '[五幅图](<#object-'+b['id']+'>)' in value(self.page))
+        self.assertIn('五幅原图',value(self.page));self.assertNotEqual(fallback,groups[1]['id'])
+        self.assertIn('实测 1.25 nm',value(self.page));self.assertIn('另一段正文。',value(self.page))
+        self.assertEqual((target/'output/word-import-source.docx').read_bytes(),self.original)
 
     def test_changed_original_is_rejected_before_project_commit(self):
         before=value(self.page);self.read_word()
@@ -157,15 +213,38 @@ class WordImport(ManualService):
         """Ordinary Word is no longer refused for field/control/list content."""
         doc=Document();p=doc.add_paragraph('控件内文字 12.34 nm。');body=p._p.getparent();body.remove(p._p)
         wrapper=OxmlElement('w:sdt');content=OxmlElement('w:sdtContent');content.append(p._p);wrapper.append(content);body.insert(0,wrapper)
+        # WORD-IMPORT-NAMESPACE-01: body markers and extension elements are
+        # plain lxml nodes. They do not inherit python-docx's XPath prefix map.
+        move=OxmlElement('w:moveFromRangeStart');move.set(qn('w:id'),'17');move.set(qn('w:name'),'move-17');wrapper.addprevious(move)
+        end=OxmlElement('w:moveFromRangeEnd');end.set(qn('w:id'),'17');wrapper.addnext(end)
+        start=OxmlElement('w:bookmarkStart');start.set(qn('w:id'),'19');start.set(qn('w:name'),'body-bookmark');move.addprevious(start)
+        bookmark_end=OxmlElement('w:bookmarkEnd');bookmark_end.set(qn('w:id'),'19');end.addnext(bookmark_end)
+        extension=OxmlElement('w:contentPart');body[-1].addprevious(extension)
+        display=OxmlElement('m:oMathPara');math=OxmlElement('m:oMath');run=OxmlElement('m:r');text=OxmlElement('m:t');text.text='q=7'
+        run.append(text);math.append(run);display.append(math);body[-1].addprevious(display)
         doc.add_paragraph('自动列表第一项',style='List Number');doc.add_paragraph('自动列表第二项',style='List Number')
         p=doc.add_paragraph('日期：');field=OxmlElement('w:fldSimple');field.set(qn('w:instr'),' DATE ')
-        r=OxmlElement('w:r');t=OxmlElement('w:t');t.text='2026-10-29';r.append(t);field.append(r);p._p.append(field);doc.save(self.input)
+        r=OxmlElement('w:r');t=OxmlElement('w:t');t.text='2026-10-29';r.append(t);field.append(r);p._p.append(field)
+        # WORD-IMPORT-MATH-01: cross a batch boundary, with an empty formula
+        # before it, to check per-formula matching in a genuinely editable import.
+        for index in range(66):
+            p=doc.add_paragraph('第 '+str(index)+' 条公式 ');math=OxmlElement('m:oMath')
+            if index!=62:
+                r=OxmlElement('m:r');t=OxmlElement('m:t');t.text='x='+str(index);r.append(t);math.append(r)
+            p._p.append(math);p.add_run('，保留相邻文字。')
+        doc.save(self.input)
         self.original=self.input.read_bytes();self.read_word();self.save_import('普通Word兼容导入')
         md=value(self.page)
-        for text in ('控件内文字 12.34 nm。','1. 自动列表第一项','2. 自动列表第二项','2026-10-29'):self.assertIn(text,md)
+        for text in ('控件内文字 12.34 nm。','1. 自动列表第一项','2. 自动列表第二项','2026-10-29','$$\nq = 7\n$$','contentPart'):self.assertIn(text,md)
+        self.assertNotIn('moveFromRange',md)
+        self.assertNotIn('bookmarkEnd',md)
+        for index in range(66):
+            expected='【公式待确认，见源 Word】' if index==62 else '$x = '+str(index)+'$'
+            self.assertIn('第 '+str(index)+' 条公式 '+expected+'，保留相邻文字。',md)
         self.assertEqual(self.page.locator('#render-profile').input_value(),'free')
         target=self.destination/'普通Word兼容导入';receipt=json.loads((target/'word-import.json').read_text('utf8'))
         self.assertEqual(receipt['status'],'NEEDS_REVIEW');self.assertEqual(self.input.read_bytes(),self.original)
+        self.assertEqual((target/'output/word-import-source.docx').read_bytes(),self.original)
 
     def test_needs_review_keeps_unconfirmed_prose_and_lists_it(self):
         text='这是被误用标题样式的一段完整正文，需要保留全部文字而不能强制认作章节。'*6
@@ -246,6 +325,129 @@ class WordImport(ManualService):
         receipt=json.loads((restored/'word-import.json').read_text('utf8'))
         self.assertEqual(receipt['mode'],'provenance-aware');self.assertEqual(output.read_bytes(),raw)
         self.assertEqual(companion.read_bytes(),mapping);self.assertFalse(self.server.word_import.jobs)
+
+    def test_legacy_and_native_equations_roundtrip_with_and_without_companion(self):
+        """WORD-MATH-ROUNDTRIP-01: actual import/export commands in both directions."""
+        from test_word_export_browser import WordUI
+        doc=Document();doc.add_paragraph('公式双向核对',style='Title');doc.add_heading('正文',level=1)
+        para=doc.add_paragraph('行内 ',style='List Bullet')
+        def embed(p, number, progid, payload):
+            part=Part(PackURI(f'/word/embeddings/oleObject{number}.bin'),
+                      'application/vnd.openxmlformats-officedocument.oleObject',payload,p.part.package)
+            obj=OxmlElement('w:object')
+            ole=obj.makeelement('{urn:schemas-microsoft-com:office:office}OLEObject',
+                               {'ProgID':progid,'Type':'Embed',qn('r:id'):p.part.relate_to(part,RT.OLE_OBJECT)})
+            obj.append(ole);p.add_run()._r.append(obj)
+        old=bytes.fromhex('1c000000020097c42200000000000000e00c990054ac980000000000030101031e0a010281790002863d00030e0000010288310000010288320000000000')
+        embed(para,1,'Equation.3',compound_math(old));para.add_run('，后续文字保留。')
+        def start_field(p,code):
+            marker(p,'begin')
+            instruction=OxmlElement('w:instrText');instruction.text=code;p.add_run()._r.append(instruction)
+            marker(p,'separate')
+
+        def marker(p,kind):
+            node=OxmlElement('w:fldChar');node.set(qn('w:fldCharType'),kind);p.add_run()._r.append(node)
+
+        p=doc.add_paragraph('参见')
+        start_field(p,' GOTOBUTTON ZEqnNum42 ')
+        start_field(p,' REF ZEqnNum42 \\* Charformat \\! \\* MERGEFORMAT ')
+        p.add_run('(7)');marker(p,'end');marker(p,'end');p.add_run('。')
+        p=doc.add_paragraph();embed(p,2,'Equation.DSMT4',native_math_fixture())
+        tab=p.add_run('\t')
+        start_field(p,' MACROBUTTON MTPlaceRef \\* MERGEFORMAT ')
+        start_field(p,' SEQ MTEqn \\h \\* MERGEFORMAT ');marker(p,'end')
+        p.add_run('(')
+        start_field(p,' SEQ MTEqn \\c \\* Arabic ');p.add_run('7');marker(p,'end')
+        p.add_run(')');marker(p,'end')
+        native_bookmark(p,'ZEqnNum42',120);tab._r.addnext(p._p.find(qn('w:bookmarkStart')))
+        table=doc.add_table(rows=1,cols=2);table.cell(0,0).text='单元格'
+        p=table.cell(0,1).paragraphs[0];embed(p,3,'Equation.DSMT4',native_math_fixture(inline=True))
+        p=doc.add_paragraph('坏式后仍继续导入。');embed(p,4,'Equation.DSMT4',compound_math(b'incomplete'))
+        p=doc.add_paragraph('最后一句。')
+        footnote=OxmlElement('w:footnoteReference');footnote.set(qn('w:id'),'1');p.add_run()._r.append(footnote)
+        notes=OxmlElement('w:footnotes');note=OxmlElement('w:footnote');note.set(qn('w:id'),'1');notes.append(note)
+        xml_paragraph=OxmlElement('w:p');note.append(xml_paragraph)
+        note_part=Part(PackURI('/word/footnotes.xml'),
+                       'application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml',b'',doc.part.package)
+        doc.part.relate_to(note_part,RT.FOOTNOTES)
+        np=Paragraph(xml_paragraph,SimpleNamespace(part=note_part));np.add_run('注内 ')
+        embed(np,5,'Equation.DSMT4',native_math_fixture(inline=True))
+        note_part._blob=E.tostring(notes,encoding='UTF-8')
+        doc.save(self.input);self.original=self.input.read_bytes()
+
+        self.read_word();self.save_import('旧公式')
+        project=self.destination/'旧公式';expected=value(self.page)
+        model=studio.analyze_report_contract(expected,assets=project/'assets')
+        equations=[b for b in model['blocks'] if b['type']=='equation']
+        self.assertEqual(len(equations),1,expected)
+        self.assertEqual(equations[0]['latex'].strip(),r'\frac{x_{i}^{2}}{y}')
+        self.assertIn(r'$\mathrm{y}=\frac{1}{2}$',expected)
+        self.assertEqual(next(b for b in model['blocks'] if b['type']=='table')['data']['rows'][0][1]['text'],r'$\frac{x_{i}^{2}}{y}$')
+        self.assertIn('参见 @eq:'+equations[0]['id']+'。',expected)
+        self.assertIn('最后一句。[^word-note-1]',expected)
+        self.assertIn(r'[^word-note-1]: 注内 $\frac{x_{i}^{2}}{y}$',expected)
+        self.assertIn('WORD_MATH_RETAINED_IN_SOURCE',[d['code'] for d in json.loads((project/'word-import.json').read_text('utf8'))['diagnostics']])
+        self.assertTrue(self.page.locator('#show-equation-numbers').is_checked())
+        self.assertEqual((project/'output/word-import-source.docx').read_bytes(),self.original)
+        self.project=project
+
+        for numbered in (True,False):
+            with self.subTest(numbered=numbered):
+                self.page.locator('#show-equation-numbers').set_checked(numbered)
+                self.page.wait_for_function('!document.querySelector("#show-equation-numbers").disabled')
+                WordUI.open_word(self)
+                self.assertEqual(self.page.locator('#show-equation-numbers').is_checked(),numbered)
+                output=WordUI.compile(self)
+                word=Document(output)
+                self.assertEqual(len(word._element.xpath('//m:oMathPara')),1)
+                self.assertEqual(len(word._element.xpath('//m:oMath')),3)
+                note_xml=next(part.blob for part in word.part.package.parts if str(part.partname)=='/word/footnotes.xml')
+                self.assertEqual(len(list(E.fromstring(note_xml).iter(qn('m:oMath')))),1)
+                self.assertEqual(len(word._element.xpath('//w:object')),0)
+                codes=word._element.xpath('//w:fldSimple/@w:instr')
+                self.assertEqual(any('SEQ 公式' in c for c in codes),numbered)
+                if numbered:
+                    edited=next(t for t in word._element.xpath('//m:oMathPara//m:t') if t.text=='y')
+                    edited.text='z';edited_path=self.folder/'现有Word编辑.docx'
+                    word.save(edited_path)
+                    Path(str(edited_path)+'.hrs-bridge.json').write_bytes(Path(str(output)+'.hrs-bridge.json').read_bytes())
+                name='带映射回编'+str(numbered)
+                with patch.object(studio,'pick_import_file',return_value=output):
+                    self.read_word();self.save_import(name)
+                self.assertEqual((self.destination/name/'report.md').read_text('utf8'),expected)
+                self.assertEqual(value(self.page),expected)
+                name='仅Word回编'+str(numbered);bare=self.folder/(name+'.docx')
+                bare_doc=Document(output)
+                if not numbered:
+                    # WPS Save As may place the target bookmark inside the
+                    # native equation rather than around m:oMathPara.
+                    native=bare_doc._element.xpath('//m:oMathPara/m:oMath')[0]
+                    outer=native.getparent().getparent()
+                    start=next(n for n in outer if n.tag==qn('w:bookmarkStart') and n.get(qn('w:name'),'').startswith('HN_'))
+                    native.insert(0,start)
+                bare_doc.save(bare)
+                with patch.object(studio,'pick_import_file',return_value=bare):
+                    self.read_word();self.save_import(name)
+                new=self.destination/name
+                self.assertTrue((new/'report.md').is_file(),self.page.locator('#toast').inner_text())
+                ir=studio.analyze_report_contract((new/'report.md').read_text('utf8'),assets=new/'assets')
+                self.assertEqual([r['kind'] for r in ir['references']],['eq'])
+                self.assertEqual([b['id'] for b in ir['blocks'] if b['type']=='equation'],[ir['references'][0]['target']])
+                self.assertEqual(json.loads((new/'meta.json').read_text('utf8'))['render_options']['show_equation_numbers'],numbered)
+                self.assertIn('注内 $', (new/'report.md').read_text('utf8'))
+                if numbered:
+                    with patch.object(studio,'pick_import_file',return_value=edited_path):
+                        self.read_word();self.save_import('Word实际编辑回编')
+                    edited_project=self.destination/'Word实际编辑回编'
+                    edited_source=(edited_project/'report.md').read_text('utf8')
+                    self.assertIn('}{z}',edited_source)
+                    receipt=json.loads((edited_project/'word-import.json').read_text('utf8'))
+                    self.assertEqual(receipt['mode'],'provenance-aware')
+                    self.assertIn('@eq:'+equations[0]['id'],edited_source)
+                # Keep exporting the same original project and options independently.
+                entry=next(k for k,v in self.server.registry.mapping.items() if Path(v)==project)
+                self.page.evaluate('id=>ReportStudioProgrammatic.open(id)',entry)
+        self.assertEqual(self.input.read_bytes(),self.original)
 
     def test_hyperlinks_beta_preview_html_and_native_word_keep_real_destinations(self):
         """WORD-HYPERLINK-01: labels/OMML/runs and forward targets survive the actual UI."""

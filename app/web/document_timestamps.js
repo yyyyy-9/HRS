@@ -25,12 +25,27 @@ function attach(editor){
  const {StateEffect,StateField,Decoration,EditorView,foldedRanges}=root.SourceEditor.extensionAPI;
  const set=StateEffect.define(),show=StateEffect.define();
  const field=StateField.define({create:()=>({snapshot:null,visible:true}),update(value,tr){
-  if(tr.docChanged&&value.snapshot)value={...value,snapshot:{...value.snapshot,records:value.snapshot.records.map(r=>{
-   const start=tr.changes.mapPos(r.start,1),end=tr.changes.mapPos(r.end,-1);
-   // Targets begin on block lines. An inserted copy stays before the original;
-   // editing its #/fence prefix still belongs to that original line.
-   return {...r,start:end>start?tr.newDoc.lineAt(start).from:start,end};
-  }).filter(r=>r.end>r.start)}};
+  if(tr.docChanged&&value.snapshot){
+   let bounds=null;
+   const fallback=r=>{
+    if(!bounds){
+     const a=tr.startState.doc.toString(),b=tr.newDoc.toString();let prefix=0,x=a.length,y=b.length;
+     while(prefix<x&&prefix<y&&a.charCodeAt(prefix)===b.charCodeAt(prefix))prefix++;
+     while(x>prefix&&y>prefix&&a.charCodeAt(x-1)===b.charCodeAt(y-1)){x--;y--;}
+     bounds={prefix,x,delta:y-x};
+    }
+    if(r.end<=bounds.prefix)return {start:r.start,end:r.end};
+    if(r.start>=bounds.x)return {start:r.start+bounds.delta,end:r.end+bounds.delta};
+    return {start:0,end:0};
+   };
+   value={...value,snapshot:{...value.snapshot,records:value.snapshot.records.map(r=>{
+    let start=tr.changes.mapPos(r.start,1),end=tr.changes.mapPos(r.end,-1);
+    if(end<=start)({start,end}=fallback(r));
+    // Targets begin on block lines. An inserted copy stays before the original;
+    // editing its #/fence prefix still belongs to that original line.
+    return {...r,start:end>start?tr.newDoc.lineAt(start).from:start,end};
+   }).filter(r=>r.end>r.start)}};
+  }
   for(const effect of tr.effects){if(effect.is(set))value={...value,snapshot:effect.value};if(effect.is(show))value={...value,visible:effect.value};}
   return value;
  }});

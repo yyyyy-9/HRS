@@ -39,30 +39,35 @@ def capabilities():
 
 
 def main(argv=None):
-    for stream in (sys.stdout,sys.stderr):
-        if hasattr(stream,'reconfigure'):stream.reconfigure(encoding='utf8')
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, 'reconfigure'):
+            stream.reconfigure(encoding='utf8')
     # Legacy modules already share this application directory in the portable
     # build. Keep that same boundary in the installed CLI, with no server on import.
     if str(APP) not in sys.path:
-        sys.path.insert(0, str(APP))
+        sys.path.append(str(APP))
     from release_info import load_release
     identity = load_release()
-    argv=list(sys.argv[1:] if argv is None else argv)
-    if argv and argv[0]=='capabilities':
-        if len(argv)>1 and argv[1:]!=['--json']:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] == 'capabilities':
+        if len(argv) > 1 and argv[1:] != ['--json']:
             raise SystemExit('Usage: hrs capabilities [--json]')
-        print(json.dumps(capabilities(),ensure_ascii=False));return 0
+        print(json.dumps(capabilities(), ensure_ascii=False))
+        return 0
     if argv and argv[0] in COMMANDS:
-        command=argv.pop(0)
+        command = argv.pop(0)
         try:
             from importlib import import_module
-            module=import_module(COMMANDS[command]['module'])
-            if command=='check':return module.check_main(argv)
-            if command in ('plan','apply'):argv.insert(0,command)
+            module = import_module(COMMANDS[command]['module'])
+            if command == 'check':
+                return module.check_main(argv)
+            if command in ('plan', 'apply'):
+                argv.insert(0, command)
             return module.main(argv)
-        except (OSError,ValueError,ImportError) as error:
-            code='COMMAND_UNAVAILABLE' if isinstance(error,ImportError) else getattr(error,'code','COMMAND_FAILED')
-            print(json.dumps({'ok':False,'operation':command,'code':code,'error':str(error)},ensure_ascii=False));return 1
+        except (OSError, ValueError, ImportError) as error:
+            code = 'COMMAND_UNAVAILABLE' if isinstance(error, ImportError) else getattr(error, 'code', 'COMMAND_FAILED')
+            print(json.dumps({'ok': False, 'operation': command, 'code': code, 'error': str(error)}, ensure_ascii=False))
+            return 1
     parser = argparse.ArgumentParser(description='HRS local editor and snapshot-bound commands (127.0.0.1 only)',
         epilog='Data commands: hrs read ACTION SOURCE | hrs check SOURCE | hrs plan ... | hrs apply ... | hrs html export/recover ... | hrs capabilities. Use COMMAND --help for options.')
     parser.add_argument('--version', action='version', version=identity['release'])

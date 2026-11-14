@@ -198,7 +198,22 @@
     "gfm_with_no_id": "not present in stable object index"
   },
   "unknown_extension_policy": "Unknown roots remain in source/data.extensions with UNSUPPORTED_OBJECT_FIELDS; sourceContractValid=false. No silent unsupported compilation.",
-  "html_display_boundary": "Safe HTML remains original Markdown source, not a new numbered object or Word mapping; HRS html_cli owns export/recovery",
+  "html_display_boundary": "Safe HTML remains in Markdown, outside numbered object IR. HRS html_cli owns HTML export/recovery. Word maps supported inline tags and writes other HTML as literal text.",
+  "word_output_policy": {
+    "binding": "output_options are part of the Bridge model request hash and DOCX provenance",
+    "inline_math_mode": {
+      "default": "native",
+      "native": "Editable OMML with explicit Cambria Math on inline math runs",
+      "text": "Times New Roman Word runs for ordinary symbols, units, delimiters and one level of scripts. Complex expressions stay as OMML.",
+      "receipt": "WORD_INLINE_MATH_TEXT reports converted and retained inline occurrences",
+      "cli": "to-docx --inline-math-mode native|text"
+    },
+    "inline_html": "Native breaks, subscript, superscript, underline and basic emphasis. Unmapped or unpaired tokens stay literal.",
+    "text_fallback": "WORD_TEXT_FALLBACK reports the reason, kind, excerpt and source line or footnote, with optional detail. The same optional output_fallbacks list is saved in provenance. Unsupported TeX, unavailable diagrams, nested note markup and stale ordinary object links preserve their source text. Numbered objects keep native fields and bookmarks.",
+    "graphics": "The editor and CLI both call ReportBridgeModel.render. SVG asset keys are full project-relative paths. Each expected key has either a verified PNG or a graphic_errors entry under diagrams or svgAssets.",
+    "notes": "The page model carries tokens and footnote_sources for reachable definitions. Nested note references preserve their text and available source definitions. Empty entries retain their number.",
+    "provenance": "native_text_scripts opts in to hashing direct Word subscript/superscript; absent on older records"
+  },
   "controlled_block_commands": {
     "module": "block_cli.py",
     "schema": "hrs-block-plan-v1",
@@ -448,6 +463,7 @@
       "DraftResponse",
       "ClipboardAsset",
       "ObjectBundle",
+      "WordOutputOptions",
       "WordBrowserModel",
       "WorkspaceStatus"
     ],

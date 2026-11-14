@@ -113,11 +113,11 @@ function sourceObject(record,next=null){
  }
  if(token.type==='table'){
   const suffix=next?.type==='paragraph'&&root.ReportPipeTables.parseCaption(next.raw.trim())?next.raw:'';
-  let table=root.ReportPipeTables.parseRaw(record.raw);
-  // SourceMap raw already includes the original separating newline(s).
-  // An unattached caption paragraph must not hide an otherwise valid table.
-  if(suffix)try{table=root.ReportPipeTables.parseRaw(record.raw+suffix);}catch{/* The original table remains anonymous. */}
-  return {...table.model,id:table.id,kind:'table',sourceKind:'gfm-pipe'};
+  let table,captionRecord=null;
+  if(suffix)try{table=root.ReportPipeTables.parseRaw(record.raw+suffix);captionRecord=next;}
+  catch{/* An unattached caption does not hide an otherwise valid table. */}
+  table=table||root.ReportPipeTables.parseRaw(record.raw);
+  return {...table.model,id:table.id,kind:'table',sourceKind:'gfm-pipe',captionRecord};
  }
  return null;
 }
@@ -169,12 +169,17 @@ function tableHeading(wrap){
  }
  wrap.dataset.captionInTools='1';
 }
+function tableHeaderName(values){
+ const text=values.map(value=>value.trim().replace(/\s+/g,' ')).filter(Boolean).join(' · ');
+ if(text.length<=80)return text;
+ const end=/[\uD800-\uDBFF]/.test(text.charAt(78))?78:79;
+ return text.slice(0,end)+'…';
+}
 function tableName(wrap){
  const caption=wrap.querySelector('caption')?.dataset.captionText?.trim();
  if(caption)return caption;
- const cells=[...(wrap.querySelector('table tr')?.cells||[])];
- const text=cells.map(cell=>cell.textContent.trim().replace(/\s+/g,' ')).filter(Boolean).join(' · ');
- return text.length>80?text.slice(0,79)+'…':text||'表格';
+ const cells=Array.from(wrap.querySelector('table tr')?.cells||[],cell=>cell.textContent);
+ return tableHeaderName(cells)||'表格';
 }
 function objectTitle(entry,show=true,profile='engineering'){
  const {node,kind}=entry;
@@ -234,7 +239,7 @@ function applyDisplay(article,show=true,showEquations=false,entries=indexDOM(art
  article.querySelectorAll('.report-table-wrap').forEach(tableHeading);
  return entries;
 }
-const api={tableValidate,figureValidate,validObject,headingNumbers,numbering,indexDOM,indexSource,sourceTexts,captionDisplay,tableHeading,tableName,objectTitle,tableChrome,applyDisplay};
+const api={tableValidate,figureValidate,validObject,headingNumbers,numbering,indexDOM,indexSource,sourceTexts,captionDisplay,tableHeading,tableHeaderName,tableName,objectTitle,tableChrome,applyDisplay};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.ReportObjectCatalog=api;
 })(typeof window!=='undefined'?window:globalThis);

@@ -64,7 +64,7 @@ const data={
       "label": "显示时间",
       "content_rendering": false,
       "default": true,
-      "new_free": true
+      "new_free": false
     },
     "preserve_blank_lines": {
       "label": "保留连续空行",

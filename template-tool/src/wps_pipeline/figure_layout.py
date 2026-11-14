@@ -2,7 +2,7 @@
 from collections import Counter
 import re
 
-from .numbered_candidates import manual_prefix, numeric_expression, list_introduction
+from .numbered_candidates import caption_prefix, manual_prefix, numeric_expression, list_introduction
 
 
 def picture_row(block):
@@ -23,21 +23,22 @@ def descendants(byid, block):
         yield from descendants(byid,byid[ident])
 
 
-def table_layout(scan, block):
-    byid={b['block_id']:b for b in scan['blocks']}
-    drawings=[s['object_id'] for b in descendants(byid,block) for s in b.get('segments',[]) if s['kind']=='drawing']
-    if not drawings:return None
+def table_layout(byid, block):
+    drawings=[]
     cells=[]
     for ident in block['cells']:
         cell=byid[ident];content=list(descendants(byid,cell))
+        pictures=[s['object_id'] for b in content for s in b.get('segments',[]) if s['kind']=='drawing']
+        drawings.extend(pictures)
         cells.append(dict(block_id=ident,row=cell['row'],col=cell['col'],col_span=cell['col_span'],
                           v_merge_raw=cell['v_merge_raw'],
                           paragraphs=[b['block_id'] for b in content if b['kind']=='paragraph'],
-                          drawings=[s['object_id'] for b in content for s in b.get('segments',[]) if s['kind']=='drawing']))
+                          drawings=pictures))
+    if not drawings:return None
     return dict(kind='table',rows=block['rows'],columns=block['columns'],drawings=drawings,cells=cells)
 
 
-def apply(scan, candidate, overrides=None):
+def apply(scan, candidate, overrides=None, *, inline_rows_reflow=1):
     """Complete associations before final review/number authorization is generated.
 
     An image-bearing table without a linked table caption is a figure container.
@@ -45,6 +46,7 @@ def apply(scan, candidate, overrides=None):
     """
     overrides=overrides or {};byid={b['block_id']:b for b in scan['blocks']}
     top=[byid[i] for i in scan['top_level_ids']];rows={r['block_id']:r for r in candidate['blocks']}
+    layouts={b['block_id']:table_layout(byid,b) for b in top if b['kind']=='table'}
     protected=set(overrides)|{r['block_id'] for r in rows.values() if r.get('decision')}
     positions={b['block_id']:i for i,b in enumerate(top)}
     def heading(b):
@@ -72,33 +74,48 @@ def apply(scan, candidate, overrides=None):
     for i,b in enumerate(top):
         r=rows[b['block_id']]
         if b['kind']!='paragraph' or b['block_id'] in protected or heading(b):continue
-        if (b.get('style_name') or '')=='表题' and r['role']!='table_caption':
+        if (b.get('style_name') or '')=='表题' or r['role']=='table_caption':
             targets=[v for direction in (1,-1) for v in nearby(i,direction) if v['kind']=='table']
             targets=nearest(i,targets)
-            if targets:r.update(role='table_caption',level=None,title=None,relates_to=targets[0]['block_id'] if len(targets)==1 else None,
-                                status='auto_rule' if len(targets)==1 else 'review',association_candidates=[t['block_id'] for t in targets])
-    declared_tables={ident for r in rows.values() if r['role']=='table_caption'
-                     for ident in ([r.get('relates_to')]+r.get('association_candidates',[])) if ident}
+            if len(targets)>1:
+                data_tables=[v for v in targets if layouts[v['block_id']] is None]
+                if len(data_tables)==1:
+                    targets=data_tables
+                    r['evidence'].append('adjacent_data_table_preferred_over_picture_layout')
+            if targets:
+                resolved=len(targets)==1
+                if resolved and 'ambiguous_object_pair' in r['evidence']:r['evidence'].remove('ambiguous_object_pair')
+                r.update(role='table_caption',level=None,title=None,relates_to=targets[0]['block_id'] if resolved else None,
+                         status='auto_rule' if resolved else 'review',association_candidates=[t['block_id'] for t in targets])
+    declared_tables=set()
+    for r in rows.values():
+        if r['role']!='table_caption':continue
+        target=r.get('relates_to')
+        if target and r['status']!='review':declared_tables.add(target)
+        elif r['status']=='review':declared_tables.update(r.get('association_candidates',[]))
     for b in top:
         r=rows[b['block_id']]
         if b['kind']=='table' and b['block_id'] in declared_tables:
             r.pop('figure_layout',None);r.update(role='table',level=None,title=None)
         elif b['kind']=='table':
-            layout=table_layout(scan,b)
+            layout=layouts[b['block_id']]
             if layout:
                 r.update(role='figure',level=None,title=None,status='auto_rule',figure_layout=layout)
                 r['evidence'].append('image_table_without_table_caption')
         elif b['kind']=='paragraph':
             drawings=picture_row(b)
-            if not 2<=len(drawings)<=4 or b.get('hyperlinks'):continue
+            if not 2<=len(drawings)<=4*inline_rows_reflow or b.get('hyperlinks'):continue
             objects=[scan['objects'][v] for v in drawings]
             if any(o.get('layout')!='inline' for o in objects):continue
-            width=sum(int(o.get('extent',{}).get('cx',0)) for o in objects)
-            usable=scan.get('body_width_emu')
-            if not width or not usable or width>usable:continue
+            if inline_rows_reflow==1:
+                width=sum(int(o.get('extent',{}).get('cx',0)) for o in objects)
+                usable=scan.get('body_width_emu')
+                if not width or not usable or width>usable:continue
+            columns=min(len(drawings),4)
             r.update(role='figure',level=None,title=None,status='auto_rule',
-                     figure_layout=dict(kind='inline-row',rows=1,columns=len(drawings),drawings=drawings))
-            r['evidence'].append('inline_pictures_fit_single_row')
+                     figure_layout=dict(kind='inline-row',rows=(len(drawings)+columns-1)//columns,
+                                        columns=columns,drawings=drawings))
+            r['evidence'].append('inline_pictures_share_paragraph' if inline_rows_reflow>1 else 'inline_pictures_fit_single_row')
     def props(b):
         f=b.get('paragraph_format_effective',{})
         return (f.get('alignment') or 'left',)+tuple(str(f.get(k) or '0') for k in ('firstLine','firstLineChars','hanging','hangingChars','left','leftChars','right','rightChars'))
@@ -130,9 +147,12 @@ def apply(scan, candidate, overrides=None):
         if explicit:
             choices=nearest(i,matches)
             if len(choices)>1:
-                r.update(role=family+'_caption',level=None,title=None,status='review',relates_to=None,
-                         association_candidates=[v['block_id'] for v in choices])
-                r['evidence'].append('ambiguous_object_pair');continue
+                confirmed=next((v for v in choices if family=='table' and v['block_id']==r.get('relates_to')),None)
+                if confirmed is None:
+                    r.update(role=family+'_caption',level=None,title=None,status='review',relates_to=None,
+                             association_candidates=[v['block_id'] for v in choices])
+                    r['evidence'].append('ambiguous_object_pair');continue
+                choices=[confirmed]
             matches=choices
         current=r.get('relates_to')
         target=next((v for v in matches if v['block_id']==current),matches[0])
@@ -143,7 +163,16 @@ def apply(scan, candidate, overrides=None):
         descriptor=target_row.get('figure_layout')
         if descriptor:
             descriptor['caption_block']=b['block_id']
-            labels=re.split(r'\t+| {2,}',text)
+            label_text=text
+            if descriptor['kind']=='inline-row' and explicit:
+                parsed=caption_prefix(text)
+                # A numbered overall title may contain intentional spacing.
+                # Only split it when each part is visibly a subfigure label.
+                if parsed and parsed['label']=='图':
+                    label_text=parsed['content'] if re.match(r'^[（(][A-Za-z][）)]',parsed['content']) else ''
+            labels=re.split(r'\t+| {2,}',label_text)
+            if label_text!=text and not all(re.match(r'^[（(][A-Za-z][）)]',value.strip()) for value in labels):
+                labels=[]
             if descriptor['kind']=='inline-row' and len(labels)==len(descriptor['drawings']) and all(v.strip() for v in labels):
                 descriptor['labels']=[v.strip() for v in labels];r['subcaptions']=True
     candidate['figure_layouts']=[dict(block_id=r['block_id'],**r['figure_layout']) for r in candidate['blocks'] if r.get('figure_layout')]

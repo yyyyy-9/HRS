@@ -34,8 +34,8 @@ function referenceRanges(tokens,source,base,normalized){
  }
  return result;
 }
-function create(source,tokens){
- const normalized=root.SourceBlocks.normalized(source,{tabs:true}),fences=root.SourceBlocks.scan(source,tokens)
+function create(source,tokens,sourceBlocks=root.SourceBlocks.scan(source,tokens)){
+ const normalized=root.SourceBlocks.normalized(source,{tabs:true}),fences=sourceBlocks
   .filter(f=>['report-table','report-figure','report-image-group'].includes(f.language)),blocks=[];
  // One document-wide lexical mask: Marked may split \( and \) into
  // separate escape/text tokens, so masking per token is NOT reliable.

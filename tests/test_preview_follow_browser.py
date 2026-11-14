@@ -1,8 +1,7 @@
 """PREVIEW-FOLLOW/NOTE-CHECK: native input, real scroll, canonical tokens/map."""
 import json
 from pathlib import Path
-from browser_support import ManualService
-from browser_support import source,value
+from browser_support import ManualService,select,source,value
 
 class PreviewFollow(ManualService):
     def free(self,raw):
@@ -40,16 +39,25 @@ class PreviewFollow(ManualService):
         raw='# 重复脚注😀\r\n\r\n来源[^same]，再次[^same]。\r\n\r\n```md\r\n[^same]: 代码示例\r\n```\r\n\r\n`[^same]: 行内示例`\r\n\r\n[^same]: 第一条来源\r\n\r\n[^same]: 第二条来源\r\n'
         self.free(raw);self.page.locator('#btn-validate').click()
         errors=self.page.locator('#problem-list [data-code="DUPLICATE_FOOTNOTE"]')
-        if errors.count()!=1:print('NOTE_DEBUG',self.page.locator('#problem-list').inner_text(),self.page.evaluate("()=>SourceMap.create(document.querySelector('#markdown').sourceEditor.value,marked.lexer(SourceBlocks.normalized(document.querySelector('#markdown').sourceEditor.value).text)).blocks.map(r=>({type:r.type,raw:r.raw,key:r.token.key,start:r.start,end:r.end}))"),flush=True)
+        errors.first.wait_for()
         self.assertEqual(errors.count(),1)
         self.assertEqual(errors.first.get_attribute('data-severity'),'error')
         self.assertIn('第 13 行',errors.first.inner_text());self.assertIn('第 11 行',errors.first.inner_text())
         if self.evidence:self.page.screenshot(path=str(self.evidence/'duplicate-footnote-check.png'))
         errors.first.click();self.assertEqual(self.page.locator('#markdown').evaluate('n=>n.sourceEditor.selectionStart'),len(raw[:raw.index('[^same]: 第二条来源')].encode('utf-16-le'))//2)
         self.assertEqual(value(self.page),raw)
-        self.free(raw.replace('[^same]: 第二条来源','[^other]: 第二条来源'))
-        self.page.locator('#btn-validate').click();self.page.wait_for_function("document.querySelector('#problems-summary').textContent.startsWith('0 个错误')")
+        # DOCUMENT-CHECK-LIVE: editing fixes the diagnostic while the panel stays open.
+        start=len(raw[:raw.index('[^same]: 第二条来源')].encode('utf-16-le'))//2
+        select(self.page,start+2,start+6)
+        self.page.keyboard.insert_text('other')
+        self.page.wait_for_function("document.querySelector('#problems-summary').textContent.startsWith('0 个错误')",timeout=4000)
         self.assertEqual(self.page.locator('#problem-list [data-code="DUPLICATE_FOOTNOTE"]').count(),0)
+        self.assertEqual(value(self.page),raw.replace('[^same]: 第二条来源','[^other]: 第二条来源'))
+        self.assertEqual(self.page.locator('#toast').inner_text(),'')
+        self.page.keyboard.press('Control+z')
+        errors.first.wait_for()
+        self.assertTrue(errors.first.is_enabled())
+        self.assertEqual(value(self.page),raw)
 
     def long_source(self):
         raw='# 滚动编辑\n\n'+'\n\n'.join('## 第'+str(i)+'节\n\n段落'+str(i)+'，这里是需要保持位置的正文。'*14 for i in range(1,66))+'\n'
@@ -57,6 +65,44 @@ class PreviewFollow(ManualService):
 
     def preview_wheel(self,delta):
         self.page.locator('.page-scroll').hover();self.page.mouse.wheel(0,delta)
+
+    def test_14_source_input_follows_current_block_without_stealing_scroll(self):
+        """EDITOR-UX-2.6: committed input follows only in split, with right-side priority."""
+        p=self.page;raw=self.long_source()
+        p.wait_for_selector('#preview-content h2:text-is("第32节")')
+        scroller=p.locator('.page-scroll')
+        marked=p.locator('#preview-content .source-edit-highlight')
+        for paragraph,text in [(1,'在视口输入'),(32,'在远处输入')]:
+            pos=raw.index(f'段落{paragraph}，')
+            select(p,pos,pos)
+            before=scroller.evaluate('el=>el.scrollTop')
+            p.keyboard.insert_text(text)
+            marked.filter(has_text=text).wait_for()
+            if paragraph==1:
+                self.assertAlmostEqual(scroller.evaluate('el=>el.scrollTop'),before,delta=2)
+            else:
+                self.assertGreater(scroller.evaluate('el=>el.scrollTop'),before+100)
+                self.assertTrue(marked.evaluate("""el=>{
+                    const box=el.getBoundingClientRect(),pane=el.closest('.page-scroll').getBoundingClientRect();
+                    return box.top<pane.bottom&&box.bottom>pane.top;
+                }"""))
+            self.assertTrue(p.locator('#markdown').evaluate('e=>e.sourceEditor.hasFocus()'))
+            marked.wait_for(state='detached')
+            raw=value(p)
+
+        pos=raw.index('段落60，')
+        select(p,pos,pos);p.keyboard.insert_text('预览仍由鼠标控制')
+        self.preview_wheel(-650)
+        p.wait_for_selector('#preview-content p:text("预览仍由鼠标控制")')
+        self.assertEqual(marked.count(),0)
+        self.assertTrue(scroller.evaluate('el=>el.scrollTop<el.scrollHeight/2'))
+        p.locator('#follow-scroll').uncheck()
+        before=scroller.evaluate('el=>el.scrollTop')
+        pos=value(p).index('段落60，')
+        select(p,pos,pos);p.keyboard.insert_text('关闭后仍正常渲染')
+        p.wait_for_selector('#preview-content p:text("关闭后仍正常渲染")')
+        self.assertEqual(marked.count(),0)
+        self.assertAlmostEqual(scroller.evaluate('el=>el.scrollTop'),before,delta=2)
 
     def test_03_wheel_follow_keeps_running_with_editing_focus_and_source_changes(self):
         raw=self.long_source();target=self.page.locator('#preview-content [data-block-editor]').filter(has_text='段落1，').first
