@@ -10,16 +10,16 @@ HRS 是本地运行的 Markdown 文档工作台，面向自由笔记和工程报
 
 Windows 用户从 [Releases](https://github.com/yyyyy-9/HRS/releases) 下载浏览器便携包，完整解压后双击`启动编辑器.vbs`。自带Python和基础Word组件，使用本机浏览器。当前发行提供浏览器形式，桌面宿主源码也包含在仓库中。
 
-已有 Python 3.12+ 环境时，从源码安装：
+在 Python 3.12 或以上的环境中，可用 pip 从 PyPI 安装。
 
 ```powershell
-git clone https://github.com/yyyyy-9/HRS.git
-cd HRS
-python -m pip install .
+python -m pip install --upgrade hrstudio
 hrs
 ```
 
-也可从Release下载wheel后本地安装。安装分发名为`hrstudio`，启动命令为`hrs`，Python模块保持`html_report_studio`。PyPI尚未上传；conda-forge在配方审核与频道构建完成后提供安装。当前状态和本地构建见[安装与构建](packaging/README.md)。标准包不含Python、浏览器或可选Word组件；资源与用户数据分开，服务只监听127.0.0.1。
+也可下载 Release 的 wheel 本地安装，或在源码目录执行 `python -m pip install .`。分发名为 `hrstudio`，启动命令为 `hrs`，Python 模块为 `html_report_studio`。[PyPI](https://pypi.org/project/hrstudio/) · [安装与构建](packaging/README.md)
+
+标准包使用本机 Python 和浏览器，Word 组件可单独配置。应用资源与用户数据分开，服务只监听 `127.0.0.1`。
 
 ## 可以做什么
 

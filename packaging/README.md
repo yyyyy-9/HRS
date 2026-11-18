@@ -12,14 +12,14 @@ Word原生组件适配Windows x64 / CPython 3.13；使用其他Python环境时�
 
 Python要求3.12及以上。分发名为hrstudio，启动命令为hrs，Python模块为html_report_studio。
 
-```text
-python -m pip install /path/to/hrstudio-<version>-py3-none-any.whl
+```powershell
+python -m pip install --upgrade hrstudio
 hrs --version
 hrs info
 hrs start
 ```
 
-也可在源码目录中执行`python -m pip install .`。pyproject.toml与setup.py提供安装所需的元数据和资源声明。
+也可通过 `python -m pip install /path/to/hrstudio-<version>-py3-none-any.whl` 安装发行附件，或在源码目录执行 `python -m pip install .`。`pyproject.toml` 和 `setup.py` 声明安装所需的元数据与资源。[PyPI](https://pypi.org/project/hrstudio/) · [GitHub Releases](https://github.com/yyyyy-9/HRS/releases)
 
 服务只监听127.0.0.1。同一数据根可使用`hrs status`与`hrs stop`管理。`hrs info`、`hrs license`不创建用户数据；Windows默认应用状态目录为`%LOCALAPPDATA%/HTMLReportStudio`，可用`HRS_DATA_DIR`或`--data-dir`指定安装目录之外的位置。工程保存在用户选择的位置，升级或卸载不主动删除。
 
