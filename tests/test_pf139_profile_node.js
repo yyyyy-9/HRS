@@ -16,4 +16,43 @@ assert.equal(profile.html('<div>card</div>','engineering'),'&lt;div&gt;card&lt;/
 assert.equal(profile.html('<div>card</div>','free'),'<div>card</div>');
 assert.throws(()=>profile.normalize('unknown'),/模式|profile/i);
 assert.equal(ReportTableContent.tokenize('literal \\$E=mc^2\\$').some(t=>t.kind==='math'),false);
+require('../app/web/pipe_tables.js');
+const preflight=require('../app/web/preflight.js');
+const currencyDoc=[
+ '# 成本与波长核对',
+ '',
+ '## 1.1 方案报价',
+ '',
+ '单套预算 $100。',
+ '',
+ '批量从 $1,200 降至 $980。',
+ '',
+ '优惠至 $950，波长 $248.33\\ \\mathrm{nm}$ 与 $2\\text{阶系统}$，已转义 \\$50，代码 `$60`。',
+ '',
+ '| 部件 | 初版 | 终版 |',
+ '| --- | --- | --- |',
+ '| 探测器 | $1,200 | $950 |',
+ '',
+ '```python',
+ 'cost = "$999"',
+ '```',
+ ''
+].join('\n');
+const currencyTokens=marked.lexer(SourceBlocks.normalized(currencyDoc).text);
+const currencyMap=SourceMap.create(currencyDoc,currencyTokens);
+const currencyWarnings=preflight.scanCurrencyWarnings({source:currencyDoc,tokens:currencyTokens,map:currencyMap});
+assert.equal(currencyWarnings.length,5,JSON.stringify(currencyWarnings));
+assert.equal(currencyDoc.slice(currencyWarnings[0].start,currencyWarnings[0].end),'$100');
+assert.equal(currencyDoc.slice(currencyWarnings[1].start,currencyWarnings[1].end),'$1,200 降至 $');
+assert.equal(currencyDoc.slice(currencyWarnings[2].start,currencyWarnings[2].end),'$950');
+assert.equal(currencyDoc.slice(currencyWarnings[3].start,currencyWarnings[3].end),'$1,200');
+assert.equal(currencyDoc.slice(currencyWarnings[4].start,currencyWarnings[4].end),'$950');
+const stubContract={diagnostics:[{code:'HEADING_SOURCE_PREFIX',severity:'warning',line:3,start:10,end:18,message:'手工章号'}],output_blockers:[],source_snapshot:{utf16_length:currencyDoc.length}};
+const checkedDefault=preflight.complete(stubContract,{source:currencyDoc,tokens:currencyTokens,map:currencyMap,notes:{problems:[]}},'engineering',{});
+assert.equal(checkedDefault.valid,true);
+assert.equal(checkedDefault.safeToCompile,false);
+assert.equal(checkedDefault.word_compile_ready,false);
+const checkedAccepted=preflight.complete(stubContract,{source:currencyDoc,tokens:currencyTokens,map:currencyMap,notes:{problems:[]}},'engineering',{acceptNumberedHeadings:true});
+assert.equal(checkedAccepted.safeToCompile,true);
+assert.equal(checkedAccepted.word_compile_ready,true);
 console.log('PF13.9 profile source ranges, numbering, abstract and HTML policy PASS');

@@ -22,12 +22,27 @@ from .runtime import BridgeError, new_path, sha
 
 MATH_SEGMENTS=frozenset({'math_inline','math_display','legacy_equation'})
 EQUATION_FIELD=re.compile(r'^\s*SEQ\s+(?:公式|Equation|MTEquation|MTEqn)(?=\s|$)',re.I)
+CAPTION_SEQUENCE_NAMES={'图':('图','figure','hrsfigure'), '表':('表','table','hrstable')}
 MATHTYPE_MACRO=re.compile(r'\s*MACROBUTTON\s+MTPlaceRef(?:\s+\\\*\s+MERGEFORMAT)?\s*',re.I)
 MATHTYPE_SEQ=re.compile(r'\s*SEQ\s+(MTEqn|MTChap|MTSec)(?:\s+(?:\\[hc]|\\r\s+\d+|\\\*\s+(?:ARABIC|MERGEFORMAT)))*\s*',re.I)
 MATHTYPE_REF=re.compile(r'\s*REF\s+(ZEqnNum[0-9]+)(?:\s+(?:\\h|\\!|\\\*\s+(?:CHARFORMAT|MERGEFORMAT)))*\s*',re.I)
 MATHTYPE_GOTO=re.compile(r'\s*GOTOBUTTON\s+(ZEqnNum[0-9]+)(?:\s+\\\*\s+MERGEFORMAT)?\s*',re.I)
 EQUATION_NUMBER=re.compile(r'[（(]\s*([0-9]+(?:[.\-][0-9]+)*)\s*[)）]')
 WRAPPED_EQUATION_REF=re.compile(r'(?:式[ \t]*)?[（(][ \t]*(@eq:eq-[A-Za-z0-9_-]+)[ \t]*[)）]')
+WRAPPED_FIGURE_REF=re.compile(r'图[ \t]*(@fig:fig-[A-Za-z0-9_-]+)')
+WRAPPED_TABLE_REF=re.compile(r'表[ \t]*(@tbl:tbl-[A-Za-z0-9_-]+)')
+INLINE_CODE_STYLES=frozenset({'hrs code char','hrscodechar','verbatim char','verbatimchar','code char','codechar','inline code','source text'})
+CODE_BLOCK_STYLES=frozenset({'hrs code','hrscode','source code','sourcecode'})
+
+
+def _split_outer_hspace(value):
+    stripped_l = value.lstrip(' \t')
+    if not stripped_l:
+        return value, '', ''
+    lead = value[:len(value) - len(stripped_l)]
+    stripped_r = stripped_l.rstrip(' \t')
+    trail = stripped_l[len(stripped_r):]
+    return lead, stripped_r, trail
 
 
 @contextmanager
@@ -62,7 +77,8 @@ def import_workspace(parent,maintenance):
 
 def escaped(text):
     # Serialization of observed Word text, not an alternative Markdown parser.
-    return re.sub(r'([\\`*_\[\]<>|@$=#!~])', r'\\\1', text)
+    # Leave ']' unescaped so '[text]' becomes '\[text]' rather than LaTeX '\[text\]'.
+    return re.sub(r'([\\`*_\[<>|@$=#!~])', r'\\\1', text)
 
 
 def fenced(kind, data):
@@ -218,6 +234,19 @@ class NativeReader:
         self.prepared_images={}
         self.picture_ids={}
         self.object_seed=object_seed or self.scan['source_sha256'][:16]
+        self.char_styles={}
+        try:
+            from zipfile import ZipFile
+            with ZipFile(self.path) as archive:
+                if 'word/styles.xml' in archive.namelist():
+                    for st in E.fromstring(archive.read('word/styles.xml')).findall('w:style', N):
+                        sid = (st.get(qn('w:styleId')) or '').strip()
+                        sname_el = st.find('w:name', N)
+                        sname = (sname_el.get(qn('w:val')) if sname_el is not None else '') or ''
+                        if sid:
+                            self.char_styles[sid] = sname.strip().casefold() or sid.casefold()
+        except Exception:
+            pass
         self.diagnostics = []
         self.editable = editable
         self.detached = []
@@ -256,6 +285,36 @@ class NativeReader:
         self.identities = identities or {}
         self.link_targets=dict(self.identities);self.link_heading_ids={};self.link_review={}
 
+    def _scan_field_bookmarks(self, block):
+        from wps_pipeline.assemble_reports import REF_FIELD
+        names = set()
+        stack = []
+        for s in block.get('segments', []):
+            if s['kind'] != 'field_evidence':
+                continue
+            node = self.object_xml(s['object_id'])
+            local = E.QName(node).localname
+            instructions = []
+            if local == 'fldSimple':
+                instructions.append(node.get(qn('w:instr'), ''))
+            elif local == 'fldChar':
+                mode = node.get(qn('w:fldCharType'))
+                if mode == 'begin':
+                    stack.append([])
+                elif mode == 'end' and stack:
+                    instructions.append(''.join(stack.pop()))
+            elif local == 'instrText' and stack:
+                stack[-1].append(node.text or '')
+            for instr in instructions:
+                m = REF_FIELD.fullmatch(instr)
+                if m:
+                    names.add(m[1])
+                    continue
+                m_link = re.fullmatch(r'\s*HYPERLINK\s+\\l\s+"([\w]+)"\s*', instr, re.I)
+                if m_link:
+                    names.add(m_link[1])
+        return names
+
     def map_hyperlink_targets(self,recognition,decisions):
         """Adapt existing confirmed roles/bookmarks, never infer new roles."""
         roles={r['block_id']:r for r in recognition['roles']}
@@ -267,6 +326,7 @@ class NativeReader:
                 referenced.update(item['attributes'].get(qn('w:'+attribute)) for attribute in ('anchor','docLocation'))
                 value=(item.get('relationship') or {}).get('Target','')
                 if value.startswith('#'):referenced.add(unquote(value[1:]))
+            referenced.update(self._scan_field_bookmarks(b))
         referenced.discard(None)
         targets={};prepared_pictures=set(self.picture_ids.values())
         for b in self.top:
@@ -281,14 +341,16 @@ class NativeReader:
         if not referenced:return targets
         counts=self.word_bookmarks
         for b in self.top:
-            target=targets.get(captions.get(b['block_id'],b['block_id']))
+            target_block=captions.get(b['block_id'],b['block_id'])
+            target=targets.get(target_block)
             if not target:continue
             for s in b.get('segments',[]):
                 name=s.get('name') if s['kind']=='bookmarkStart' else None
                 if not name or name not in referenced or counts[name]!=1:continue
                 if name in self.link_targets and self.link_targets[name]!=target:raise BridgeError('WORD_BOOKMARK_AMBIGUOUS: '+name)
                 self.link_targets[name]=target
-                if target[0]=='sec':self.link_heading_ids[b['block_id']]=target[1]
+                if b['block_id'] not in captions:self.identities.setdefault(name,target)
+                if target[0]=='sec':self.link_heading_ids[target_block]=target[1]
         return targets
 
     def link_destination(self,record):
@@ -314,7 +376,92 @@ class NativeReader:
             target=target.split('#',1)[0]+'#'+anchor
         return quote(target,safe=":/?#[]@!$&'()*+,;=%")
 
-    def linked_paragraph(self,b,caption,plain,text_skip,formatting):
+    def _segment_style_flags(self, s, suppress_bold=False):
+        props = s.get('run_properties_raw')
+        props = {E.QName(p[0]).localname: dict(p[1]).get(qn('w:val'), '1') for p in props[3]} if props else {}
+        rstyle = (props.get('rStyle') or '').strip()
+        style_name = self.char_styles.get(rstyle, rstyle.casefold()) if rstyle else ''
+        bold = False if suppress_bold else props.get('b') not in (None, '0', 'false', 'off')
+        italic = props.get('i') not in (None, '0', 'false', 'off')
+        strike = props.get('strike') not in (None, '0', 'false', 'off')
+        underline = props.get('u') not in (None, 'none', '0', 'false', 'off')
+        script = TEXT_SCRIPT_TAGS.get(props.get('vertAlign'))
+        is_code = style_name in INLINE_CODE_STYLES or rstyle.casefold() in INLINE_CODE_STYLES
+        return (bold, italic, strike, underline, script, is_code)
+
+    def _all_text_bold(self, segments, text_skip=0):
+        rem = text_skip
+        non_ws = []
+        for s in segments:
+            if s.get('kind') != 'text':
+                continue
+            val = s.get('text', '')
+            if rem:
+                cut = min(rem, len(val))
+                val = val[cut:]
+                rem -= cut
+            if val.strip():
+                non_ws.append(s)
+        return bool(non_ws) and all(self._segment_style_flags(s)[0] for s in non_ws)
+
+    def _format_text_buffer(self, runs, plain, formatting):
+        if not runs:
+            return ''
+        if plain:
+            return ''.join(raw for raw, _ in runs)
+        if not formatting:
+            return ''.join(escaped(raw) for raw, _ in runs)
+        out = []
+        idx = 0
+        while idx < len(runs):
+            outer = runs[idx][1][:5]
+            group = []
+            while idx < len(runs) and runs[idx][1][:5] == outer:
+                raw_val, flags = runs[idx]
+                is_code = flags[5]
+                if group and group[-1][0] == is_code:
+                    group[-1] = (is_code, group[-1][1] + raw_val)
+                else:
+                    group.append((is_code, raw_val))
+                idx += 1
+            pieces = []
+            for is_code, sub in group:
+                if not sub:
+                    continue
+                if is_code and sub.strip():
+                    lead_c, core_c, trail_c = _split_outer_hspace(sub)
+                    ticks = '`' * (max((len(m.group(0)) for m in re.finditer(r'`+', core_c)), default=0) + 1)
+                    pad = ' ' if core_c.startswith('`') or core_c.endswith('`') else ''
+                    pieces.append(f'{lead_c}{ticks}{pad}{core_c}{pad}{ticks}{trail_c}')
+                else:
+                    pieces.append(escaped(sub))
+            inner = ''.join(pieces)
+            if not inner.strip() or not any(outer):
+                out.append(inner)
+                continue
+            bold, italic, strike, underline, script = outer
+            lines = inner.split('\n')
+            formatted_lines = []
+            for line in lines:
+                if not line.strip():
+                    formatted_lines.append(line)
+                    continue
+                lead, core, trail = _split_outer_hspace(line)
+                if bold:
+                    core = '**' + core + '**'
+                if italic:
+                    core = '*' + core + '*'
+                if strike:
+                    core = '~~' + core + '~~'
+                if underline:
+                    core = '<u>' + core + '</u>'
+                if script:
+                    core = f'<{script}>{core}</{script}>'
+                formatted_lines.append(lead + core + trail)
+            out.append('\n'.join(formatted_lines))
+        return ''.join(out)
+
+    def linked_paragraph(self,b,caption,plain,text_skip,formatting,*,suppress_bold=False):
         records=b['hyperlinks'];ranges=b.get('hyperlink_ranges');segments=b.get('segments',[])
         if not isinstance(ranges,list) or len(ranges)!=len(records):raise BridgeError('WORD_LINK_COMPONENT_OUTDATED: 请使用支持超链接范围的配套 Word 组件')
         if not all(isinstance(r,dict) for r in ranges):raise BridgeError('WORD_LINK_RANGE_INVALID: '+b.get('block_id',''))
@@ -323,19 +470,15 @@ class NativeReader:
         def part(items):
             nonlocal text_skip
             count=sum(len(s['text']) for s in items if s['kind']=='text');skip=min(text_skip,count);text_skip-=skip
-            merged=[]
-            for item in items:
-                if item['kind']=='text' and merged and merged[-1]['kind']=='text' and merged[-1].get('run_properties_raw')==item.get('run_properties_raw'):
-                    merged[-1]={**merged[-1],'text':merged[-1]['text']+item['text']}
-                else:merged.append(item)
-            return self.paragraph({'segments':merged},caption=caption,plain=plain,text_skip=skip,formatting=formatting)
+            return self.paragraph({'segments':items},caption=caption,plain=plain,text_skip=skip,formatting=formatting,suppress_bold=suppress_bold)
         for span in ranges:
             start,end,index=(span.get(k) for k in ('start','end','link_index'))
             if any(type(v) is not int for v in (start,end,index)) or not cursor<=start<=end<=len(segments) or not 0<=index<len(records):
                 raise BridgeError('WORD_LINK_RANGE_INVALID: '+b.get('block_id',''))
             parts.append(part(segments[cursor:start]));label=part(segments[start:end]);record=records[index]
             href=self.link_destination(record)
-            parts.append('['+label+'](<'+href+'>)' if label and href and not plain else label)
+            safe_label=re.sub(r'(?<!\\)\]', '&#93;', label) if label and href and not plain and ']' in label else label
+            parts.append('['+safe_label+'](<'+href+'>)' if label and href and not plain else label)
             if not href and not plain:
                 target=(record.get('relationship') or {}).get('Target');anchor=record['attributes'].get(qn('w:anchor'))
                 key=(b.get('block_id'),index)
@@ -387,17 +530,11 @@ class NativeReader:
     def payload(self, name):
         return self.work/'scan'/name
 
-    def field(self, instruction, caption=False, *, nested_reference=None):
+    def field(self, instruction, caption=False, *, nested_reference=None, cached=''):
         from wps_pipeline.assemble_reports import REF_FIELD
         from wps_pipeline.native_output import SEQ_FIELD
-        # The WPS validator restricts the first identifier character to ASCII.
-        # Adapt only our two native Chinese caption labels, then reuse its
-        # existing switch grammar; unknown fields remain unsupported.
-        seq_instruction = re.sub(r'^(\s*SEQ\s+)(图|表)(?=\s|$)',
-                                 lambda m: m[1] + {'图':'HRSFigure','表':'HRSTable'}[m[2]],
-                                 instruction, flags=re.I)
-        if SEQ_FIELD.fullmatch(seq_instruction):
-            if caption: return ''
+        if SEQ_FIELD.fullmatch(instruction):
+            if caption and cached: return cached
             raise BridgeError('SEQ field outside a known caption')
         match = REF_FIELD.fullmatch(instruction)
         if match and match[1] in self.identities:
@@ -415,81 +552,150 @@ class NativeReader:
             return ' @eq:'+target[1]+' '
         raise BridgeError('UNSUPPORTED_NATIVE_FIELD: ' + instruction.strip())
 
-    def paragraph(self, b, caption=False, plain=False, text_skip=0, formatting=True):
+    def paragraph(self, b, caption=False, plain=False, text_skip=0, formatting=True, *, strip_heading_bold=False, suppress_bold=False):
+        if strip_heading_bold and not suppress_bold and self._all_text_bold(b.get('segments', []), text_skip=text_skip):
+            suppress_bold = True
         if self.editable:
             from .editable_import import paragraph
-            text=paragraph(self,b,caption,plain,text_skip,formatting)
-        else:text=self._paragraph(b,caption,plain,text_skip,formatting)
+            text=paragraph(self,b,caption,plain,text_skip,formatting,suppress_bold=suppress_bold)
+        else:text=self._paragraph(b,caption,plain,text_skip,formatting,suppress_bold=suppress_bold)
+        text=WRAPPED_FIGURE_REF.sub(r'\1',text)
+        text=WRAPPED_TABLE_REF.sub(r'\1',text)
         text=WRAPPED_EQUATION_REF.sub(r' \1 ',text)
-        return re.sub(r'(@eq:eq-[A-Za-z0-9_-]+) (?=[，。！？、；,.!?;]|$)',r'\1',text)
+        text=re.sub(r'(?<=[ \t]) (@eq:eq-[A-Za-z0-9_-]+)',r'\1',text)
+        return re.sub(r'(@eq:eq-[A-Za-z0-9_-]+) (?=[ \t]|[，。！？、；：,.!?;:）)]|$)',r'\1',text)
 
-    def _paragraph(self, b, caption=False, plain=False, text_skip=0, formatting=True):
-        if b.get('hyperlinks'):return self.linked_paragraph(b,caption,plain,text_skip,formatting)
-        text=[];stack=[]
+    def _paragraph(self, b, caption=False, plain=False, text_skip=0, formatting=True, *, suppress_bold=False):
+        if b.get('hyperlinks'):return self.linked_paragraph(b,caption,plain,text_skip,formatting,suppress_bold=suppress_bold)
+        text=[];stack=[];text_buf=[]
+        def flush_text():
+            if text_buf:
+                text.append(self._format_text_buffer(text_buf, plain, formatting))
+                text_buf.clear()
         for s in b.get('segments', []):
             kind=s['kind']
             if kind=='field_evidence':
+                flush_text()
                 node=self.object_xml(s['object_id']);local=E.QName(node).localname
                 if local=='fldSimple':
-                    text.append(self.field(node.get(qn('w:instr'),''),caption));continue
+                    cached=''.join(t.text or '' for t in node.iter(qn('w:t'))) if caption else ''
+                    text.append(self.field(node.get(qn('w:instr'),''),caption,cached=cached if plain else escaped(cached)));continue
                 if local=='fldChar':
                     mode=node.get(qn('w:fldCharType'))
-                    if mode=='begin':stack.append([])
+                    if mode=='begin':stack.append({'instruction':[], 'cache':[], 'result':False})
+                    elif mode=='separate' and stack:stack[-1]['result']=True
                     elif mode=='end' and stack:
-                        instruction=''.join(stack.pop())
-                        if not stack:text.append(self.field(instruction,caption))
+                        frame=stack.pop()
+                        if not stack:
+                            cached=''.join(frame['cache'])
+                            text.append(self.field(''.join(frame['instruction']),caption,cached=cached if plain else escaped(cached)))
                     continue
-                if local=='instrText' and stack:stack[-1].append(node.text or '')
+                if local=='instrText' and stack:stack[-1]['instruction'].append(node.text or '')
                 continue
-            if stack:continue
+            if stack:
+                if caption and stack[-1]['result'] and kind=='text':stack[-1]['cache'].append(s['text'])
+                continue
             if kind=='text':
                 value=s['text']
                 if text_skip:
                     count=min(text_skip,len(value));value=value[count:];text_skip-=count
-                value=value if plain else escaped(value)
-                props=s.get('run_properties_raw')
-                props={E.QName(p[0]).localname:dict(p[1]).get(qn('w:val'),'1') for p in props[3]} if props else {}
-                if not plain and formatting:
-                    if value and props.get('b') not in (None,'0','false','off'):value='**'+value+'**'
-                    if value and props.get('i') not in (None,'0','false','off'):value='*'+value+'*'
-                    if value and props.get('strike') not in (None,'0','false','off'):value='~~'+value+'~~'
-                    if value and props.get('u') not in (None,'none','0','false','off'):value='<u>'+value+'</u>'
-                script = TEXT_SCRIPT_TAGS.get(props.get('vertAlign'))
-                if value and not plain and script:
-                    value = f'<{script}>{value}</{script}>'
-                text.append(value)
+                if value:
+                    text_buf.append((value, self._segment_style_flags(s, suppress_bold=suppress_bold)))
             elif kind in MATH_SEGMENTS:
+                flush_text()
                 if plain:raise BridgeError('Native equation in a plain HRS caption needs an explicit mapping')
                 tex=self.tex(s['object_id'])
                 text.append(('$$\n'+tex+'\n$$') if kind=='math_display' else '$'+tex+'$')
             elif kind in ('bookmarkStart','bookmarkEnd'):continue
-            elif kind in ('br','cr'):text.append('\n')
-            elif kind=='tab':text.append('\t')
-            elif kind in ('noBreakHyphen','softHyphen'):text.append('-')
+            elif kind in ('br','cr'):flush_text();text.append('\n')
+            elif kind=='tab':flush_text();text.append('\t')
+            elif kind in ('noBreakHyphen','softHyphen'):flush_text();text.append('-')
             elif kind=='drawing':raise BridgeError('Mixed text/drawing paragraph requires an explicit structure mapping')
             else:raise BridgeError('Unsupported native paragraph event: '+kind)
         if stack:raise BridgeError('Unclosed native field')
+        flush_text()
         return ''.join(text)
+
+    def leading_field(self, b):
+        """Read the first complete, non-nested field after a text-only prefix."""
+        segments = b.get('segments', [])
+        start = next((i for i, s in enumerate(segments) if s['kind'] not in ('text','tab','bookmarkStart','bookmarkEnd')), None)
+        if start is None or segments[start]['kind'] != 'field_evidence':
+            return None
+        node = self.object_xml(segments[start]['object_id'])
+        if node.tag == qn('w:fldSimple'):
+            return start, start+1, node.get(qn('w:instr'),''), ''.join(t.text or '' for t in node.iter(qn('w:t')))
+        if node.tag != qn('w:fldChar') or node.get(qn('w:fldCharType')) != 'begin':
+            return None
+        instruction, cache = [], []
+        result = False
+        for i in range(start+1, len(segments)):
+            segment = segments[i]
+            if segment['kind'] == 'field_evidence':
+                node = self.object_xml(segment['object_id'])
+                if node.tag == qn('w:instrText') and not result:
+                    instruction.append(node.text or '')
+                elif node.tag == qn('w:fldChar') and node.get(qn('w:fldCharType')) == 'separate' and not result:
+                    result = True
+                elif node.tag == qn('w:fldChar') and node.get(qn('w:fldCharType')) == 'end' and result:
+                    return start, i+1, ''.join(instruction), ''.join(cache)
+                else:
+                    return None
+            elif segment['kind'] == 'text' and result:
+                cache.append(segment['text'])
+            elif segment['kind'] not in ('bookmarkStart','bookmarkEnd'):
+                return None
+
+    @staticmethod
+    def field_bookmarks(segments, start, end):
+        before = {}
+        for segment in reversed(segments[:start]):
+            if segment['kind'] == 'bookmarkStart':
+                before[segment['bookmark_id']] = segment.get('name')
+            elif segment['kind'] != 'text' or segment['text']:
+                break
+        for segment in segments[end:]:
+            if segment['kind'] == 'bookmarkEnd':
+                name = before.get(segment['bookmark_id'])
+                if name: yield name
+            elif segment['kind'] != 'text' or segment['text']:
+                break
+
+    def caption_number(self, b, marker):
+        from wps_pipeline.native_output import SEQ_FIELD
+
+        leading = self.leading_field(b)
+        if not leading:
+            return None
+        start, _, instruction, cached = leading
+        names = CAPTION_SEQUENCE_NAMES[marker]
+        if not SEQ_FIELD.fullmatch(instruction) or instruction.split()[1].casefold() not in names or not cached.strip().isdigit():
+            return None
+        prefix = ''.join(s.get('text', '\t' if s['kind']=='tab' else '') for s in b['segments'][:start])
+        label = '|'.join(names)
+        if re.fullmatch(r'\s*(?:'+label+r')?\s*(?:\d+(?:[.．\-]\d+)*[.．\-])?\s*', prefix, re.I):
+            return leading
 
     def caption(self, b, marker):
         from wps_pipeline.numbered_candidates import caption_prefix
-        # Captions now accept safe inline Markdown. Serialize observed Word text
-        # with the same escaping as body text; only native OMML creates math.
-        text=self.paragraph(b,caption=True,formatting=False).strip()
-        parsed=caption_prefix(b.get('plain_text','').strip())
-        if parsed and parsed['label']==marker and b.get('hyperlinks') and not any(s['kind']=='field_evidence' for s in b['segments']):
-            prefix_count=len(b['plain_text'])-len(b['plain_text'].lstrip())+len(parsed['prefix'])
-            self.diagnostics.append({'code':'STATIC_CAPTION_NUMBER_NORMALIZED','block':b['block_id'],'message':'Original caption number is display text; HRS derives object numbering.'})
-            return self.paragraph(b,caption=True,formatting=False,text_skip=prefix_count).strip()
-        prefix=escaped(parsed['prefix']) if parsed and parsed['label']==marker else None
-        if prefix and text.startswith(prefix):
+        sequence = self.caption_number(b, marker)
+        if sequence:
+            excluded = {id(s) for s in b['segments'][:sequence[1]]}
+            tail = self.paragraph(without_segments(b, lambda s: id(s) in excluded), caption=True, formatting=True, strip_heading_bold=True)
+            return re.sub(r'^[ \t\u3000]*(?:[:：、]|[.．](?!\d))?[ \t\u3000]*', '', tail).strip()
+        # A static number must be wholly in text before the first field or object.
+        leading = []
+        for s in b.get('segments', ()):
+            if s['kind']=='text':leading.append(s['text'])
+            elif s['kind'] not in ('bookmarkStart','bookmarkEnd'):break
+        raw = ''.join(leading)
+        parsed = caption_prefix(b.get('plain_text','').lstrip())
+        skip = 0
+        if parsed and parsed['label']==marker and raw.lstrip().startswith(parsed['prefix']):
+            skip = len(raw) - len(raw.lstrip()) + len(parsed['prefix'])
             self.diagnostics.append({'code':'STATIC_CAPTION_NUMBER_NORMALIZED','block':b['block_id'],
                                      'message':'Original caption number is display text; HRS derives object numbering.'})
-            return text[len(prefix):].strip()
-        # Known generated caption has a removed SEQ field and a literal label.
-        if any(s['kind']=='field_evidence' for s in b.get('segments',[])):
-            return text.removeprefix(marker).strip()
-        return text
+        return self.paragraph(b,caption=True,formatting=True,text_skip=skip,strip_heading_bold=True).strip()
 
     def image(self, drawing):
         if self.editable:
@@ -919,7 +1125,7 @@ def prepare_pictures(reader,decisions,recognition,roles):
                 tables[bid]=external_picture_table(reader,block,layout)
                 reader.picture_ids[layout['drawings'][0]]=tables[bid][0]['id']
             elif block['kind']=='paragraph' and (drawings:=picture_row(block)):
-                if len(drawings)==1 and (not reader.editable or not block.get('hyperlinks')):
+                if len(drawings)==1 and (not reader.editable or (reader.scan['objects'][drawings[0]].get('media') and not block.get('hyperlinks'))):
                     singles[bid]=reader.image(drawings[0])
                     reader.picture_ids[drawings[0]]=reader.object_id('fig',bid)
         except (BridgeError,ValueError,OSError) as error:
@@ -969,6 +1175,24 @@ def import_external(rt,path,work,staged,structure_map=None,editable=False,*,sour
     reader=NativeReader(rt,path,work,staged/'assets',editable=editable,
                         object_seed=source_sha256[:16] if source_sha256 else None)
     reader.diagnostics.extend(projection_diagnostics)
+    if editable:
+        body_scopes = [name for name in reader.word_bookmarks if name and ordinary.BODY_SCOPE.fullmatch(name)]
+        if len(body_scopes) == 1 and reader.word_bookmarks[body_scopes[0]] == 1:
+            front_skipped = ordinary.template_front_blocks(reader, body_scopes[0])
+            if front_skipped:
+                reader.top = [b for b in reader.top if b['block_id'] not in front_skipped]
+                reader.scan['top_level_ids'] = [bid for bid in reader.scan['top_level_ids'] if bid not in front_skipped]
+                reader.diagnostics.append({'code': 'WORD_TEMPLATE_FRONT_MATTER_SKIPPED', 'message': '已跳过母模板前置封面与目录区域。'})
+        sections = [name for name in reader.word_bookmarks if name and ordinary.REFERENCE_SECTION.fullmatch(name)]
+        if sections:
+            reader.notes = ordinary.Notes(reader)
+            recovered = (reader.notes.restore_references(reader, sections[0])
+                         if len(sections)==1 and reader.word_bookmarks[sections[0]]==1 else set())
+            if recovered:
+                reader.top = [b for b in reader.top if b['block_id'] not in recovered]
+                reader.scan['top_level_ids'] = [bid for bid in reader.scan['top_level_ids'] if bid not in recovered]
+            else:
+                ordinary.warn(reader,'WORD_REFERENCE_SECTION_RETAINED','参考文献与正文引用未能可靠配对，已保留 Word 中的文字。')
     decisions=load_decisions(reader,structure_map)
     recognition=analyze(reader,decisions)
     roles={r['block_id']:r for r in recognition['roles']}
@@ -987,6 +1211,41 @@ def import_external(rt,path,work,staged,structure_map=None,editable=False,*,sour
         equations[bid]=(equation,tex)
         target=('eq',reader.object_id('eq',bid));equation_targets[bid]=target
         equation_anchors.extend((name,target) for name in equation.anchors if bookmark_counts[name]==1)
+    # Map bookmarks placed on equation_description paragraphs (including joint
+    # adjacent disambiguation when neighboring equations are claimed by peers).
+    claimed_equations={
+        r['relates_to']
+        for r in recognition['roles']
+        if r.get('role')=='equation_description' and r.get('relates_to') in equation_targets
+    }
+    resolved_eq_reviews=set()
+    for idx,b in enumerate(reader.top):
+        r=roles.get(b['block_id'])
+        if not r or r.get('role')!='equation_description':
+            continue
+        eq_bid=r.get('relates_to')
+        if eq_bid not in equation_targets:
+            adj=[
+                nb['block_id']
+                for nb in (reader.top[idx-1] if idx>0 else None, reader.top[idx+1] if idx+1<len(reader.top) else None)
+                if nb is not None and nb['block_id'] in equation_targets and nb['block_id'] not in claimed_equations
+            ]
+            if len(adj)==1:
+                eq_bid=adj[0]
+                r['relates_to']=eq_bid
+                claimed_equations.add(eq_bid)
+                if r.get('status')=='review' and set(r.get('evidence',()))<={'caption_prefix_pending_object_pair','ambiguous_object_pair'}:
+                    r['status']='auto_rule'
+                    resolved_eq_reviews.add(b['block_id'])
+            else:
+                eq_bid=None
+        if eq_bid in equation_targets:
+            eq_target=equation_targets[eq_bid]
+            for s in b.get('segments',[]):
+                if s['kind']=='bookmarkStart' and s.get('name') and bookmark_counts[s['name']]==1:
+                    equation_anchors.append((s['name'],eq_target))
+    if resolved_eq_reviews:
+        recognition['review']=[it for it in recognition['review'] if it.get('block') not in resolved_eq_reviews]
     targets=reader.map_hyperlink_targets(recognition,decisions)
     for name,target in equation_anchors:
         reader.identities[name]=target;reader.link_targets[name]=target
@@ -1010,11 +1269,14 @@ def import_external(rt,path,work,staged,structure_map=None,editable=False,*,sour
     from wps_pipeline.native_output import sequence_field,number_bookmarks
     for target,cap in captions.items():
         if target not in targets:continue
-        p=reader.body[reader.facts[cap['block']]['source_locator']['body_child_index']]
+        b=reader.facts[cap['block']]
+        p=reader.body[b['source_locator']['body_child_index']]
         field=sequence_field(p)
-        if field is not None:
-            for name in number_bookmarks(p,field['cache']):
-                if bookmark_counts[name]==1:reader.identities[name]=targets[target]
+        sequence=reader.caption_number(b,'图' if cap['kind']=='figure' else '表')
+        names=(number_bookmarks(p,field['cache']) if field is not None and sequence else
+               reader.field_bookmarks(b['segments'],*sequence[:2]) if sequence else ())
+        for name in names:
+            if bookmark_counts[name]==1:reader.identities[name]=targets[target]
     captioned={*groups,*tables,*singles,*(bid for bid,r in roles.items() if r['role']=='table')}-explicit_blocks
     skip={v['block'] for target,v in captions.items() if target in captioned}
     top=reader.top
@@ -1096,7 +1358,27 @@ def import_external(rt,path,work,staged,structure_map=None,editable=False,*,sour
                 if layout:image_layouts.append(layout)
                 chunks.append(fenced('report-figure',data));chunks.extend(remainder);continue
             if 'drawing' in kinds and not editable:raise BridgeError('Mixed or multiple native drawing paragraph')
-            text=reader.paragraph(b)
+            if role in CODE_BLOCK_STYLES and 'drawing' not in kinds and not b.get('hyperlinks'):
+                code_lines = [reader.paragraph(b, plain=True, formatting=False)]
+                j = i + 1
+                while j < len(top) and top[j]['block_id'] not in skip and top[j]['kind'] == 'paragraph':
+                    nb = top[j]
+                    nrole = (nb.get('style_name') or '').casefold()
+                    nkinds = [s['kind'] for s in nb['segments'] if s['kind'] not in ('bookmarkStart', 'bookmarkEnd')]
+                    if nrole not in CODE_BLOCK_STYLES or 'drawing' in nkinds or nb.get('hyperlinks'):
+                        break
+                    skip.add(nb['block_id'])
+                    code_lines.append(reader.paragraph(nb, plain=True, formatting=False))
+                    j += 1
+                code_body = '\n'.join(code_lines)
+                if code_body.endswith('\n'):
+                    code_body = code_body[:-1]
+                ticks = '`' * max(3, max((len(m.group(0)) for m in re.finditer(r'`+', code_body)), default=0) + 1)
+                chunks.append(f'{ticks}\n{code_body}\n{ticks}\n')
+                continue
+            resolved=roles[b['block_id']]
+            is_heading_role = resolved['role']=='document_title' or (resolved['role']=='heading' and resolved['status']!='review' and 0<=resolved.get('level',1)-1<=5)
+            text=reader.paragraph(b, strip_heading_bold=is_heading_role)
             if editable:
                 number=b.get('numbering_effective') or {}
                 if number.get('status')!='none' and number.get('num_id') not in (None,'0') and b.get('outline_level_raw') not in range(6):
@@ -1105,7 +1387,6 @@ def import_external(rt,path,work,staged,structure_map=None,editable=False,*,sour
                         ordinary.warn(reader,'WORD_LIST_LABEL_UNRESOLVED','列表编号定义不完整，正文保留，请核对原序号。')
                         serialized=text+'\n'
                     chunks.append(serialized);continue
-            resolved=roles[b['block_id']]
             if resolved['role']=='document_title':
                 heading(text,'Title',1);continue
             level=resolved.get('level',1)-1 if resolved['role']=='heading' and resolved['status']!='review' else None
@@ -1120,14 +1401,31 @@ def import_external(rt,path,work,staged,structure_map=None,editable=False,*,sour
                     # projection, never general prose, values, or Markdown numbering.
                     if len(path)==6 and all(v.isascii() and v.isdecimal() and int(v)>0 for v in path) and numeric_expression(plain) is None:
                         count=len(plain)-len(parts[1]);prefix=plain[:count]
-                        text=reader.paragraph(b,text_skip=count)
+                        text=reader.paragraph(b,text_skip=count,strip_heading_bold=True)
                         reader.diagnostics.append({'code':'OVERFLOW_CHAPTER_PREFIX_REMOVED','block':b['block_id'],'prefix':prefix,
                             'message':'Confirmed six-level chapter path removed from the list; Word native role is retained.'})
                 heading(text,'Heading '+str(level+1),level+2,prefix)
                 if level==5:reader.diagnostics.append({'code':'WORD_HEADING_OVERFLOW_AS_LIST','block':b['block_id'],
                     'message':'Body Heading 6 exceeds HRS H6 under the report title; emitted as a list with a source-bound role hint.'})
                 continue
+            if not text.strip() and not kinds and b.get('source_locator', {}).get('body_child_index') is not None:
+                p_el = reader.body[b['source_locator']['body_child_index']]
+                bottom_bdr = p_el.find(qn('w:pPr') + '/' + qn('w:pBdr') + '/' + qn('w:bottom'))
+                if bottom_bdr is not None and bottom_bdr.get(qn('w:val')) not in (None, 'none', 'nil'):
+                    chunks.append('---\n')
+                    continue
             if b.get('numbering',{}).get('num_id'):raise BridgeError('External native lists require a verified list style mapping')
+            if text.strip() and 'drawing' not in kinds and b.get('source_locator', {}).get('body_child_index') is not None:
+                p_el = reader.body[b['source_locator']['body_child_index']]
+                pbdr = p_el.find(qn('w:pPr') + '/' + qn('w:pBdr'))
+                if pbdr is not None:
+                    left_bdr = pbdr.find(qn('w:left'))
+                    other_bdrs = [pbdr.find(qn('w:' + side)) for side in ('top', 'right', 'bottom')]
+                    if left_bdr is not None and left_bdr.get(qn('w:val')) not in (None, 'none', 'nil') and all(
+                        ob is None or ob.get(qn('w:val')) in (None, 'none', 'nil') for ob in other_bdrs
+                    ):
+                        chunks.append('\n'.join('> ' + ln if ln.strip() else '>' for ln in text.split('\n')) + '\n')
+                        continue
             # A literal number in a Normal paragraph is not native list evidence.
             # Escape its punctuation so the existing Markdown parser keeps the text.
             literal=re.sub(r'^([ \t]*\d+)([.)])(?=[ \t])',lambda m:m[1]+'\\'+m[2],text)

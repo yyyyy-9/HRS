@@ -204,7 +204,7 @@
     "inline_math_mode": {
       "default": "native",
       "native": "Editable OMML with explicit Cambria Math on inline math runs",
-      "text": "Times New Roman Word runs for ordinary symbols, units, delimiters and one level of scripts. Complex expressions stay as OMML.",
+      "text": "Times New Roman Word runs for complete recognized units and quantities with units. Variables, equations and other mathematical expressions stay as editable OMML.",
       "receipt": "WORD_INLINE_MATH_TEXT reports converted and retained inline occurrences",
       "cli": "to-docx --inline-math-mode native|text"
     },

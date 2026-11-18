@@ -61,6 +61,17 @@ class SourceSnapshot(TypedDict):
     file_sha256: NotRequired[str]
 
 
+class WordNotice(TypedDict):
+    code: str
+    source: Literal['word-import', 'word-export']
+    message: str
+    line: NotRequired[int | None]
+    block: NotRequired[str]
+    footnote: NotRequired[str | None]
+    query: NotRequired[str]
+    source_sha256: NotRequired[str]
+
+
 class DocumentResponse(TypedDict):
     ok: Literal[True]
     document_id: str
@@ -70,6 +81,7 @@ class DocumentResponse(TypedDict):
     render_options: NotRequired[dict[str, JsonValue]]
     project_path: NotRequired[str | None]
     block_timestamps: NotRequired[BlockTimestamps]
+    word_notices: NotRequired[list[WordNotice]]
 
 
 class DraftResponse(TypedDict):
@@ -125,7 +137,7 @@ class WorkspaceStatus(TypedDict):
     error: str | None
 
 
-WIRE_TYPES = (ApiSuccess, ApiError, BlockTimeRecord, BlockTimestamps, SaveResponse, SourceSnapshot, DocumentResponse, DraftResponse,
+WIRE_TYPES = (ApiSuccess, ApiError, BlockTimeRecord, BlockTimestamps, SaveResponse, SourceSnapshot, WordNotice, DocumentResponse, DraftResponse,
               ClipboardAsset, ObjectBundle, WordOutputOptions, WordBrowserModel, WorkspaceStatus)
 WIRE_ALIASES = {'ApiResponse': ApiResponse}
 

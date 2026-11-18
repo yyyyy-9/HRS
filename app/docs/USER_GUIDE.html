@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用手册 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="698046a4532d04a535cbb54404f805e09c6ba111c3ad5cae6e88887272d5eb78"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用手册 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="acfa3158a1d7f31ed74797284fbf5df24530c5d21b9790304e5110efd283de1e"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -768,8 +768,8 @@ li.hrs-task-item>p:first-child>input[type="checkbox"]:first-child{margin-left:-1
 <p>完整便携版已经包含基础 Word 组件，打开窗口即可使用，不需要三合一 Full、Node、Playwright 或第二个浏览器。它使用 HRS 自带 Python 和当前页面的既有解析／图形能力；模板编译仍由原 Bridge／WPS 核心执行。三合一 Full 内运行也会自动识别配套代码和已有依赖。“更换组件…”只用于重新指定同版组件或 Full，日常不必操作。</p>
 <p>独立 HRS 和 DocFlow 各自使用发行清单中配套的 Word 组件。程序核对页面模型摘要、协议与组件清单来确定兼容性。已冻结的任务继续使用原配套组合。</p>
 <p>已有项目图片可使用 <code>assets/a.png</code>、<code>./assets/a.png</code> 或 <code>assets/sub/a.png</code>。预览、检查、保存与HTML恢复遵守相同路径规则。正式保存时，独立一行的Markdown图片按原规则成为可编辑、可编号的图片对象；行内图片和HTML图片保留原展示方式。子目录中的图片不会被素材整理自动删除。路径含空格、中文或特殊编码等不在工程路径规则中的本地原图，仍通过“导入Markdown”按资源导入流程处理，原件保留。</p>
-<p><strong>行内公式</strong>默认导出为 Cambria Math 可编辑公式。需要在正文里直接改字时，在 Word 导出窗口选择“转为西文正文（Times New Roman）”。普通符号、单位、括号及一层上下标转成 Word 文字，数学粗体和斜体随之保留。分式、矩阵、嵌套上下标及特殊数学字母样式等继续输出为公式。完成窗口会显示实际转换和保留数量。独立公式依照母模板和公式编号选项输出。</p>
-<p><strong>公式支持按需配置。</strong> 两种行内模式都用 Pandoc 读取 TeX。在“公式支持（可选）”中选择已有 <code>pandoc.exe</code>，或将可选公式包解压到程序目录，形成 <code>word_formula/pandoc.exe</code>。已有 Full 时也可选择其中的 <code>environment/pandoc/pandoc.exe</code>。公式转换不了或未配置 Pandoc 时，Word 在原位置保留 TeX 文字，块公式的编号和引用仍可更新。</p>
+<p><strong>行内公式</strong>默认导出为 Cambria Math 可编辑公式。在 Word 导出窗口选择「单位和量值可用正文」时，单独的正体单位和带单位的量值可以按 Times New Roman 正文输出，例如 <code>$\mathrm{mm}$</code> 和 <code>$532\,\mathrm{nm}$</code>。变量、带下标的符号和整条等式（如 <code>$\lambda=532\,\mathrm{nm}$</code>）仍使用原生公式。完成窗口显示实际转换和保留数量。独立公式依照母模板和公式编号选项输出。</p>
+<p><strong>公式支持按需配置。</strong> 两种行内模式都用 Pandoc 读取 TeX。在“公式支持（可选）”中选择已有 <code>pandoc.exe</code>，或将可选公式包解压到程序目录，形成 <code>word_formula/pandoc.exe</code>。已有 Full 时也可选择其中的 <code>environment/pandoc/pandoc.exe</code>。公式转换失败或缺少 Pandoc 时，Word 在原位置保留 TeX，回执列出对应位置。块公式的编号和引用仍可更新。</p>
 <p>Word 支持行内 <code>&lt;br&gt;</code>、<code>&lt;sub&gt;</code>、<code>&lt;sup&gt;</code>、<code>&lt;u&gt;</code> 和简单强调标签，分别映射为原生换行或文字格式。暂时无法映射的 Markdown 或 HTML 保留字面原文。完成窗口可展开查看来源和原因，完整记录随 Word 保存于同名 <code>.hrs-bridge.json</code>。</p>
 <p>SVG 按完整工程路径取图并缩放完整画面。普通 Mermaid 围栏和有图题的流程图走同一导出入口。某张流程图无法渲染时，保留 Mermaid 原文及图题，已有编号和引用继续使用。失效的普通 <code>#object-…</code> 链接保留原文。工程对象的正式引用及资源完整性仍由文档检查核验。</p>
 <h2 id="section-9">导入 Word（beta）</h2>

@@ -58,7 +58,10 @@ def output_checks(ir,profile='engineering'):
             main_count+=1
             if main_count>1:add('MULTIPLE_H1','error','工程报告只能有一个主标题；请将本处改为正文章节标题')
         if previous and level>previous+1:add('HEADING_LEVEL_GAP','error','章节标题向下跳级；请补齐标题层级')
-        if level>1 and re.match(r'^\d+(?:\.\d+)*[.)、]?[ \t]+',heading.get('text','')):
+        clean_heading=heading.get('text','').strip()
+        if clean_heading.startswith('**') and clean_heading.endswith('**') and len(clean_heading)>4 and '**' not in clean_heading[2:-2]:
+            clean_heading=clean_heading[2:-2].strip()
+        if level>1 and re.match(r'^\d+(?:\.\d+)*[.)、]?[ \t]+',clean_heading):
             add('HEADING_SOURCE_PREFIX','warning','标题可能含手工章号；输出会自动编号，请核对后确认继续')
         previous=level
     # The actionable prefix notice must be visible before long core diagnostic lists.

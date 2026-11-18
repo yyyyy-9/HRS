@@ -36,7 +36,7 @@ from file_io import atomic_write, digest, write_json
 from asset_validation import (LIMIT_IMAGE, ALLOWED_IMAGE, ALLOWED_ASSET, normalize_svg,
     guard_svg, check_image, clean_asset_name)
 from asset_paths import normalize_asset, asset_file
-from word_export import WordExport
+from word_export import WordExport, acknowledge_word_notices, export_notices, read_notices_ack, remember_export_notices, saved_export_notices
 from word_import import WordImport
 
 HERE = Path(__file__).resolve().parent
@@ -944,6 +944,94 @@ class Handler(BaseHTTPRequestHandler):
             except OSError as error:
                 warnings.append('正文已保存，旧恢复草稿清理未完成：'+str(error))
         return warnings
+    def _read_word_notices(self, folder):
+        if folder is None:
+            return []
+        import_path = Path(folder) / 'word-import.json'
+        if not import_path.is_file() or is_link(import_path):
+            return []
+        try:
+            receipt = json.loads(import_path.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            return []
+        if not isinstance(receipt, dict):
+            return []
+        import_sha = receipt.get('markdown_sha256')
+        import_sha = import_sha if isinstance(import_sha, str) and len(import_sha) == 64 else None
+        ack = read_notices_ack(folder)
+        if (import_sha and ack.get('import_sha256') == import_sha) or (not import_sha and ack.get('import_acknowledged') is True):
+            return []
+        rec_path = Path(folder) / 'word-recognition.json'
+        review = []
+        if rec_path.is_file() and not is_link(rec_path):
+            try:
+                rec_data = json.loads(rec_path.read_text(encoding='utf-8'))
+                if isinstance(rec_data, dict) and isinstance(rec_data.get('review'), list):
+                    review = rec_data['review']
+            except (OSError, ValueError):
+                review = []
+        notices = []
+        seen = set()
+        def dest_label(item):
+            anchor = item.get('anchor') or item.get('doc_location')
+            parts = [item.get('target'), f'#{anchor}' if anchor else '']
+            return ' · '.join(p for p in parts if p)
+        for item in review:
+            if not isinstance(item, dict):
+                continue
+            codes = [c for c in (item.get('evidence') or []) if isinstance(c, str)]
+            code = codes[0] if codes else 'WORD_IMPORT_REVIEW'
+            block = str(item.get('block') or '')
+            for c in codes:
+                seen.add(f'{block}|{c}')
+            dest = dest_label(item)
+            text = str(item.get('text') or '').strip()
+            msg = f"{block or '导入'}：{text}"
+            if codes:
+                msg += f"（{'、'.join(codes)}）"
+            if dest:
+                msg += f" · 原目标：{dest}"
+            notices.append({
+                'code': code,
+                'block': block,
+                'message': msg,
+                'query': text[:80],
+                'source': 'word-import',
+                **({'source_sha256': import_sha} if import_sha else {}),
+            })
+        routine = {
+            'WORD_STRUCTURE_REVIEW_RETAINED',
+            'WORD_EDITOR_MARKER_IGNORED',
+            'WORD_TEMPLATE_FRONT_MATTER_SKIPPED',
+            'STATIC_CAPTION_NUMBER_NORMALIZED',
+            'WORD_EQUATION_NUMBER_NORMALIZED',
+            'WORD_INLINE_ROW_AS_GROUP',
+            'WORD_IMAGE_TABLE_AS_GROUP',
+            'WORD_IMAGE_TABLE_AS_FIGURE',
+            'EXPLICIT_WORD_GROUP_APPLIED',
+        }
+        for item in receipt.get('diagnostics') or []:
+            if not isinstance(item, dict):
+                continue
+            code = str(item.get('code') or '')
+            if not code or code in routine:
+                continue
+            block = str(item.get('block') or item.get('line') or '')
+            if f'{block}|{code}' in seen:
+                continue
+            dest = dest_label(item)
+            text = str(item.get('message') or item.get('text') or '').strip()
+            parts = [p for p in (block, code, text, f'原目标：{dest}' if dest else '') if p]
+            notices.append({
+                'code': code,
+                'block': block,
+                'line': item.get('line') if isinstance(item.get('line'), int) else None,
+                'message': ' · '.join(parts),
+                'query': str(item.get('text') or text)[:80],
+                'source': 'word-import',
+                **({'source_sha256': import_sha} if import_sha else {}),
+            })
+        return notices
     def do_GET(self):
         if not self._origin_ok():return self.fail('仅允许本机访问',403)
         p=unquote(urlsplit(self.path).path)
@@ -999,7 +1087,8 @@ class Handler(BaseHTTPRequestHandler):
                                   'project_path':str(folder) if folder else None,
                                   'markdown_file':str(file_path) if file_path else None,
                                   'external_project':doc_id in self.server.registry.mapping,
-                                  'report_workspace':report_workspace_info(folder,self.server.workspace)})
+                                  'report_workspace':report_workspace_info(folder,self.server.workspace),
+                                  'word_notices':self._read_word_notices(folder)+saved_export_notices(folder,digest(raw.removeprefix(b'\xef\xbb\xbf')))})
             if p in ('/api/download','/api/download-pdf','/api/print'):
                 doc_id=self._docid();folder=self.server.project_path(doc_id)
                 if folder is None:return self.fail('请先保存报告',409)
@@ -1130,6 +1219,16 @@ class Handler(BaseHTTPRequestHandler):
         if endpoint=='/api/word/open':
             exporter.open_result(req.get('result_token'),req.get('folder') is True)
             return self.resp({'ok':True})
+        if endpoint=='/api/word/ack-notices':
+            doc_id=self._docid(req)
+            if doc_id in self.server.markdown_files.mapping:
+                raise ValueError('直接编辑 Markdown 没有工程级 Word 告警记录')
+            with self.server.lock:
+                folder,raw,_,_=self._context(doc_id,self._template(req))
+                if folder is None:
+                    raise ValueError('请先保存工程后再标记 Word 告警状态')
+                acknowledge_word_notices(folder,current_sha256=digest(raw.removeprefix(b'\xef\xbb\xbf')))
+            return self.resp({'ok':True})
         with self.server.lock:
             folder,_,_,_=self._context(self._docid(req),self._template(req))
             key=str(folder) if folder is not None else 'new:'+self._draft_id(req)
@@ -1196,12 +1295,17 @@ class Handler(BaseHTTPRequestHandler):
                 target=output/(stem+'_'+datetime.now().strftime('%Y%m%d_%H%M%S')+'_'+uuid.uuid4().hex[:6]+'.docx')
                 working_copy=job['request']['markdown'].encode('utf8')!=(folder/'report.md').read_bytes()
             receipt=exporter.convert(job,target,req.get('model'))
-            preference_warning=None
+            source_sha256=job['freeze']['markdown_sha256']
+            notices=export_notices(receipt.get('diagnostics'),source_sha256)
+            warnings=[]
+            try:remember_export_notices(folder,source_sha256,notices)
+            except OSError:warnings.append('本次告警由 Word 同名来源映射保留，工程内的告警记录未能更新')
             try:exporter.remember(key,job['template'],job['request'].get('word_options'))
-            except OSError:preference_warning='Word 已生成，但本次模板偏好未能保存'
+            except OSError:warnings.append('本次模板偏好未能保存')
             return self.resp({'ok':True,'path':str(target),'filename':target.name,'bytes':target.stat().st_size,
-                              'result_token':exporter.result(target),'markdown_sha256':job['freeze']['markdown_sha256'],
-                              'working_copy':working_copy,'preference_warning':preference_warning,'receipt':receipt})
+                              'result_token':exporter.result(target),'markdown_sha256':source_sha256,
+                              'working_copy':working_copy,'preference_warning':'Word 已生成 · '+'；'.join(warnings) if warnings else None,
+                              'word_notices':notices,'receipt':receipt})
         finally:
             if job is not None:job['temporary'].cleanup()
             exporter.running.release()

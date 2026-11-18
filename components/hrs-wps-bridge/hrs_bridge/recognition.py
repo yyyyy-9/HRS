@@ -40,7 +40,12 @@ def analyze(reader, decisions=None):
             r.update(role='document_title',level=None,status='auto_rule');continue
         outline=b.get('outline_level_raw')
         if outline is not None and 0<=outline<=5:
-            if r.get('status')!='review' or outline==5:r.update(role='heading',level=outline+1,status='auto_rule')
+            prose_or_list_conflict=any(
+                flag in r.get('evidence',())
+                for flag in ('effective_outline_conflicts_with_prose','automatic_list_conflicts_with_outline_or_heading_parent')
+            )
+            if r.get('status')!='review' or outline==5 or (reader.editable and not prose_or_list_conflict):
+                r.update(role='heading',level=outline+1,status='auto_rule')
             continue
     # WPS owns picture-table classification, adjacent caption evidence and
     # same-row grouping. This layer only adapts its confirmed result to HRS.
@@ -75,7 +80,7 @@ def analyze(reader, decisions=None):
         numbers=prefix['numbers'];peer=None
         for j in range(i-1,-1,-1):
             prev=top[j];pr=rows[prev['block_id']];pn=manual_prefix(prev.get('plain_text',''))
-            if pr['role']=='heading' and pr.get('status')!='review' and pn and pn['numbers']==numbers[:-1]+[numbers[-1]-1]:
+            if pr['role']=='heading' and pr.get('status')!='review' and pn and pn['form']==prefix['form'] and pn['numbers']==numbers[:-1]+[numbers[-1]-1]:
                 peer=(j,pr);break
         if peer is None:continue
         between=top[peer[0]+1:i]
@@ -84,6 +89,37 @@ def analyze(reader, decisions=None):
         if not content:continue
         r.update(role='heading',level=peer[1]['level'],status='auto_rule',title=prefix['content'])
         r['evidence'].append('next_numbered_peer_after_section_content')
+    from .docx_import import display_equation
+    lead_in_re = re.compile(r'(?:为|如下|满足|可得|得|有|取|令|定义|写成|表示为|写为|定义为|记为|形式为|关系为|表达式为|算子|方程|条件)\s*[:：]?\s*$')
+    task_fallback_re = re.compile(r'^\s*[-*+]\s*\[[ xX]\]\s+\S')
+    for i, b in enumerate(top):
+        ident = b['block_id']
+        r = rows[ident]
+        if ident in overrides or ident in consumed or b['kind'] != 'paragraph' or r.get('status') != 'review':
+            continue
+        text = b.get('plain_text', '').strip()
+        evidence = r.get('evidence') or []
+        if (
+            evidence == ['ambiguous_numeric_text']
+            and b.get('style', {}).get('kind') != 'heading'
+            and not b.get('bold')
+            and not b.get('numbering', {}).get('num_id')
+            and len(text) > 50
+            and '。' in text[:-1]
+            and text.endswith('。')
+        ):
+            r.update(role='body', level=None, status='auto_rule')
+            r['evidence'].append('multi_sentence_numeric_lead_prose')
+            continue
+        if 'short_standalone_text_without_sufficient_heading_evidence' not in evidence:
+            continue
+        if task_fallback_re.match(text):
+            r.update(role='body', level=None, status='auto_rule')
+            r['evidence'].append('task_list_fallback_prose')
+            continue
+        if i + 1 < len(top) and display_equation(reader, top[i + 1]) is not None and lead_in_re.search(text):
+            r.update(role='body', level=None, status='auto_rule')
+            r['evidence'].append('equation_lead_in_prose')
     # Unresolved candidates are explicitly retained in the receipt. Their text
     # remains present; it is never treated as a confirmed structural decision.
     review=[{'block':b['block_id'],'text':b.get('plain_text',''),'role':rows[b['block_id']]['role'],

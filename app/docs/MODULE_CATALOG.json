@@ -1,6 +1,6 @@
 {
   "catalog_format": "hrs-module-catalog-v1",
-  "app_baseline": "2.7.0 R1",
+  "app_baseline": "2.7.0 R5",
   "scope": "source tree only; no external report files are opened",
   "caveat": "This is an interface index, not a Python import dependency graph or a DOCX compiler.",
   "items": [
@@ -99,8 +99,8 @@
       "output": "typed fields; compatible extra fields preserved",
       "side_effects": "no persistence",
       "word_pipeline_role": "not-semantic",
-      "bytes": 5352,
-      "sha256": "a78be5136e1fde4659b0d525538bc6e1831ba4389b227dc6ad385f2accdfa920",
+      "bytes": 5688,
+      "sha256": "8ac90dc8dfd7cd33effc37a934eeee35666591d3b6948a83914f193ecd650a84",
       "review_flags": []
     },
     {
@@ -310,8 +310,8 @@
       "output": "complete text preflight receipt",
       "side_effects": "read-only",
       "word_pipeline_role": "entry-check",
-      "bytes": 1425,
-      "sha256": "d089d2b592cf016f1121c7d9cebf30fc9d1a2e67f1e95cae28c1b10b0aa2fb3b",
+      "bytes": 5288,
+      "sha256": "6161260d59753fb4dc5d3d75af310776f6e8633da4e6d35f281cfc4ebed17879",
       "review_flags": []
     },
     {
@@ -778,8 +778,8 @@
       "output": "profile, options and shared output diagnostics",
       "side_effects": "read-only",
       "word_pipeline_role": "primary",
-      "bytes": 3508,
-      "sha256": "be9868599e35c7811b9ccfd391d5318d3dc70bc4013b9d4b47cd23aa2ddbfdca",
+      "bytes": 3743,
+      "sha256": "e1a3517b5d736c3c108a9c42d9a2449a8c22e82eabc25bf17e637e9588170ba3",
       "review_flags": []
     },
     {
@@ -797,8 +797,8 @@
       "output": "UTF-8 JSON receipt and new HTML/project",
       "side_effects": "temporary local service/browser; writes explicit new output only",
       "word_pipeline_role": "primary",
-      "bytes": 16590,
-      "sha256": "e7105254361c2194ae668dc66e6541a27187278ce3ba031fe9043829d2345177",
+      "bytes": 17372,
+      "sha256": "074b1ca00305b051537f1073f6828734e3945196407264aee3f5e82f1c445320",
       "review_flags": []
     },
     {
@@ -1000,8 +1000,8 @@
       "output": "JSON API / binary resources",
       "side_effects": "reads/writes projects and drafts",
       "word_pipeline_role": "do-not-import",
-      "bytes": 120613,
-      "sha256": "d8d5177386ef4bdcc94192403bc2a0bf74072f6c3df0ae73f09cefd12af5cf41",
+      "bytes": 125749,
+      "sha256": "773fc5d6a035a470a0ca77c1ea5fabc2a5c2184fdb1b9207ddd0fd9a612c7dbb",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -1038,8 +1038,8 @@
       "output": "DOCX and existing Bridge provenance",
       "side_effects": "explicit output and local preference writes",
       "word_pipeline_role": "delegates",
-      "bytes": 20378,
-      "sha256": "f2abf9e6e7c1ce033f76661bf059f408e0b0c20a62f51e8d323c682cfc5a2de2",
+      "bytes": 25163,
+      "sha256": "929b20a7f8250da1badb0e51d0822db7e401898794ac0516399fb7267beb5efa",
       "review_flags": []
     },
     {
@@ -1054,8 +1054,8 @@
       "output": "Word export UI requests",
       "side_effects": "explicit user actions only",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 13491,
-      "sha256": "edbc5f60d9c42ee8db7d68d2c24fcd2b1f7b8d3958cfb82acab7efd3be789baf",
+      "bytes": 13669,
+      "sha256": "ee8e9442e4df0bde978da20e52acbbf9a39bd13467f42790fbebd67ed55d1995",
       "review_flags": []
     },
     {
@@ -1285,8 +1285,8 @@
       "output": "visual preview and UI events",
       "side_effects": "modifies editor state via explicit action",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 273716,
-      "sha256": "fafb87bd2217700b0ce2bbe88183a3c94b7d2ee67e176019e9fa936ee772d35b",
+      "bytes": 286381,
+      "sha256": "436e8531e053efcebe087118a948375ea3f53304e3a01f4344e4f93b10f662f2",
       "review_flags": [
         "large-monolithic-module"
       ]
@@ -1454,8 +1454,8 @@
       "output": "editable logical grid or canonical GFM text",
       "side_effects": "read-only helper and shared lexer registration; caller handles user confirmation",
       "word_pipeline_role": "primary",
-      "bytes": 9028,
-      "sha256": "63ee6a7b8c7810e97c31a88853791c3cbde714c1f621ec6596d75c46ec986c01",
+      "bytes": 9050,
+      "sha256": "41f648d832ff271a73414a2f517f73ec6e39f1c34c3f043a57a6a11efadf119c",
       "review_flags": []
     },
     {
@@ -1489,8 +1489,8 @@
       "output": "updated table model",
       "side_effects": "temporary UI state",
       "word_pipeline_role": "never-source-of-truth",
-      "bytes": 17051,
-      "sha256": "db08758da8fb861753b45874233840bcabe08be255510a8e0d0c70f34b286bf9",
+      "bytes": 17210,
+      "sha256": "a7d4758fdd19998e6f1c2cc9f1bd83aac19b2c031a6f22dc1e5d3832feca80ad",
       "review_flags": []
     },
     {
@@ -1813,8 +1813,8 @@
       "output": "CSS layout",
       "side_effects": "CSS only",
       "word_pipeline_role": "not-semantic",
-      "bytes": 67898,
-      "sha256": "6182b4bcec9c5c2df8705539d6c5a2b55b8dcefdb72152c0e26e3508d8533d3a",
+      "bytes": 68163,
+      "sha256": "5be9aa90d6cee6cf7f12dedc6cbbdcef8054764c98005a004e2113e430f5eadd",
       "review_flags": []
     },
     {
@@ -1831,7 +1831,7 @@
       "side_effects": "read-only",
       "word_pipeline_role": "primary",
       "bytes": 5664,
-      "sha256": "d7aa873913ae2bca9b4461e20ad4d9fc6a9fec2f4a9e73bed2864cf51f1166f1",
+      "sha256": "1739530e380426bd9eac7bf1e1df71b539306a570d0da0ad533b79cf2840031f",
       "review_flags": []
     },
     {

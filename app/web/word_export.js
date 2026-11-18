@@ -5,7 +5,7 @@
 const headers={'X-HRS-Project-Action':'user-action'};
 const element=(tag,text,cls)=>{const e=document.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};
 function badge(){return element('span','beta','beta-badge');}
-async function open({api,modal,toast,getRequest,validate=async()=>{}}){
+async function open({api,modal,toast,getRequest,validate=async()=>{},onExportNotices=null}){
  document.querySelector('#menu-export').open=false;
  const context=getRequest();
  let options;
@@ -60,11 +60,11 @@ async function open({api,modal,toast,getRequest,validate=async()=>{}}){
    form.append(element('p','默认清除正文的额外加粗、斜体；标题和题注继续使用母模板，公式中的数学粗体／斜体保留。摘要只加粗“摘要：”。','modal-help'));
    const inlineLabel=element('label','行内公式');inlineLabel.htmlFor='word-inline-math-mode';form.append(inlineLabel);
    inlineMath=element('select');inlineMath.id='word-inline-math-mode';inlineMath.className='table-caption-input';
-   for(const [value,text] of [['native','可编辑公式（Cambria Math）'],['text','转为西文正文（Times New Roman）']]){
+   for(const [value,text] of [['native','全部使用可编辑公式（Cambria Math）'],['text','单位和量值可用正文（Times New Roman）']]){
     const option=element('option',text);option.value=value;inlineMath.append(option);
    }
    inlineMath.value=options.word_options?.inline_math_mode==='text'?'text':'native';form.append(inlineMath);
-   form.append(element('p','文字模式保留普通符号、单位和上下标。可转换的复杂行内式及独立公式保留原生格式。','modal-help'));
+   form.append(element('p','变量、等式及其他数学表达式使用可编辑公式。单位和带单位的量值可单独按正文输出。','modal-help'));
    const nameLabel=element('label','文件名（自动附加时间，不覆盖已有文件）');nameLabel.htmlFor='word-filename';form.append(nameLabel);
    filename=element('input');filename.id='word-filename';filename.className='table-caption-input';filename.maxLength=60;filename.value='报告_Word';form.append(filename);
    form.append(element('p','输出到：'+(options.output_directory||'当前工程 output/'),'word-export-path'));
@@ -113,25 +113,25 @@ async function open({api,modal,toast,getRequest,validate=async()=>{}}){
   }});
  document.querySelector('#modal-title').classList.remove('feature-label');
  if(!result)return;
-  toast(result.preference_warning||'Word 已生成：'+result.filename,{label:'打开所在文件夹',run:()=>post('open',{result_token:result.result_token,folder:true})});
+ const fallbacks=result.word_notices||[];
+ const exportNotices=[...fallbacks];
+ if(result.preference_warning)exportNotices.push({code:'WORD_PREFERENCE_WARNING',line:1,message:result.preference_warning,source:'word-export'});
+ const mathSummary=result.receipt?.diagnostics?.find(item=>item.code==='WORD_INLINE_MATH_TEXT');
+ const toastMessage=result.preference_warning||('Word 已生成：'+result.filename+(mathSummary?.converted>0?' · '+mathSummary.message:''));
+ const toastAction={label:'打开所在文件夹',run:()=>post('open',{result_token:result.result_token,folder:true})};
+ toast(toastMessage,toastAction);
  await modal({title:'Word 已生成',kicker:'导出 · 工程报告',note:'目录是 Word 原生域；打开后可在 WPS／Word 中更新目录。',okText:'完成',cancelText:'关闭',
   body:outer=>{
    document.querySelector('#modal-title').classList.add('feature-label');document.querySelector('#modal-title').append(badge());
    outer.append(element('p',result.path,'word-export-path'));
    outer.append(element('p',result.working_copy?'已导出当前工作快照，工程 report.md 保持不变。':'已导出当前文稿，工程源文件保持不变。','modal-help'));
    if(result.preference_warning)outer.append(element('p',result.preference_warning,'modal-help'));
-   const mathSummary=result.receipt?.diagnostics?.find(item=>item.code==='WORD_INLINE_MATH_TEXT');
    if(mathSummary)outer.append(element('p',mathSummary.message,'modal-help'));
-   const fallbacks=(result.receipt?.diagnostics||[]).filter(item=>item.code==='WORD_TEXT_FALLBACK');
    if(fallbacks.length){
     const details=element('details',null,'word-export-formula');
     details.append(element('summary',`有 ${fallbacks.length} 处按原文文字保留`));
     const list=element('ul',null,'modal-help');
-    for(const item of fallbacks.slice(0,20)){
-     const location=item.footnote?`脚注 [^${item.footnote}]`:item.line?
-      `第 ${item.line}${item.end_line>item.line?'–'+item.end_line:''} 行`:'文稿';
-     list.append(element('li',`${location} · ${item.message}${item.detail?' '+item.detail:''} ${item.excerpt}`));
-    }
+    for(const item of fallbacks.slice(0,20))list.append(element('li',item.message));
     details.append(list);
     if(fallbacks.length>20)details.append(element('p','完整位置记录随 Word 保存于同名 .hrs-bridge.json。','modal-help'));
     outer.append(details);
@@ -143,6 +143,8 @@ async function open({api,modal,toast,getRequest,validate=async()=>{}}){
    outer.append(row);
   },onOk:()=>true});
  document.querySelector('#modal-title').classList.remove('feature-label');
+ if(mathSummary?.converted>0)toast(toastMessage,toastAction);
+ if(typeof onExportNotices==='function')onExportNotices(exportNotices);
 }
 root.ReportWordExport={open,badge};
 })(window);

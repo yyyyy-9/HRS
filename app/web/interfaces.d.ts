@@ -51,6 +51,17 @@ interface HrsSourceSnapshot {
   file_sha256?: string;
 }
 
+interface HrsWordNotice {
+  code: string;
+  source: "word-import" | "word-export";
+  message: string;
+  line?: number | null;
+  block?: string;
+  footnote?: string | null;
+  query?: string;
+  source_sha256?: string;
+}
+
 interface HrsDocumentResponse {
   ok: true;
   document_id: string;
@@ -60,6 +71,7 @@ interface HrsDocumentResponse {
   render_options?: Record<string, string | number | number | boolean | null | Array<string | number | number | boolean | null | Array<HrsJsonValue> | Record<string, HrsJsonValue>> | Record<string, string | number | number | boolean | null | Array<HrsJsonValue> | Record<string, HrsJsonValue>>>;
   project_path?: string | null;
   block_timestamps?: HrsBlockTimestamps;
+  word_notices?: Array<HrsWordNotice>;
 }
 
 interface HrsDraftResponse {

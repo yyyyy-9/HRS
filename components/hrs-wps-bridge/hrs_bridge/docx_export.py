@@ -7,6 +7,7 @@ from itertools import chain, takewhile
 import html
 import json
 from pathlib import Path
+import re
 import tempfile
 from typing import NamedTuple
 
@@ -19,7 +20,7 @@ from lxml import etree as E
 from PIL import Image
 
 from .browser import call
-from .math_adapter import INLINE_TEXT_FONT, MathAdapter, inline_math_text
+from .math_adapter import INLINE_TEXT_FONT, MathAdapter, inline_unit_text
 from .ooxml import N, W, element, zero_indent, field, native_hasher, provenance_path, drawing_extents, number_name
 from .runtime import BridgeError, new_path, sha, source_contract_valid
 
@@ -127,6 +128,9 @@ class Writer:
         self.section_end = self.body[-1]
         self.front_xml = [E.tostring(node) for node in self.body[:-1]]
         self.heading_counts = [0] * 6
+        self.source_heading_counts = [None] * 6
+        self.accept_numbered_headings = bool(accept_numbered_headings)
+        self.code_char_style = None
         self.math = {}
         self.inline_math_counts = {'converted': 0, 'retained': 0}
         self.note_part = None
@@ -175,7 +179,10 @@ class Writer:
             texts = list(self.texts(b))
             if b['type'] == 'heading':
                 style = self.heading_style(b)
-                text = b['text'] if style == 'Title' else self.heading_text(b, int(style.split()[-1]))
+                raw_title = b['text'].strip()
+                if raw_title.startswith('**') and raw_title.endswith('**') and len(raw_title) > 4 and '**' not in raw_title[2:-2]:
+                    raw_title = raw_title[2:-2].strip()
+                text = raw_title if style == 'Title' else self.heading_text(b, int(style.split()[-1]), raw_title)
                 self.heading_output[index] = (style, text)
                 texts.append(text)
             for text in texts:
@@ -382,7 +389,9 @@ class Writer:
                     cursor = ref.end()
                 write(text[cursor:])
             elif kind == 'codespan':
-                self.run(p, t['text'], **formatting)
+                run = self.run(p, t['text'], **formatting)
+                if run is not None:
+                    run._r.get_or_add_rPr().insert(0, element('w:rStyle', val=self.inline_code_style().style_id))
             elif kind == 'hrsMath':
                 self.write_math(p, t['tex'], t['raw'], source_offset=t.get('source_offset'), **formatting)
             elif kind == 'hrsFootnoteRef':
@@ -426,14 +435,12 @@ class Writer:
             self.write_fallback(p, raw, reason=reason, source_offset=source_offset, formula=True, **formatting)
             return
         if not display and self.options['inline_math_mode'] == 'text':
-            pieces = inline_math_text(result.node)
+            pieces = inline_unit_text(result.node, tex)
             if pieces is not None:
                 for piece in pieces:
                     run = p.add_run(piece.text)
                     run.font.name = INLINE_TEXT_FONT
-                    style = {**formatting, 'bold': piece.bold or formatting.get('bold', False),
-                             'italic': piece.italic or formatting.get('italic', False), 'script': piece.script}
-                    self.format_run(run, **style)
+                    self.format_run(run, **formatting, script=piece.script)
                 self.inline_math_counts['converted'] += 1
                 return
             self.inline_math_counts['retained'] += 1
@@ -580,6 +587,20 @@ class Writer:
         elif script == 'superscript':
             run.font.superscript = True
 
+    def inline_code_style(self):
+        if self.code_char_style is None:
+            from docx.enum.style import WD_STYLE_TYPE
+            name = 'HRS Code Char'
+            if name in self.doc.styles:
+                style = self.doc.styles[name]
+            else:
+                style = self.doc.styles.add_style(name, WD_STYLE_TYPE.CHARACTER)
+                style.font.name = 'Consolas'
+                rpr = style.element.get_or_add_rPr()
+                rpr.append(element('w:rFonts', ascii='Consolas', hAnsi='Consolas', cs='Consolas'))
+            self.code_char_style = style
+        return self.code_char_style
+
     @staticmethod
     def run(p, text, *, pre_wrap=False, **formatting):
         if text:
@@ -589,6 +610,8 @@ class Writer:
             text=html.unescape(text)
             run = p.add_run(text.replace('\r\n','\n').replace('\r','\n') if pre_wrap else text.replace('\r\n',' ').replace('\n',' '))
             Writer.format_run(run, **formatting)
+            return run
+        return None
 
     def rich(self, p, text, pre_wrap=False):
         self.inline(p, self.model['inline'][self.inline_index[text]], pre_wrap=pre_wrap)
@@ -604,6 +627,15 @@ class Writer:
                     from docx.enum.text import WD_ALIGN_PARAGRAPH
                     p.alignment=WD_ALIGN_PARAGRAPH.LEFT
                     zero_indent(p._p)
+                    qpr = p._p.get_or_add_pPr()
+                    qbdr = qpr.find(qn('w:pBdr'))
+                    if qbdr is None:
+                        qbdr = element('w:pBdr')
+                        qpr.append(qbdr)
+                    qbdr.append(element('w:left', val='single', sz=12, space=8, color='94A3B8'))
+                    qind = qpr.find(qn('w:ind'))
+                    if qind is not None:
+                        qind.set(qn('w:left'), '360')
                 self.inline(p, token.get('tokens', [{'type': 'text', 'text': token.get('text', '')}]),pre_wrap=quote_lines)
             elif kind == 'blockquote':
                 self.markdown(token['tokens'], level,quote_lines=True)
@@ -640,7 +672,23 @@ class Writer:
                 num = self.list_numbering(token.get('ordered', False), token.get('start') or 1, list_style)
                 for item in token['items']:
                     if item.get('task'):
-                        self.write_fallback(self.paragraph(), item.get('raw'))
+                        children = item.get('tokens') or []
+                        if not any(c.get('type') == 'list' for c in children):
+                            self.write_fallback(self.paragraph(), item.get('raw'))
+                            continue
+                        task_mark = '- [x] ' if item.get('checked') else '- [ ] '
+                        wrote_head = False
+                        for child in children:
+                            if child['type'] == 'space':
+                                continue
+                            if child['type'] == 'list':
+                                self.markdown([child], level + 1)
+                            else:
+                                head_raw = (task_mark if not wrote_head else '') + (child.get('raw') or child.get('text') or '')
+                                wrote_head = True
+                                self.write_fallback(self.paragraph(), head_raw)
+                        if not wrote_head:
+                            self.write_fallback(self.paragraph(), item.get('raw'))
                         continue
                     for child in item['tokens']:
                         if child['type'] == 'space': continue
@@ -783,21 +831,98 @@ class Writer:
             parts.append((style,text));cursor=hi
         markdown(raw[cursor:]);return parts
 
-    def heading_text(self, block, level):
+    def _next_peer_heading_numbers(self, start_index, level):
+        for item in self.ir['blocks'][start_index + 1:]:
+            if item.get('type') != 'heading':
+                continue
+            style = self.heading_style(item)
+            if style == 'Title':
+                continue
+            item_level = int(style.split()[-1])
+            if item_level < level:
+                return None
+            if item_level == level:
+                raw = item.get('text', '').strip()
+                if raw.startswith('**') and raw.endswith('**') and len(raw) > 4 and '**' not in raw[2:-2]:
+                    raw = raw[2:-2].strip()
+                parsed, _ = self._heading_prefix(raw)
+                return parsed['numbers'] if parsed else None
+        return None
+
+    @staticmethod
+    def _heading_prefix(text):
+        from .math_adapter import COMPOUND_TEXT_UNITS, QUANTITY_PREFIX, TEXT_UNITS, UNIT_ATOM
         from wps_pipeline.numbered_candidates import numeric_expression,manual_prefix
+
+        def is_leading_quantity(raw):
+            literal = raw.lstrip()
+            quantity = QUANTITY_PREFIX.match(literal)
+            if not quantity or quantity[0].rstrip().endswith('.'):
+                return False
+            rest = literal[quantity.end():]
+            for cu in COMPOUND_TEXT_UNITS:
+                if rest.startswith(cu) and (len(rest) == len(cu) or not rest[len(cu)].isalpha()):
+                    return True
+            unit = UNIT_ATOM.match(literal, quantity.end())
+            return bool(unit and unit[1] in TEXT_UNITS)
+
+        parsed = manual_prefix(text)
+        expression = numeric_expression(text)
+        if parsed is None:
+            # Handle multi-level chapter paths or delimited numbers followed by
+            # a numeric title (e.g. "1.7 0 级与低阶", "8.5 60 mm 光束").
+            m = re.match(r'^\s*(\d+(?:\.\d+)+[.)、]?|\d+[.)、])[ \t]+(?=\d)', text)
+            if m and not is_leading_quantity(text):
+                nums = [int(x) for x in re.findall(r'\d+', m.group(1))]
+                if 1 <= len(nums) <= 6:
+                    form = 'decimal_path' if '.' in m.group(1) else 'integer_delimited:' + m.group(1)[-1]
+                    return {'numbers': nums, 'prefix': text[:m.end()], 'form': form}, 'ambiguous_numeric_text'
+        if expression is None:
+            return parsed, expression
+        if parsed:
+            if is_leading_quantity(text):
+                return None, 'numeric_quantity'
+            form = parsed['form']
+            if form.startswith('integer_delimited:') or (form == 'decimal_path' and parsed['prefix'][-1].isspace()):
+                return parsed, 'ambiguous_numeric_text'
+        return None, expression
+
+    def heading_text(self, block, level, clean_text=None):
         self.heading_counts[level - 1] += 1
         self.heading_counts[level:] = [0] * (6 - level)
-        text = block['text']
-        # Compare only an exact expected output label plus a literal space.
-        # Reuse the WPS quantity/ambiguity guard; never infer engineering text.
+        self.source_heading_counts[level:] = [None] * (6 - level)
+        text = clean_text if clean_text is not None else block['text']
+        if text.startswith('**') and text.endswith('**') and len(text) > 4 and '**' not in text[2:-2]:
+            text = text[2:-2].strip()
         prefix = '.'.join(map(str, self.heading_counts[:level])) + ' '
-        parsed=manual_prefix(text)
-        if parsed and parsed['numbers']==self.heading_counts[:level]:prefix=parsed['prefix']
-        if all(self.heading_counts[:level]) and text.startswith(prefix):
-            if numeric_expression(text) is None:
+        parsed, expression = self._heading_prefix(text)
+        matched = False
+        series_proven = False
+        if parsed and len(parsed['numbers']) == level:
+            nums = parsed['numbers']
+            if nums == self.heading_counts[:level]:
+                prefix = parsed['prefix']
+                matched = True
+            prev = self.source_heading_counts[level - 1]
+            if level == 1:
+                if (prev is None and nums[0] in (0, 1)) or (prev is not None and nums[0] == prev + 1):
+                    prefix = parsed['prefix']
+                    matched = True
+                    series_proven = prev is not None or self._next_peer_heading_numbers(block.get('index', 0), 1) == [nums[0] + 1]
+            else:
+                parent = self.source_heading_counts[:level - 1]
+                if all(v is not None for v in parent) and nums[:-1] == parent and ((prev is None and nums[-1] in (0, 1)) or (prev is not None and nums[-1] == prev + 1)):
+                    prefix = parsed['prefix']
+                    matched = True
+                    series_proven = True
+        if all(self.heading_counts[:level]) and (matched or text.startswith(prefix)):
+            if expression is None or (expression == 'ambiguous_numeric_text' and series_proven and self.accept_numbered_headings):
+                if matched:
+                    self.source_heading_counts[level - 1] = parsed['numbers'][-1]
                 self.diagnostic('HEADING_LITERAL_PREFIX_TO_NATIVE', block,
                                 'Exact chapter prefix moved to native Word outline numbering; source is retained.')
                 return text[len(prefix):]
+        if expression is not None:
             self.diagnostic('HEADING_NUMERIC_TEXT_RETAINED', block,
                             'Numeric or ambiguous title text is retained; no chapter prefix deletion was inferred.')
         return text
@@ -912,7 +1037,21 @@ class Writer:
         if widths:
             for col, width in zip(table._tbl.tblGrid, widths): col.set(qn('w:w'), str(round(float(width)*100)))
         plain = E.fromstring(E.tostring(table._tbl))
+        non_math_runs = plain.xpath('.//w:r[not(ancestor::m:oMath)]', namespaces=N)
+        saved_run_props = [
+            [deepcopy(c) for c in (r.find(qn('w:rPr')) if r.find(qn('w:rPr')) is not None else ()) if E.QName(c).localname in ('rStyle', 'rFonts')]
+            for r in non_math_runs
+        ]
         style_table(plain, self.styles, self.width)
+        for r, extras in zip(plain.xpath('.//w:r[not(ancestor::m:oMath)]', namespaces=N), saved_run_props):
+            if not extras:
+                continue
+            rp = r.find(qn('w:rPr'))
+            if rp is None:
+                rp = E.Element(qn('w:rPr'))
+                r.insert(0, rp)
+            for c in reversed(extras):
+                rp.insert(0, c)
         formatted = parse_xml(E.tostring(plain))
         table._tbl.getparent().replace(table._tbl, formatted)
         for p in formatted.xpath('.//w:p'): zero_indent(p)
@@ -1130,7 +1269,7 @@ class Writer:
             converted = self.inline_math_counts['converted']
             retained = self.inline_math_counts['retained']
             self.diagnostics.append({'code':'WORD_INLINE_MATH_TEXT', **self.inline_math_counts,
-                'message':f'行内公式已转为 Times New Roman 正文 {converted} 处，保留原生公式 {retained} 处。'})
+                'message':f'行内单位或量值按正文输出 {converted} 处，保留原生公式 {retained} 处。'})
         return {'ok':True, 'output':str(output), 'sha256':sha(output.read_bytes()), 'source_sha256':self.source_sha256,
                 'template':self.template_info, 'object_styles':[self.styles[n] for n in ('图形段','图题','表题','表内正文','公式')],
                 'diagnostics':self.diagnostics, 'blocks':len(metadata_blocks),'word_output_options':self.options}

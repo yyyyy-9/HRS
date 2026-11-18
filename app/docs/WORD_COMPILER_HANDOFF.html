@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Word 数据交接 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="50f40213b20e5086b06cdabfebe92f35cad7a6bf3f2aacde1473fa9aae8ae854"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Word 数据交接 · HTML Report Studio</title><meta name="hrs-markdown-sha256" content="59359931fef28a03ae75895750ca32be07086119232da7afc67d2d9efbc70206"><style>/* 主题：原版蓝（blue）——只覆盖颜色 token，由 theme.css 派生 */
 /* HRS 单一颜色定义 v1（试行）
  * 所有组件只引用 var(--hrs-*)，不再写死色值。
  * 主题切换 = 覆盖本文件的变量。 */
@@ -791,7 +791,7 @@ python tools/audit_modules.py --check
 <p>已实现范围见<a href="CURRENT_STATUS.html">当前状态</a>，未来方向见<a href="LONG_TERM_ROADMAP.html">长期路线</a>，版本变化见<a href="CHANGELOG_READABLE.html">更新记录</a>。</p>
 <h2 id="section-16">Word 输出配置</h2>
 <p><code>prepare</code>／<code>convert</code> 的 <code>options</code> 包含 <code>notes_mode</code>（<code>footnotes</code>／<code>references</code>）、<code>preserve_emphasis</code>（布尔值）和 <code>inline_math_mode</code>（<code>native</code>／<code>text</code>），进入页面模型请求摘要及来源映射。HRS 界面默认清除额外正文强调。原 CLI 默认保留，可显式用 <code>--strip-body-emphasis</code> 清除。</p>
-<p>行内公式默认 <code>native</code>，导出的 OMML 字符明确指定 Cambria Math。<code>to-docx --inline-math-mode text</code> 与页面文字选项使用同一转换，从已解析的 OMML 输出 Times New Roman 普通文字。普通符号、单位、单组括号和一层上下标可转换，复杂结构保持原生。<code>WORD_INLINE_MATH_TEXT</code> 回执报告 <code>converted</code>、<code>retained</code>。独立公式由原公式样式及编号规则处理。新来源映射以 <code>native_text_scripts</code> 声明普通文字上下标参与内容指纹，旧映射缺省使用旧规则。</p>
+<p>行内公式默认 <code>native</code>，导出的 OMML 字符明确指定 Cambria Math。<code>to-docx --inline-math-mode text</code> 与页面的「单位和量值可用正文」走同一入口。有明确单位写法的完整行内片段可以输出 Times New Roman 正文，包括正体单位、带单位的量值和可表达的单位幂次。变量、关系式与其他数学结构使用原生 OMML。<code>WORD_INLINE_MATH_TEXT</code> 回执报告 <code>converted</code>、<code>retained</code>。转换失败的公式沿 <code>WORD_TEXT_FALLBACK</code> 保留原始 TeX 及位置。独立公式由原公式样式及编号规则处理。来源映射以 <code>native_text_scripts</code> 声明普通文字上下标参与内容指纹，旧映射缺省使用旧规则。</p>
 <p>文字保留以 <code>WORD_TEXT_FALLBACK</code> 回执记录 <code>reason</code>、<code>kind</code>、<code>excerpt</code> 及来源位置。位置为 <code>line</code>、可选 <code>end_line</code>，或 <code>footnote</code>。可选 <code>detail</code> 说明图形失败或缺少内层脚注定义的原因。相同记录进入同名来源映射的 <code>output_fallbacks</code>。编号对象仍生成对应 SEQ 和书签，引用沿用原生域。工程结构、资源、快照和输出文件由现有检查核验。</p>
 <p>文末参考文献是派生输出区域，具备独立书签和内容指纹。内容一致时可精确回编，修改、丢失或额外内容会阻止旧源覆盖。标题沿用章节样式，设置 <code>outlineLvl=0</code>、<code>numId=0</code>，参与原目录而不占章号。引用与条目使用独立的 SEQ／REF。</p>
 <h2 id="section-17">桌面宿主边界</h2>

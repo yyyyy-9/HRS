@@ -213,7 +213,7 @@ def recover_html(source, output, *, browser=None):
             'source_unchanged': True, 'conversion_model_api_calls': 0, 'warnings':warnings}
 
 
-def check_project(source,*,browser=None,render_profile=None):
+def check_project(source,*,browser=None,render_profile=None,accept_numbered_headings=False):
     """Full text/asset preflight through the GUI's existing Marked model."""
     from report_contract import analyze
     from render_profile import read as read_profile,normalize,read_options
@@ -225,18 +225,22 @@ def check_project(source,*,browser=None,render_profile=None):
     text=(project/'report.md').read_bytes().decode('utf8')
     ir=analyze(text,assets=project/'assets')
     profile=read_profile(project) if render_profile is None else normalize(render_profile)
+    options={**read_options(project),'acceptNumberedHeadings':bool(accept_numbered_headings)}
     with browser_session(project,browser) as page:
         result=page.evaluate('''async request=>{
           const api=ReportStudioProgrammatic;await api.ready();await api.open('legacy');
           return api.check(request);
-        }''',{'renderProfile':profile,'renderOptions':read_options(project),'expectSourceSha256':_sha(text.encode('utf8'))})
+        }''',{'renderProfile':profile,'renderOptions':options,'expectSourceSha256':_sha(text.encode('utf8'))})
     seen={(d['code'],d.get('start'),d.get('end')) for d in result['diagnostics']}
     for diagnostic in ir['diagnostics']:
         key=(diagnostic['code'],diagnostic.get('start'),diagnostic.get('end'))
         if key not in seen:result['diagnostics'].append(diagnostic);seen.add(key)
     if before!=_snapshot(project):raise HTMLCommandError('STALE_SNAPSHOT: source/assets changed during check')
     valid=not any(d['severity']=='error' for d in result['diagnostics'])
-    result.update(operation='check',ok=True,valid=valid,safeToCompile=valid and profile=='engineering',source_unchanged=True,
+    has_heading_prefix=any(d['code']=='HEADING_SOURCE_PREFIX' for d in result['diagnostics'])
+    compile_ready=bool(valid and profile=='engineering' and (accept_numbered_headings or not has_heading_prefix))
+    result.update(operation='check',ok=True,valid=valid,safeToCompile=compile_ready,word_compile_ready=compile_ready,
+                  accept_numbered_headings=bool(accept_numbered_headings),source_unchanged=True,
                   source_snapshot=ir['source_snapshot'],conversion_model_api_calls=0)
     result['preflight'].update(assets_checked=True,downstream_verified=False)
     return result
@@ -247,15 +251,18 @@ def check_main(argv=None):
     parser.add_argument('source',type=Path)
     parser.add_argument('--browser',type=Path)
     parser.add_argument('--render-profile',choices=('free','engineering'))
+    parser.add_argument('--accept-numbered-headings',action='store_true',help='Accept the manual heading number notice for this input snapshot')
     args=parser.parse_args(argv)
     try:
-        result=check_project(args.source,browser=args.browser,render_profile=args.render_profile)
+        result=check_project(args.source,browser=args.browser,render_profile=args.render_profile,
+                             accept_numbered_headings=args.accept_numbered_headings)
     except Exception as error:
         code=getattr(error,'code','SOURCE_UNREADABLE' if isinstance(error,OSError) else 'CHECK_FAILED')
-        result={'ok':False,'operation':'check','valid':False,'safeToCompile':False,
+        result={'ok':False,'operation':'check','valid':False,'safeToCompile':False,'word_compile_ready':False,
                 'preflight':{'complete':False},'code':code,'error':str(error)}
     print(json.dumps(result,ensure_ascii=False))
-    return 0 if result.get('ok') and result.get('valid') else 1
+    ready=result.get('word_compile_ready') if result.get('preflight',{}).get('scope')=='engineering-text' else result.get('valid')
+    return 0 if result.get('ok') and ready else 1
 
 
 def main(argv=None):

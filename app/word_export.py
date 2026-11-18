@@ -23,6 +23,116 @@ from project_workspace import is_link
 
 WORD_WORKER_TIMEOUT_SECONDS=180
 WORD_REQUEST_TIMEOUT_MS=(WORD_WORKER_TIMEOUT_SECONDS+30)*1000
+NOTICE_FILE='word-export-notices.json'
+NOTICE_SCHEMA='hrs-word-export-notices-v1'
+ACK_FILE='word-notices-ack.json'
+ACK_SCHEMA='hrs-word-notices-ack-v1'
+TEXT_FALLBACK='WORD_TEXT_FALLBACK'
+
+
+def export_notices(items, source_sha256):
+    if not isinstance(items, list):
+        return []
+    notices=[]
+    for item in items:
+        if not isinstance(item, dict) or item.get('code')!=TEXT_FALLBACK:
+            continue
+        line=item.get('line')
+        line=line if type(line) is int and line>0 else None
+        end=item.get('end_line')
+        footnote=item.get('footnote')
+        footnote=footnote if isinstance(footnote,str) and footnote else None
+        excerpt=item.get('excerpt') or ''
+        if footnote:location=f'脚注 [^{footnote}]'
+        elif line:
+            span=f'{line}–{end}' if type(end) is int and end>line else str(line)
+            location=f'第 {span} 行'
+        else:location='文稿'
+        detail=' '.join(str(value) for value in (item.get('message'),item.get('detail'),excerpt) if value)
+        notices.append({'code':TEXT_FALLBACK,'source':'word-export','source_sha256':source_sha256,
+                        'line':line,'footnote':footnote,'query':str(excerpt),'message':f'{location} · {detail}'})
+    return notices
+
+
+def read_notices_ack(folder):
+    if folder is None:
+        return {}
+    data=_notice_json(Path(folder)/ACK_FILE,64*1024)
+    return data if data.get('schema')==ACK_SCHEMA else {}
+
+
+def acknowledge_word_notices(folder, *, current_sha256=None):
+    if folder is None or is_link(Path(folder)):
+        raise ValueError('工程目录无效，无法保存 Word 告警核对状态')
+    root=Path(folder)
+    import_rec=_notice_json(root/'word-import.json',16*1024*1024)
+    export_rec=_notice_json(root/NOTICE_FILE,16*1024*1024)
+    import_sha=import_rec.get('markdown_sha256')
+    export_sha=export_rec.get('source_sha256') or current_sha256
+    payload={
+        'schema':ACK_SCHEMA,
+        'import_sha256':import_sha if isinstance(import_sha,str) and len(import_sha)==64 else None,
+        'import_acknowledged':bool(import_rec),
+        'export_source_sha256':export_sha if isinstance(export_sha,str) and len(export_sha)==64 else None,
+    }
+    write_json(root/ACK_FILE,payload)
+    return payload
+
+
+def remember_export_notices(folder, source_sha256, notices):
+    write_json(folder/NOTICE_FILE, {'schema':NOTICE_SCHEMA,'source_sha256':source_sha256,'notices':notices})
+    ack_path=Path(folder)/ACK_FILE
+    if notices and ack_path.is_file() and not is_link(ack_path):
+        ack=read_notices_ack(folder)
+        if ack.get('export_source_sha256')==source_sha256:
+            write_json(ack_path,{**ack,'schema':ACK_SCHEMA,'export_source_sha256':None})
+
+
+def _notice_json(path, limit):
+    try:
+        if not is_link(path) and path.is_file():
+            with path.open('rb') as stream:
+                raw=stream.read(limit+1)
+            if len(raw)<=limit:
+                data=json.loads(raw)
+                if isinstance(data,dict):return data
+    except (OSError, ValueError, RecursionError):
+        pass
+    return {}
+
+
+def saved_export_notices(folder, source_sha256):
+    if folder is None:
+        return []
+    ack=read_notices_ack(folder)
+    acked_export=ack.get('export_source_sha256')
+    record=_notice_json(folder/NOTICE_FILE,16*1024*1024)
+    if record.get('schema')==NOTICE_SCHEMA and isinstance(record.get('notices'),list):
+        if acked_export and record.get('source_sha256')==acked_export:
+            return []
+        return [item for item in record['notices'] if isinstance(item,dict) and item.get('code')==TEXT_FALLBACK
+                and item.get('source')=='word-export' and item.get('source_sha256')==record.get('source_sha256')
+                and isinstance(item.get('message'),str)]
+    # Pre-upgrade projects have only the full mapping. Read just the latest
+    # pair in this project's own output directory and require the source hash.
+    if acked_export and source_sha256==acked_export:
+        return []
+    output=folder/'output'
+    try:
+        if is_link(output):return []
+        candidates=[]
+        for path in output.glob('*.docx.hrs-bridge.json'):
+            target=path.with_name(path.name.removesuffix('.hrs-bridge.json'))
+            if not is_link(path) and not is_link(target) and target.is_file():
+                try:candidates.append((path.stat().st_mtime_ns,path.name,path))
+                except FileNotFoundError:continue
+        if not candidates:return []
+        mapping=_notice_json(max(candidates)[2],64*1024*1024)
+    except OSError:
+        return []
+    if mapping.get('schema')=='hrs-wps-bridge-v1' and mapping.get('source_sha256')==source_sha256:
+        return export_notices(mapping.get('output_fallbacks'),source_sha256)
+    return []
 
 
 def runtime_paths(root,app=None):

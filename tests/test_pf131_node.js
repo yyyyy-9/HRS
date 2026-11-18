@@ -25,4 +25,9 @@ for(let n=0;n<=6;n++){
  const source=P.stringify(model);
  assert.equal(P.parseRaw(source).model.rows[1][0].text,value,'roundtrip backslashes '+n);
 }
+const idOnlyModel={rows:[[{text:'A',rowspan:1,colspan:1}],[{text:'1',rowspan:1,colspan:1}]],align:[null],caption:''};
+const idOnlyRaw=P.stringify(idOnlyModel,{id:'tbl-empty-cap'});
+assert.ok(idOnlyRaw.endsWith('\n: {#tbl-empty-cap}'),idOnlyRaw);
+assert.equal(P.parseRaw(idOnlyRaw).id,'tbl-empty-cap');
+assert.equal(P.parseRaw(idOnlyRaw).caption,'');
 console.log(`PF13.1 GFM cross-language fixtures OK: ${fixture.splits.length} splits and ${fixture.tables.length} tables`);

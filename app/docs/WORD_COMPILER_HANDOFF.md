@@ -146,7 +146,7 @@ PDF 作为插图导入时保留完整原件，PNG 预览是第一页；DPI 为�
 
 `prepare`／`convert` 的 `options` 包含 `notes_mode`（`footnotes`／`references`）、`preserve_emphasis`（布尔值）和 `inline_math_mode`（`native`／`text`），进入页面模型请求摘要及来源映射。HRS 界面默认清除额外正文强调。原 CLI 默认保留，可显式用 `--strip-body-emphasis` 清除。
 
-行内公式默认 `native`，导出的 OMML 字符明确指定 Cambria Math。`to-docx --inline-math-mode text` 与页面文字选项使用同一转换，从已解析的 OMML 输出 Times New Roman 普通文字。普通符号、单位、单组括号和一层上下标可转换，复杂结构保持原生。`WORD_INLINE_MATH_TEXT` 回执报告 `converted`、`retained`。独立公式由原公式样式及编号规则处理。新来源映射以 `native_text_scripts` 声明普通文字上下标参与内容指纹，旧映射缺省使用旧规则。
+行内公式默认 `native`，导出的 OMML 字符明确指定 Cambria Math。`to-docx --inline-math-mode text` 与页面的「单位和量值可用正文」走同一入口。有明确单位写法的完整行内片段可以输出 Times New Roman 正文，包括正体单位、带单位的量值和可表达的单位幂次。变量、关系式与其他数学结构使用原生 OMML。`WORD_INLINE_MATH_TEXT` 回执报告 `converted`、`retained`。转换失败的公式沿 `WORD_TEXT_FALLBACK` 保留原始 TeX 及位置。独立公式由原公式样式及编号规则处理。来源映射以 `native_text_scripts` 声明普通文字上下标参与内容指纹，旧映射缺省使用旧规则。
 
 文字保留以 `WORD_TEXT_FALLBACK` 回执记录 `reason`、`kind`、`excerpt` 及来源位置。位置为 `line`、可选 `end_line`，或 `footnote`。可选 `detail` 说明图形失败或缺少内层脚注定义的原因。相同记录进入同名来源映射的 `output_fallbacks`。编号对象仍生成对应 SEQ 和书签，引用沿用原生域。工程结构、资源、快照和输出文件由现有检查核验。
 

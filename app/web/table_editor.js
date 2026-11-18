@@ -122,8 +122,8 @@ async function open(model,{modal,toast}){
     const atBoundary=event.altKey||(collapsed&&(
      (dc<0&&field.selectionStart===0)||
      (dc>0&&field.selectionEnd===field.value.length)||
-     (dr<0&&!field.value.slice(0,field.selectionStart).includes('\n'))||
-     (dr>0&&!field.value.slice(field.selectionEnd).includes('\n'))
+     (dr<0&&(field.selectionStart===0||(!field.value.slice(0,field.selectionStart).includes('\n')&&field.scrollHeight<=field.clientHeight+2)))||
+     (dr>0&&(field.selectionEnd===field.value.length||(!field.value.slice(field.selectionEnd).includes('\n')&&field.scrollHeight<=field.clientHeight+2)))
     ));
     if(!atBoundary||(event.shiftKey&&!event.altKey&&field.value.length>0))return;
     const g=T.logicalGrid(working),base=event.shiftKey&&range?range[1]:[r,c],baseOwner=g.owners[base[0]][base[1]];

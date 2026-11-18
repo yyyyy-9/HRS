@@ -27,6 +27,27 @@ TEX_TEXT_COMMANDS = frozenset({
     'text', 'textrm', 'textnormal', 'textsf', 'texttt', 'textbf',
     'textit', 'textsc', 'mbox', 'operatorname',
 })
+PREFIXABLE_UNITS = frozenset('m g s A K mol cd Hz N Pa J W C V F Ω Ω S Wb T H lm lx Bq Gy Sv kat rad sr L eV bar'.split())
+UNIT_PREFIXES = 'q r y z a f p n μ µ m c d da h k M G T P E Z Y R Q'.split()
+TEXT_UNITS = PREFIXABLE_UNITS | {prefix + unit for prefix in UNIT_PREFIXES for unit in PREFIXABLE_UNITS} | set(
+    '% ‰ ° °C °F ℃ ℉ min h d rpm dB dBm dBc ppm ppb px Å atm'.split()
+)
+COMPOUND_TEXT_UNITS = frozenset({'r/min', 'r/s', 'lines/mm', 'lp/mm', 'grooves/mm'})
+UNIT_ATOM = re.compile(r'([A-Za-zµμΩΩÅ]+|°[CF]?|[%‰℃℉])(?:\^[+−-]?[0-9]+)?')
+UNIT_SEPARATOR = re.compile(r'\s*[/·⋅]\s*|\s+')
+UNIT_POWER = re.compile(r'[+−-]?[0-9]+')
+SCALAR = r'(?:[±∓+−-])?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)'
+POWER10 = r'10\^[+−-]?[0-9]+'
+SINGLE_QUANTITY = r'(?:' + POWER10 + r'|' + SCALAR + r'(?:[eE][+−-]?[0-9]+|\s*[×⋅]\s*' + POWER10 + r')?)'
+QUANTITY_PREFIX = re.compile(SINGLE_QUANTITY + r'(?:\s*[~～∼–—-]\s*' + SINGLE_QUANTITY + r')?\s*')
+UPRIGHT_UNIT = re.compile(r'\\(?:mathrm|textrm|textnormal|text|rm)(?![A-Za-z])')
+STANDARD_MATH_OPS = frozenset({
+    'sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'arcsin', 'arccos', 'arctan',
+    'sinh', 'cosh', 'tanh', 'coth', 'ln', 'log', 'exp', 'lim', 'limsup', 'liminf',
+    'max', 'min', 'sup', 'inf', 'det', 'dim', 'ker', 'gcd', 'deg', 'arg', 'Pr',
+    'hom', 'mod', 'bmod', 'pmod',
+})
+UPRIGHT_SENTINEL_RE = re.compile(r'(?:\\text\{HRSUPRIGHTSTART([A-Za-z]+)HRSUPRIGHTEND\}|HRSUPRIGHTSTART([A-Za-z]+)HRSUPRIGHTEND)')
 
 
 def set_native_math_font(omml):
@@ -59,71 +80,80 @@ def set_native_math_font(omml):
 @dataclass(frozen=True)
 class MathTextRun:
     text: str
-    bold: bool = False
-    italic: bool = False
     script: str | None = None
 
 
-def inline_math_text(omml):
-    """Project supported OMML into Word text runs, or keep the whole equation.
-
-    Consume Pandoc's parsed structure. Never flatten an unknown construct by
-    concatenating its m:t nodes, which would lose fractions, limits or grouping.
-    """
+def inline_unit_text(omml, tex):
+    """Project a complete unit or quantity into Word text, using parsed OMML."""
     runs = []
-    scripts = {'sSub': ('e', 'sub'), 'sSup': ('e', 'sup'), 'sSubSup': ('e', 'sub', 'sup')}
-    alignment = {'e': None, 'sub': 'subscript', 'sup': 'superscript'}
 
     def collect(node, script=None):
         tag = E.QName(node)
         if tag.namespace != M:
-            return False
+            return None
         kind = tag.localname
         if kind == 'r':
             texts = node.findall('m:t', N)
             if len(texts) != 1 or not texts[0].text:
-                return False
+                return None
             if any(child.tag not in (qn('m:t'), qn('m:rPr'), qn('w:rPr')) for child in node):
-                return False
+                return None
             text = texts[0].text
             math_style = node.find('m:rPr', N)
             if math_style is not None and any(child.tag not in (qn('m:sty'), qn('m:scr'), qn('m:nor')) for child in math_style):
-                return False
+                return None
             alphabet = node.find('m:rPr/m:scr', N)
             if alphabet is not None and alphabet.get(qn('m:val')) != 'roman':
-                return False
+                return None
             style = node.find('m:rPr/m:sty', N)
             normal = node.find('m:rPr/m:nor', N)
             upright = normal is not None and normal.get(qn('m:val'), '1') not in ('0', 'false', 'off')
-            variant = 'i' if not upright and any(c.isalpha() for c in text) else 'p'
-            if style is not None:
-                variant = style.get(qn('m:val'))
-            if variant not in ('p', 'b', 'i', 'bi'):
-                return False
-            runs.append(MathTextRun(text, 'b' in variant, 'i' in variant, script))
-            return True
-        if kind in ('oMath', 'e', 'sub', 'sup'):
-            return bool(len(node)) and all(collect(child, script) for child in node)
-        if kind in scripts and script is None:
+            if style is not None and style.get(qn('m:val')) != 'p':
+                return None
+            if style is None and not upright and any(c.isalpha() for c in text):
+                return None
+            runs.append(MathTextRun(text, script))
+            return text
+        if kind in ('oMath', 'e', 'sup'):
+            parts = []
+            for child in node:
+                part = collect(child, script)
+                if part is None:
+                    return None
+                parts.append(part)
+            return ''.join(parts) if parts else None
+        if kind == 'sSup' and script is None:
             parts = [child for child in node if child.tag != qn('m:' + kind + 'Pr')]
-            names = scripts[kind]
-            return [child.tag for child in parts] == [qn('m:' + name) for name in names] and all(
-                collect(child, alignment[name]) for child, name in zip(parts, names))
-        if kind == 'd':
-            arguments = node.findall('m:e', N)
-            if len(arguments) != 1 or any(child.tag not in (qn('m:dPr'), qn('m:e')) for child in node):
-                return False
-            for position, default in (('begChr', '('), ('endChr', ')')):
-                prop = node.find('m:dPr/m:' + position, N)
-                char = prop.get(qn('m:val'), default) if prop is not None else default
-                if char:
-                    runs.append(MathTextRun(char, script=script))
-                if position == 'begChr' and not collect(arguments[0], script):
-                    return False
-            return True
-        return False
+            if [child.tag for child in parts] == [qn('m:e'), qn('m:sup')]:
+                base = '' if len(parts[0]) == 0 else collect(parts[0])
+                sup_start = len(runs)
+                power = collect(parts[1], 'superscript')
+                if base is not None and power is not None:
+                    prior = ''.join(r.text for r in runs[:sup_start]).strip()
+                    if power in ('°', '∘') and (re.fullmatch(SCALAR, base.strip()) or (not base.strip() and (not prior or re.fullmatch(SCALAR, prior)))):
+                        runs[sup_start:] = [MathTextRun('°', None)]
+                        return base + '°'
+                    if UNIT_POWER.fullmatch(power) and (base.strip() == '10' or UNIT_ATOM.fullmatch(base.strip())):
+                        return base + '^' + power
+        return None
 
-    return runs if collect(omml) and runs else None
+    notation = collect(omml)
+    if notation is None:
+        return None
+    notation = notation.strip()
+    quantity = QUANTITY_PREFIX.match(notation)
+    units = notation[quantity.end():] if quantity else notation
+    if not units:
+        return None
+    # A standalone upright symbol can still be a variable, such as \Omega.
+    # A unit label with letters gains that meaning here only when marked upright.
+    if quantity is None and any(char.isalpha() for char in units) and not UPRIGHT_UNIT.search(tex):
+        return None
+    if units in COMPOUND_TEXT_UNITS:
+        return runs
+    if all((atom := UNIT_ATOM.fullmatch(part)) and atom[1] in TEXT_UNITS for part in UNIT_SEPARATOR.split(units)):
+        return runs
+    return None
 
 
 def tex_special_spans(tex):
@@ -308,12 +338,63 @@ class MathAdapter:
         return self.tex_many([omml])[0]
 
     @staticmethod
-    def math_values(result, count):
+    def _restore_upright_tex(tex):
+        return UPRIGHT_SENTINEL_RE.sub(lambda m: '\\mathrm{' + (m.group(1) or m.group(2)) + '}', tex)
+
+    @staticmethod
+    def _prepare_omml_upright(omml):
+        root = deepcopy(omml)
+        if 'HRSUPRIGHT' in ''.join(root.itertext()):
+            return root
+
+        def is_upright_ascii_run(node):
+            if node.tag != qn('m:r'):
+                return False
+            texts = node.findall('m:t', N)
+            if len(texts) != 1 or not texts[0].text or not (texts[0].text.isascii() and texts[0].text.isalpha()):
+                return False
+            rpr = node.find('m:rPr', N)
+            if rpr is None or rpr.find('m:nor', N) is not None:
+                return False
+            sty = rpr.find('m:sty', N)
+            if sty is None or sty.get(qn('m:val')) != 'p':
+                return False
+            scr = rpr.find('m:scr', N)
+            return scr is None or scr.get(qn('m:val')) == 'roman'
+
+        for parent in root.iter():
+            if parent.tag == qn('m:fName') or not len(parent):
+                continue
+            children = list(parent)
+            idx = 0
+            while idx < len(children):
+                if not is_upright_ascii_run(children[idx]):
+                    idx += 1
+                    continue
+                end = idx + 1
+                while end < len(children) and is_upright_ascii_run(children[end]):
+                    end += 1
+                group = children[idx:end]
+                word = ''.join(n.find('m:t', N).text for n in group)
+                if not (len(group) == 1 and word in STANDARD_MATH_OPS):
+                    first = group[0]
+                    rpr = first.find('m:rPr', N)
+                    for sty in list(rpr.findall('m:sty', N)):
+                        rpr.remove(sty)
+                    rpr.insert(0, element('m:nor'))
+                    first.find('m:t', N).text = f'HRSUPRIGHTSTART{word}HRSUPRIGHTEND'
+                    for extra in group[1:]:
+                        parent.remove(extra)
+                idx = end
+        return root
+
+    @classmethod
+    def math_values(cls, result, count):
         if result.returncode:raise BridgeError('Math conversion rejected: '+result.stderr.decode('utf8'))
         found=[]
         def walk(n):
             if isinstance(n,dict):
-                if n.get('t')=='Math':found.append(n['c'][1])
+                if n.get('t')=='Math':found.append(cls._restore_upright_tex(n['c'][1]))
                 for v in n.values():walk(v)
             elif isinstance(n,list):
                 for v in n:walk(v)
@@ -327,7 +408,7 @@ class MathAdapter:
         for index,omml in enumerate(expressions):
             paragraph=doc.add_paragraph()
             if markers:paragraph.add_run(markers[index])
-            paragraph._p.append(deepcopy(omml))
+            paragraph._p.append(self._prepare_omml_upright(omml))
         data=BytesIO();doc.save(data)
         return subprocess.run([self.exe,'--fail-if-warnings','-f','docx','-t','json'],
                               input=data.getvalue(),capture_output=True,timeout=PANDOC_TIMEOUT_SECONDS)
@@ -356,7 +437,7 @@ class MathAdapter:
             key=markers[first['c']]
             if key in seen:outputs.pop(key,None)
             elif len(rest)==1 and rest[0]['t']=='Math' and rest[0]['c'][1].strip():
-                outputs[key]=TexMathResult(tex=rest[0]['c'][1])
+                outputs[key]=TexMathResult(tex=self._restore_upright_tex(rest[0]['c'][1]))
             seen.add(key)
         return {key:outputs.get(key,TexMathResult(reason='Pandoc 未返回对应的可编辑公式')) for key in markers.values()}
 

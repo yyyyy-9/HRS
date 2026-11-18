@@ -42,7 +42,7 @@ def main(argv=None):
             p.add_argument('--notes-mode',choices=['footnotes','references'],default='footnotes')
             p.add_argument('--strip-body-emphasis',action='store_true',help='Omit source bold/italic; preserve template and mathematical styles')
             p.add_argument('--inline-math-mode',choices=['native','text'],default='native',
-                           help='Use Cambria Math equations or Times New Roman text for simple inline math')
+                           help='Use Cambria Math equations. In text mode, write recognized units and quantities in Times New Roman.')
         if name=='from-docx':
             p.add_argument('--provenance',type=Path)
             p.add_argument('--structure-map',type=Path,help='Source-bound, explicit external Word group decisions')

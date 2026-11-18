@@ -153,7 +153,8 @@ function stringify(model,{newline='\n',id=null,withCaption=false}={}){
  const line=row=>'| '+row.map(cell=>formatCell(cell.text)).join(' | ')+' |';
  const lines=[line(rows[0]),'| '+sep.join(' | ')+' |',...rows.slice(1).map(line)];
  if(withCaption||model.caption.trim()||id){
-  if(model.caption.trim()||id)lines.push(': '+model.caption.trim()+(id?' {#'+id+'}':''));
+  const text=model.caption.trim();
+  if(text||id)lines.push(': '+(text?text+(id?' {#'+id+'}':''):'{#'+id+'}'));
  }
  return lines.join(newline);
 }

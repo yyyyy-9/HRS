@@ -37,8 +37,10 @@ class WordUI(ManualService):
         if working.is_visible():self.page.locator('#modal-ok').click()
         self.page.wait_for_selector('#word-template')
 
-    def compile(self, *, expected_note=None):
+    def compile(self, *, expected_note=None, numbered=False):
         self.page.locator('#modal-ok').click()
+        if numbered:
+            self.page.locator('.confirm-window button').filter(has_text='已核对，继续导出').click()
         self.page.wait_for_function("document.querySelector('#modal-title').textContent.includes('Word 已生成') || document.querySelector('#word-export-status')?.textContent.startsWith('导出未完成')",timeout=90000)
         self.assertIn('Word 已生成',self.page.locator('#modal-title').inner_text(),self.page.locator('#word-export-status').all_inner_texts())
         if expected_note is not None:
@@ -132,7 +134,9 @@ class WordUI(ManualService):
         # Matched subscript still converts next to an unmatched underline.
         raw=('# Advanced\n\n## Chapter\n\nHere <u>unclosed, H<sub>2</sub>O and <small>label</small>.\n\n'
              '<div style="display:flex">Card &amp; $c+1$</div>\n\n- [x] Checked $u+2$\n\nTail.\n')
-        source(self.page,raw);self.open_word();output=self.compile(expected_note='有 5 处按原文文字保留')
+        source(self.page,raw)
+        self.page.locator('#btn-save').click();self.page.wait_for_function("document.querySelector('#save-indicator').textContent.trim()==='已保存'")
+        self.open_word();output=self.compile(expected_note='有 5 处按原文文字保留')
         document=Document(output)
         visible='\n'.join(p.text for p in document.paragraphs)
         for fragment in ('Here <u>unclosed, H2O and <small>label</small>.',
@@ -142,6 +146,18 @@ class WordUI(ManualService):
         meta=json.loads(Path(str(output)+'.hrs-bridge.json').read_text('utf8'))
         self.assertEqual([item['kind'] for item in meta['output_fallbacks']],['markup']*5)
         self.assertEqual(value(self.page),raw)
+        warnings=self.page.locator('#problem-list [data-code="WORD_TEXT_FALLBACK"]')
+        self.page.wait_for_function("document.querySelectorAll('#problem-list [data-code=WORD_TEXT_FALLBACK]').length===5")
+        self.page.reload();self.page.evaluate('()=>ReportStudioProgrammatic.ready()')
+        self.page.evaluate('id=>ReportStudioProgrammatic.open(id)',self.docid)
+        self.page.wait_for_function("document.querySelectorAll('#problem-list [data-code=WORD_TEXT_FALLBACK]').length===5")
+        source(self.page,'\n'+raw)
+        self.page.wait_for_function("document.querySelector('#problem-list [data-code=WORD_TEXT_FALLBACK] .problem-severity')?.textContent==='上次 Word 导出'")
+        self.assertEqual(warnings.count(),5)
+        self.assertEqual(warnings.first.locator('.problem-line').inner_text(),'导出快照')
+        source(self.page,'# Advanced\n\n## Chapter\n\nClean.\n');self.open_word();self.compile()
+        self.page.evaluate('id=>ReportStudioProgrammatic.open(id,{recover:false})',self.docid)
+        self.assertEqual(warnings.count(),0)
 
 
     def test_04_managed_default_survives_original_move_and_new_project(self):

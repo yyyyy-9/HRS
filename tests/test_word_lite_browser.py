@@ -95,22 +95,30 @@ class WordLite(ManualService):
         self.assertEqual(len(Document(covered)._element.xpath('//m:oMath')),85)
         self.assertEqual(cover.read_bytes(),before);self.assertEqual(value(self.page),raw)
 
-        # WORD-INLINE-01: ordinary Word runs retain scripts and math emphasis;
-        # a stacked fraction and the standalone formula keep editable OMML.
+        # WORD-INLINE-UNITS-01: the optional text mode applies only to complete
+        # units and quantities. A relation containing a quantity stays editable.
         raw=('# Text math\n\n## Calculation\n\n'+
-             r'变量 $x_i^2+\lambda=532\,\mathrm{nm}$，向量 $\boldsymbol{E}$，$\left|a\right|$，分式 $\frac{a+b}{c}$。'+
+             r'公式 $x_i^2+\lambda=532\,\mathrm{nm}$、$\boldsymbol{E}$、$\left|a\right|$、$\frac{a+b}{c}$、'
+             r'$\Omega$、$42$、$\mathrm{nm}+\mathrm{mm}$、$m$。'+
+             '\n\n'+r'单位 $\mathrm{mm}$，量值 $532\,\mathrm{nm}$、$-2\,\text{rpm}$、'
+             r'$3.20\,\mathrm{kg}\cdot\mathrm{m}^{-2}$、$33\%$。'+
              '\n\n$$\\frac{a}{b}$$\n')
         source(self.page,raw);self.open_word()
         self.assertEqual(self.page.locator('#word-inline-math-mode').input_value(),'native')
         self.page.locator('#word-inline-math-mode').select_option('text')
-        output=self.compile(expected_note='正文 3 处，保留原生公式 1 处');doc=Document(output)
-        text_runs=doc._element.xpath('//w:r[w:rPr/w:rFonts[@w:ascii="Times New Roman"]]/w:t/text()')
-        self.assertIn('xi2+λ=532 nm',''.join(text_runs))
-        self.assertEqual(doc._element.xpath('//w:r[w:rPr/w:vertAlign[@w:val="subscript"]]/w:t/text()'),['i'])
-        self.assertEqual(doc._element.xpath('//w:r[w:rPr/w:vertAlign[@w:val="superscript"]]/w:t/text()'),['2'])
-        self.assertEqual(doc._element.xpath('//w:r[w:rPr/w:b and w:rPr/w:i]/w:t/text()'),['E'])
-        self.assertEqual(len(doc._element.xpath('//m:oMath')),2)
+        output=self.compile();doc=Document(output)
+        inline='//m:oMath[not(parent::m:oMathPara)]'
+        self.assertEqual(len(doc._element.xpath(inline)),8)
         self.assertEqual(len(doc._element.xpath('//m:oMathPara')),1)
+        self.assertEqual(set(doc._element.xpath(inline+'//m:r/w:rPr/w:rFonts/@w:ascii')),{'Cambria Math'})
+        self.assertTrue(doc._element.xpath(inline+'//m:sSubSup'))
+        text_runs=doc._element.xpath('//w:r[w:rPr/w:rFonts[@w:ascii="Times New Roman"]]/w:t/text()')
+        written=''.join(text_runs)
+        for unit in ('mm','532 nm','−2 rpm','3.20 kg⋅m−2','33%'):
+            self.assertIn(unit,written)
+        self.assertNotIn('λ=',written)
+        self.assertFalse(doc._element.xpath('//w:r[w:rPr/w:vertAlign[@w:val="subscript"]]/w:t'))
+        self.assertEqual(''.join(doc._element.xpath('//w:r[w:rPr/w:vertAlign[@w:val="superscript"]]/w:t/text()')),'−2')
         self.assertEqual(value(self.page),raw)
         meta=json.loads(Path(str(output)+'.hrs-bridge.json').read_text('utf8'))
         self.assertEqual(base64.b64decode(meta['source_b64']).decode('utf8'),raw)

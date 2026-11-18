@@ -189,6 +189,53 @@ class HeadingProfile(ManualService):
         p.locator('#btn-validate').click()
         p.wait_for_function("document.querySelector('#problems-summary').textContent.startsWith('0 个错误')")
 
+    def test_07_quickfixes_and_lossless_table_conversion(self):
+        """QUICKFIX-01 / TABLE-CONVERT-01: undoable heading/currency quick-fixes and lossless GFM <-> report-table switch."""
+        p=self.page
+        raw=(
+            '# 成本与光谱报告\n\n'
+            '#### 跳级标题\n\n'
+            '单套预算 $120。\n\n'
+            '批量从 $1,200 降至 $980。\n\n'
+            '| 参数 | 指标 |\n'
+            '| --- | --- |\n'
+            '| 波长 | $248.33\\ \\mathrm{nm}$ |\n'
+            ': 标定表 {#tbl-cal}\n'
+        )
+        source(p,raw);p.locator('#render-profile').select_option('engineering')
+        p.locator('#btn-validate').click()
+        p.wait_for_selector('[data-quickfix="HEADING_LEVEL_GAP"]')
+        self.assertEqual(p.locator('[data-quickfix="HEADING_LEVEL_GAP"]').inner_text(),'改为 H2')
+        self.assertEqual(p.locator('[data-quickfix="UNESCAPED_CURRENCY"]').count(),2)
+        p.locator('[data-quickfix="HEADING_LEVEL_GAP"]').click()
+        p.wait_for_function("document.querySelectorAll('[data-code=HEADING_LEVEL_GAP]').length===0")
+        self.assertIn('\n## 跳级标题\n',value(p))
+        p.locator('[data-quickfix="UNESCAPED_CURRENCY"]').first.click()
+        p.wait_for_function("document.querySelectorAll('[data-code=UNESCAPED_CURRENCY]').length===1")
+        p.locator('[data-quickfix="UNESCAPED_CURRENCY"]').first.click()
+        p.wait_for_function("document.querySelectorAll('[data-code=UNESCAPED_CURRENCY]').length===0")
+        self.assertIn('单套预算 \\$120。',value(p))
+        self.assertIn('批量从 \\$1,200 降至 \\$980。',value(p))
+
+        # GFM pipe table -> report-table -> GFM pipe table + Undo
+        p.wait_for_selector('[data-table-convert="to-structured"]')
+        p.locator('[data-table-convert="to-structured"]').click()
+        p.wait_for_selector('[data-table-convert="to-pipe"]')
+        self.assertIn('"schema": "report-table-v1"',value(p))
+        self.assertIn('"id": "tbl-cal"',value(p))
+        p.locator('[data-table-convert="to-pipe"]').click()
+        p.wait_for_selector('[data-table-convert="to-structured"]')
+        self.assertNotIn('"schema": "report-table-v1"',value(p))
+        self.assertIn(': 标定表 {#tbl-cal}',value(p))
+        p.locator('#btn-undo').click()
+        p.wait_for_selector('[data-table-convert="to-pipe"]')
+        self.assertIn('"schema": "report-table-v1"',value(p))
+        p.locator('[data-view="reading"]').click()
+        self.assertEqual(p.locator('[data-table-convert]').count(),0)
+        p.locator('[data-view="split"]').click()
+        exported_html=p.evaluate("()=>ReportStudioProgrammatic.exportHTML({sourceMode:'recompilable'})")
+        self.assertNotIn('data-table-convert',exported_html)
+
 
 if __name__=='__main__':
     import unittest

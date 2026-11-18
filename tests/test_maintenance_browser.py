@@ -263,5 +263,24 @@ class MaintenanceExperience(unittest.TestCase):
             for color in colors:self.assertTrue(color['color'])
             self.assertEqual(d.errors,[])
 
+    def test_cli_check_numbered_headings_gate_and_math_cache_proximity(self):
+        text='# 报告\n\n## 1.1 引言\n\n正文 $\\alpha_1$ 至 $\\alpha_2$。\n'
+        with tempfile.TemporaryDirectory() as folder,browser_session() as browser,LiveDocument(browser,folder,text,profile='engineering',registered=True) as d:
+            cli=str(Path(__file__).resolve().parents[1]/'app/cli.py')
+            unaccepted=subprocess.run([sys.executable,'-B',cli,'check',str(d.project),'--render-profile','engineering'],
+                                      capture_output=True,text=True,encoding='utf8',timeout=30)
+            self.assertEqual(unaccepted.returncode,1,unaccepted.stderr)
+            rec1=json.loads(unaccepted.stdout)
+            self.assertTrue(rec1['valid']);self.assertFalse(rec1['safeToCompile']);self.assertFalse(rec1['word_compile_ready'])
+            self.assertIn('HEADING_SOURCE_PREFIX',[x['code'] for x in rec1['diagnostics']])
+
+            accepted=subprocess.run([sys.executable,'-B',cli,'check',str(d.project),'--render-profile','engineering','--accept-numbered-headings'],
+                                    capture_output=True,text=True,encoding='utf8',timeout=30)
+            self.assertEqual(accepted.returncode,0,accepted.stderr)
+            rec2=json.loads(accepted.stdout)
+            self.assertTrue(rec2['valid']);self.assertTrue(rec2['safeToCompile']);self.assertTrue(rec2['word_compile_ready'])
+            self.assertEqual((d.project/'report.md').read_text('utf8'),text)
+            self.assertEqual(d.errors,[])
+
 
 if __name__=='__main__':unittest.main()

@@ -81,7 +81,10 @@ body[data-report-theme="brief"] .paper h2{font-size:18px;margin-top:22px}
 .problems-panel{flex:0 0 auto;max-height:230px;border-top:1px solid var(--hrs-line, #d8e1ef);background:var(--hrs-editor, #ffffff);display:flex;flex-direction:column}
 .problems-head{display:flex;align-items:center;gap:12px;padding:9px 16px;background:var(--hrs-editor, #f7f9fd);color:var(--hrs-text, #53647e);font-size:12px}
 .problems-head button{margin-left:auto}.problems-head strong{color:var(--hrs-ink, #344a70)}
+.problems-head-actions{margin-left:auto;display:inline-flex;align-items:center;gap:6px}.problems-head-actions button{margin-left:0}
 .problem-list{overflow:auto;margin:0;padding:5px 12px 10px;list-style:none}
+.problem-row{display:flex;align-items:center;gap:6px}.problem-row .problem-item{flex:1;min-width:0}
+.problem-quickfix{flex-shrink:0}
 .problem-item{width:100%;display:flex;gap:10px;text-align:left;align-items:baseline;background:var(--hrs-editor, #ffffff);border:1px solid transparent;border-radius:5px;padding:7px 9px;color:var(--hrs-text, #51637b);font-size:12px}
 .problem-item:hover,.problem-item.selected{background:var(--hrs-bg, #edf3ff);border-color:var(--hrs-line, #ceddf7)}
 .problem-item .problem-severity{flex-shrink:0;font-weight:700;color:var(--hrs-danger, #b34545)}.problem-item[data-severity="warning"] .problem-severity{color:var(--hrs-brand, #916719)}

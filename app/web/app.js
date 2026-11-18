@@ -20,7 +20,7 @@ const editor=window.SourceEditor&&window.SourceBlocks?SourceEditor.attach($('mar
 const sourceProjection=ReportSourceProjection.attach(editor,{onBoundary:toast});
 const sourceTimestamps=ReportTimestamps.attach(editor);
 const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={projectPath:null,externalProject:false,md:'',savedMd:'',revision:null,documentId:'new',template:'engineering',theme:'engineering',view:'split',sidebarCollapsed:false,saving:false,dirty:false,rendering:0,renderErrors:[],selectedBlock:null,visualFocused:null,visualPending:false,draftId:null,draftSeq:0,draftQueue:Promise.resolve(),draftError:false,draftSnapshot:null,exiting:false,exitReady:false,session:0};
+const state={projectPath:null,externalProject:false,md:'',savedMd:'',revision:null,documentId:'new',template:'engineering',theme:'engineering',view:'split',sidebarCollapsed:false,saving:false,dirty:false,rendering:0,renderErrors:[],wordImportNotices:[],wordExportNotices:[],selectedBlock:null,visualFocused:null,visualPending:false,draftId:null,draftSeq:0,draftQueue:Promise.resolve(),draftError:false,draftSnapshot:null,exiting:false,exitReady:false,session:0};
 state.renderProfile=ReportProfile.normalize();state.renderOptions=ReportProfile.normalizeOptions();
 state.colorTheme=ReportTheme.normalize();
 state.hasNumberPreference=false;
@@ -328,6 +328,9 @@ async function load(documentId='new',template='engineering',{recover=true,draftI
   state.hasNumberPreference=data.document_id!=='new';state.reportWorkspace=data.report_workspace||null;syncReportWorkspace();
   state.colorTheme=colorTheme;$('color-theme').value=colorTheme;
    state.template=data.template;state.theme=data.theme;state.projectPath=data.project_path||null;state.externalProject=!!data.external_project;state.markdownFile=data.markdown_file||null;state.dirty=false;state.saving=false;state.draftError=false;
+   const wordNotices=Array.isArray(data.word_notices)?data.word_notices:[];
+   state.wordImportNotices=wordNotices.filter(notice=>notice.source==='word-import');
+   state.wordExportNotices=wordNotices.filter(notice=>notice.source==='word-export');
   $('btn-markdown-project').hidden=!state.markdownFile;operations.setDisabled($('btn-project-migrate'),!!state.markdownFile);
   resetSourceStatus();
   state.selectedBlock=null;state.visualFocused=null;state.visualPending=false;state.draftId=freshID();state.draftSeq=0;state.draftQueue=Promise.resolve();state.draftSnapshot=null;state.exitReady=false;
@@ -339,6 +342,7 @@ async function load(documentId='new',template='engineering',{recover=true,draftI
   preview.replaceChildren();$('toc').replaceChildren();documentSearch?.invalidate();
   resetHistory();updateDirty();await render();await refreshRecent();
   if(recover&&documentId!=='new')await recoverDocumentDraft(documentId,{draftId,session});
+  if(state.wordImportNotices.length||state.wordExportNotices.length){$('problems-panel').hidden=false;markCheckPending();refreshDocumentCheck(false);}
  }catch(e){
   status('error',activated?'文稿已载入 · 预览未完成':'文档未切换 · 载入失败');
   if(state.dirty)scheduleDraft();
@@ -867,7 +871,7 @@ function highlightTableSource(raw,kind){
   '<span class="hrs-table-syntax-delimiter">'+esc(line)+'</span>':
   ReportCodeHighlight.highlightHTML(line,'json')).join('');
 }
-function attachTableCard(outer,source,kind){
+function attachTableCard(outer,source,kind,{canDemote=false}={}){
  const doc=outer.ownerDocument,table=outer.querySelector('table');
  const tools=doc.createElement('div');tools.className='hrs-table-tools';
  const title=doc.createElement('span');title.className='hrs-table-kind';title.textContent='表格';
@@ -876,7 +880,15 @@ function attachTableCard(outer,source,kind){
  toggle.dataset.tableToggle='1';toggle.textContent='查看 MD';toggle.setAttribute('aria-pressed','false');
  const copy=doc.createElement('button');copy.type='button';copy.className='hrs-table-copy';
  copy.dataset.tableCopy='1';copy.textContent='复制表格';copy.title='复制为 Excel / WPS 可分单元格粘贴的 TSV';
- actions.append(toggle,copy);tools.append(title,actions);outer.prepend(tools);
+ actions.append(toggle,copy);
+ if(kind==='gfm-pipe'||canDemote){
+  const convert=doc.createElement('button');convert.type='button';convert.className='hrs-table-copy hrs-table-convert';
+  convert.dataset.tableConvert=kind==='gfm-pipe'?'to-structured':'to-pipe';
+  convert.textContent=kind==='gfm-pipe'?'转为增强表':'转为管道表';
+  convert.title=kind==='gfm-pipe'?'无损转换为支持合并单元格与列宽的增强表格（可 Ctrl+Z 撤销）':'无损转换为原生 Markdown 管道表格（可 Ctrl+Z 撤销）';
+  actions.append(convert);
+ }
+ tools.append(title,actions);outer.prepend(tools);
  const sourcePanel=doc.createElement('div');sourcePanel.className='hrs-table-source';sourcePanel.hidden=true;
  const sourceBar=doc.createElement('div');sourceBar.className='hrs-table-source-bar';
  const language=doc.createElement('span');language.className='hrs-table-source-language';
@@ -1410,6 +1422,37 @@ async function editStructuredTable(block){
   const current=preview.querySelector(`.doc-block[data-start="${start}"]`);
   if(current)scroller.scrollTop+=current.getBoundingClientRect().top-scroller.getBoundingClientRect().top-viewportTop;
 }
+async function convertTableFormat(block,direction){
+ if(!block||state.saving||state.view==='reading'||operations.editing)return;
+ commitSource();commitFocusedVisual();
+ try{currentBlockRange(block);}catch(e){toast(e.message);scheduleRender();return;}
+ const start=+block.dataset.start,end=+block.dataset.end,original=state.md.slice(start,end),session=state.session,snapshot=state.md;
+ if(!block.isConnected||original!==block._sourceRaw){toast('表格位置已变化，请等待预览刷新后重试');scheduleRender();return;}
+ const scroller=preview.closest('.page-scroll'),viewportTop=block.getBoundingClientRect().top-scroller.getBoundingClientRect().top;
+ let result;
+ if(direction==='to-structured'){
+  let parsed;try{parsed=ReportPipeTables.parseRaw(original);}catch(e){toast('表格解析失败：'+e.message);return;}
+  if(parsed.overflow?.length){
+   const okay=await ReportDialogs.confirm('原表格含有超出表头列数的数据。标准 GFM 显示时会忽略这些列；转换为增强表将不再保留被忽略的文字。确认继续吗？',{title:'确认 Markdown 表格数据范围',okText:'已了解，继续转换',cancelText:'取消'});
+   if(!okay||state.session!==session||state.md!==snapshot)return;
+  }
+  const id=parsed.id||('tbl-'+freshID().slice(0,12));
+  result=tableSnippet(ReportPipeTables.promoted(parsed.model,id));
+ }else{
+  let obj;try{obj=parseTableBlock(original.trim());}catch(e){toast('表格解析失败：'+e.message);return;}
+  if(ReportPipeTables.requiresPromotion(obj)){toast('合并单元格、多行内容、精确列宽或垂直对齐不能无损转换为原生管道表');return;}
+  const newline=original.includes('\r\n')||state.md.includes('\r\n')?'\r\n':'\n';
+  const keepId=obj.id&&/^tbl-[A-Za-z0-9_-]{1,60}$/.test(obj.id)?obj.id:null;
+  result=ReportPipeTables.stringify(obj,{newline,id:keepId,withCaption:!!obj.caption.trim()});
+ }
+ replaceSourceRange(start,end,SourceBlocks.replacement(original,result),'table-convert',{anchor:start});
+ clearTimeout(debounceRender);
+ const pending=render(),run=state.rendering;await pending;
+ if(state.session!==session||state.rendering!==run)return;
+ const current=preview.querySelector(`.doc-block[data-start="${start}"]`);
+ if(current)scroller.scrollTop+=current.getBoundingClientRect().top-scroller.getBoundingClientRect().top-viewportTop;
+ toast(direction==='to-structured'?'已转为增强表格（可 Ctrl+Z 撤销）':'已转为管道表格（可 Ctrl+Z 撤销）');
+}
 
 function markedBlock(token,offset,sourceRaw){
  const records=[];
@@ -1429,7 +1472,7 @@ function markedBlock(token,offset,sourceRaw){
   const div=document.createElement('div');div.appendChild(makeMathElement(item)); mathRecords.set(item.id,item);return div;
  }
  if(token.type==='code'&&String(token.lang||'').trim().toLowerCase()===TABLE_LANG){
-  try{const holder=document.createElement('div');holder.append(attachTableCard(renderTableObject(parseTableBlock(original.trim())),original,'enhanced'));return holder;}
+  try{const parsedTable=parseTableBlock(original.trim());const holder=document.createElement('div');holder.append(attachTableCard(renderTableObject(parsedTable),original,'enhanced',{canDemote:!ReportPipeTables.requiresPromotion(parsedTable)}));return holder;}
   catch(e){state.renderErrors.push('表格：'+e.message);const el=document.createElement('div');el.className='diagram-error';el.textContent='表格数据错误：'+e.message;return el;}
  }
  if(token.type==='code'&&String(token.lang||'').trim().toLowerCase()===FIGURE_LANG){
@@ -1510,17 +1553,40 @@ async function typesetMath(root,isCurrent=()=>true,{cache=true}={}){
   if(!span._reuseSVG&&!span.closest('.doc-block')?._reuseMath)spans.push({span,tex,display,number});
  }
  mathWorkingSet=workingSet;trimMathCache();
- let failures=[],deadline=performance.now()+MATH_SLICE_MS;
- for(const {span,tex,display,number} of spans){
+ const mount=(span,svg,number)=>{
+  const rendered=svg.cloneNode(true);
+  if(number){rendered.setAttribute('aria-hidden','true');span.dataset.typeset='1';span.append(rendered);}
+  else{span.textContent='';span.appendChild(rendered);}
+ };
+ const fail=(span,tex,e,failures)=>{
+  span.innerHTML='<code class="math-error">'+escapeHTML(tex)+'</code>';span.title=e.message;failures.push('公式 '+tex.slice(0,22)+'：'+e.message);
+ };
+ const failures=[],uncached=[];
+ for(let index=0;index<spans.length;index++){
+  const item=spans[index];
+  if(cache&&!mathDefinitions.test(item.tex)){
+   const key=(item.display?'D':'I')+item.tex,cached=mathCache.get(key);
+   if(cached){
+    try{checkTeX(item.tex);mathCache.delete(key);mathCache.set(key,cached);mount(item.span,cached.svg,item.number);continue;}
+    catch(e){fail(item.span,item.tex,e,failures);continue;}
+   }
+  }
+  uncached.push({...item,index});
+ }
+ if(cache&&uncached.length>16){
+  const caretPos=Number(editor?.selectionStart)||0;
+  for(const item of uncached)item.dist=Math.abs((Number(item.span.closest('.doc-block')?.dataset.start)||0)-caretPos);
+  uncached.sort((a,b)=>a.dist-b.dist||a.index-b.index);
+ }
+ let deadline=performance.now()+MATH_SLICE_MS;
+ for(const {span,tex,display,number} of uncached){
    if(!isCurrent())break;
    if(performance.now()>=deadline){await yieldRenderTask();if(!isCurrent())break;deadline=performance.now()+MATH_SLICE_MS;}
    try{
      checkTeX(tex);
      const svg=await formulaSVG(tex,display,{cache,isCurrent});if(!svg||!isCurrent())break;
-     const rendered=svg.cloneNode(true);
-     if(number){rendered.setAttribute('aria-hidden','true');span.dataset.typeset='1';span.append(rendered);}
-     else{span.textContent='';span.appendChild(rendered);}
-   }catch(e){span.innerHTML='<code class="math-error">'+escapeHTML(tex)+'</code>';span.title=e.message;failures.push('公式 '+tex.slice(0,22)+'：'+e.message);}
+     mount(span,svg,number);
+   }catch(e){fail(span,tex,e,failures);}
  }
  return failures;
 }
@@ -1721,7 +1787,7 @@ async function buildDocumentView(source,{focus=null,isCurrent=()=>true,reuse=new
   staged.querySelectorAll('.report-table-wrap').forEach(ReportObjectCatalog.tableHeading);
   ReportLinks.decorate(staged);
   if(!editable){
-   staged.querySelectorAll('.chart-note').forEach(node=>node.remove());
+   staged.querySelectorAll('.chart-note,[data-table-convert]').forEach(node=>node.remove());
    staged.querySelectorAll('.report-figure-wrap,.report-table-wrap,.mermaid-card,.markdown-math').forEach(node=>node.removeAttribute('title'));
   }
   previewImages?.prepare(staged);
@@ -2318,7 +2384,7 @@ async function diagramDialog(originalSource,options={}){
      onError:error=>{statusP.textContent=error.message;}});
     paint();
    },
-   isDirty:()=>readSource()!==originalSource||(options.caption!==undefined&&titleField.value!==options.caption),
+   isDirty:()=>readSource().replace(/\r\n?/g,'\n')!==originalSource.replace(/\r\n?/g,'\n')||(options.caption!==undefined&&titleField.value!==options.caption),
    onOk:()=>{const accepted=readSource();if(!accepted.trim()||accepted.length>50000)throw Error('Mermaid 源码必须非空，且不超过 50000 字符');return {source:accepted,caption:titleField?.value};}
  });}finally{disposeDrag();}
 }
@@ -2355,7 +2421,7 @@ async function editBlockSource(block){
  if(state.saving)return;try{currentBlockRange(block);}catch(e){toast(e.message);scheduleRender();return;}
  const start=+block.dataset.start,end=+block.dataset.end,old=state.md.slice(start,end);let field;
  const note=block.dataset.type==='hrsFootnoteDef',tail=note?old.match(/(?:\r?\n[ \t]*)+$/)?.[0]||'':'',initialText=note?old.trimEnd():old;
- const value=await modal({title:note?'编辑脚注定义':'编辑 Markdown 块',kicker:'源码',body:outer=>{field=modalTextarea(outer,'这里只修改选中块，不影响其它段落',initialText,280);},isDirty:()=>field.value!==initialText,onOk:()=>field.value});
+ const value=await modal({title:note?'编辑脚注定义':'编辑 Markdown 块',kicker:'源码',body:outer=>{field=modalTextarea(outer,'这里只修改选中块，不影响其它段落',initialText,280);},isDirty:()=>field.value.replace(/\r\n?/g,'\n')!==initialText.replace(/\r\n?/g,'\n'),onOk:()=>field.value});
  if(typeof value==='string')try{await replaceInBlock(block,()=>SourceMap.replaceNormalizedText(old,note?value.trimEnd()+tail:value));}catch(e){toast(e.message);scheduleRender();}
 }
 async function editReference(element){
@@ -2578,11 +2644,15 @@ function bindPreview(){
   const note=e.target.closest('.hrs-footnotes li[data-map-index]');
   if(note&&!e.target.closest('a,button')&&state.view!=='reading'){locateRange({start:+note.dataset.start,end:+note.dataset.end},{origin:'preview'}).catch(e=>toast(e.message));return;}
   if(e.target._taskRange)return;
-  const tableAction=e.target.closest('[data-table-toggle],[data-table-copy],[data-table-fold]');
+  const tableAction=e.target.closest('[data-table-toggle],[data-table-copy],[data-table-fold],[data-table-convert]');
   if(tableAction&&preview.contains(tableAction)){
    e.preventDefault();e.stopPropagation();
    const wrap=tableAction.closest('.report-table-wrap'),table=wrap?.querySelector('table.structured-table');
    const source=wrap?.querySelector('.hrs-table-source');if(!table)return;
+   if(tableAction.dataset.tableConvert){
+    const menu=tableAction.closest('.hrs-table-menu');if(menu)menu.open=false;
+    await convertTableFormat(wrap.closest('.doc-block'),tableAction.dataset.tableConvert);return;
+   }
    if(tableAction.dataset.tableFold){
     const code=source?.querySelector('.hrs-table-source-pre');if(!code)return;
     code.hidden=!code.hidden;tableAction.setAttribute('aria-expanded',String(!code.hidden));
@@ -2794,7 +2864,7 @@ async function buildExportCurrent(preferences,exportSource=state.md){
  clone.dataset.hrsTaskSnapshot=preflight.markdown_sha256;
  exportView.article.querySelectorAll('.hrs-task-checkbox').forEach((input,index)=>{const output=clone.querySelectorAll('.hrs-task-checkbox')[index];if(output)output.dataset.hrsTaskKey=String(input._taskRange.start);});
  clone.dataset.hrsRenderProfile=state.renderProfile;
- clone.querySelectorAll('[data-table-edit]').forEach(button=>button.remove());
+ clone.querySelectorAll('[data-table-edit],[data-table-convert]').forEach(button=>button.remove());
  ReportLinks.decorate(clone);
  for(const wrap of clone.querySelectorAll('.report-table-wrap')){
   const view=wrap.querySelector('.hrs-table-source'),table=wrap.querySelector('.hrs-table-rendered');
@@ -3253,7 +3323,7 @@ function closeDocumentCheck(){
  clearCheckTimer();activeCheck=null;
  const list=$('problem-list');
  if(list.querySelector('.selected'))resetSourceStatus();
- $('problems-panel').hidden=true;list.replaceChildren();$('problems-summary').textContent='';
+ $('problems-panel').hidden=true;$('btn-ack-word-notices').hidden=true;list.replaceChildren();$('problems-summary').textContent='';
  list.removeAttribute('aria-busy');
  if(toastOwner===documentCheckNotice)clearToast();
 }
@@ -3274,7 +3344,83 @@ function scheduleDocumentCheck(){
   if(!activeCheck)refreshDocumentCheck();
  },350);
 }
-function paintDocumentCheck(reply,isCurrent){
+function resolveWordNoticeTarget(notice){
+ const md=state.md||'';
+ if(notice.footnote){
+  const marker=`[^${notice.footnote}]:`,idx=md.indexOf(marker)>=0?md.indexOf(marker):md.indexOf(`[^${notice.footnote}]`);
+  if(idx>=0)return {line:md.slice(0,idx).split('\n').length,range:{start:idx,end:idx+marker.length}};
+ }
+ if(typeof notice.line==='number'&&notice.line>=1){
+  const lines=md.split('\n'),clamped=Math.min(notice.line,lines.length);
+  let start=0;for(let i=0;i<clamped-1;i++)start+=lines[i].length+1;
+  return {line:clamped,range:{start,end:start+(lines[clamped-1]?.length||0)}};
+ }
+ const candidates=[notice.query];
+ if(notice.code==='WORD_MATH_RETAINED_IN_SOURCE')candidates.push('【公式待确认，见源 Word】');
+ else if(notice.code==='WORD_IMAGE_RETAINED_IN_SOURCE')candidates.push('[图片待确认，见源 Word]');
+ else if(notice.code==='WORD_INLINE_OBJECT_RETAINED_IN_SOURCE')candidates.push('对象待确认，见源 Word】');
+ for(const raw of candidates){
+  const q=String(raw||'').trim();if(!q)continue;
+  const idx=md.indexOf(q);
+  if(idx>=0)return {line:md.slice(0,idx).split('\n').length,range:{start:idx,end:idx+q.length}};
+ }
+ return {line:null,range:{start:0,end:0}};
+}
+function quickFixAction(problem,isCurrent){
+ if(state.view==='reading'||state.saving||operations.editing)return null;
+ if(problem.code==='UNESCAPED_CURRENCY'&&Number.isInteger(problem.start)&&Number.isInteger(problem.end)){
+  return {label:'转义 \\$',title:'将此处金额符号 $ 转义为 \\$（可 Ctrl+Z 撤销）',run:async()=>{
+   if(!isCurrent()||state.saving||state.view==='reading'||operations.editing)return;
+   commitSource();commitFocusedVisual();
+   if(!isCurrent()||state.md[problem.start]!=='$')return toast('源稿位置已变化，请等待检查刷新');
+   const paired=problem.end>problem.start+1&&state.md[problem.end-1]==='$';
+   const changes=paired?[{from:problem.start,to:problem.start+1,insert:'\\$'},{from:problem.end-1,to:problem.end,insert:'\\$'}]:
+    [{from:problem.start,to:problem.start+1,insert:'\\$'}];
+   applySourceChanges(changes,{anchor:problem.start+2},'quickfix-currency');
+   await render();toast('已转义金额符号 \\$（可 Ctrl+Z 撤销）');
+  }};
+ }
+ if(problem.code==='HEADING_LEVEL_GAP'&&Number.isInteger(problem.start)){
+  const blocks=currentSourceMap()?.blocks||[];
+  const target=blocks.find(b=>b.type==='heading'&&b.start===problem.start)||blocks.find(b=>b.type==='heading'&&problem.start>=b.start&&problem.start<b.end);
+  if(!target)return null;
+  let prevLevel=1;
+  for(const b of blocks){
+   if(b.start>=target.start)break;
+   if(b.type==='heading')prevLevel=b.token.depth||1;
+  }
+  const nextLevel=Math.max(2,Math.min(6,prevLevel+1));
+  if(nextLevel===(target.token.depth||1))return null;
+  return {label:`改为 H${nextLevel}`,title:`将此标题调整为 H${nextLevel} 以消除跳级（可 Ctrl+Z 撤销）`,run:async()=>{
+   if(!isCurrent()||state.saving||state.view==='reading'||operations.editing)return;
+   commitSource();commitFocusedVisual();
+   if(!isCurrent()||state.md.slice(target.start,target.end)!==target.raw)return toast('标题位置已变化，请等待检查刷新');
+   const prefix=target.raw.match(/^( {0,3})(#{1,6})([ \t]+)/);
+   if(!prefix)return toast('仅支持 ATX # 标题的一键调级');
+   const hashes='#'.repeat(nextLevel);
+   applySourceChanges([{from:target.start+prefix[1].length,to:target.start+prefix[1].length+prefix[2].length,insert:hashes}],
+    {anchor:target.start+prefix[1].length+hashes.length+prefix[3].length},'quickfix-heading-level');
+   await render();toast(`已调整为 H${nextLevel} 标题（可 Ctrl+Z 撤销）`);
+  }};
+ }
+ return null;
+}
+async function acknowledgeWordNotices(){
+ if(state.saving||operations.editing)return;
+ const hasNotices=(state.wordExportNotices?.length||0)+(state.wordImportNotices?.length||0)>0;
+ if(!hasNotices)return;
+ const btn=$('btn-ack-word-notices');btn.disabled=true;
+ try{
+  if(state.documentId!=='new'&&!state.markdownFile&&state.projectPath){
+   await api('/api/word/ack-notices','POST',{document_id:state.documentId,template:state.template},{'X-HRS-Project-Action':'user-action'});
+  }
+  state.wordImportNotices=[];state.wordExportNotices=[];
+  await refreshDocumentCheck(false);
+  toast('已标记 Word 告警为已核对');
+ }catch(error){toast('标记 Word 告警失败：'+error.message);}
+ finally{btn.disabled=false;}
+}
+function paintDocumentCheck(reply,isCurrent,sourceSha256){
  const list=$('problem-list'),items=document.createDocumentFragment();
  for(const problem of reply.diagnostics){
   const item=document.createElement('li'),button=document.createElement('button');button.type='button';button.className='problem-item';button.dataset.code=problem.code;button.dataset.severity=problem.severity;
@@ -3283,13 +3429,40 @@ function paintDocumentCheck(reply,isCurrent){
    const range=currentSourceMap().problemRange(problem,reply.offset_unit);
    await locateRange(range);
    if(!button.isConnected||button.disabled||!isCurrent())return;
-   list.querySelectorAll('button').forEach(el=>el.classList.toggle('selected',el===button));
+   list.querySelectorAll('.problem-item').forEach(el=>el.classList.toggle('selected',el===button));
    const footer=$('bottom-left');footer.title=footer.textContent=`第 ${problem.line} 行 · ${problem.code} · ${problem.message}`;
+   if(toastOwner===documentCheckNotice)clearToast();
+  }catch(error){if(button.isConnected&&isCurrent())toast(error.message);}};
+  const fix=quickFixAction(problem,isCurrent);
+  if(fix){
+   item.className='problem-row';
+   const fixBtn=document.createElement('button');fixBtn.type='button';fixBtn.className='source-fold-tool problem-quickfix';
+   fixBtn.dataset.quickfix=problem.code;fixBtn.textContent=fix.label;fixBtn.title=fix.title;
+   fixBtn.onclick=e=>{e.stopPropagation();fix.run().catch(err=>toast(err.message));};
+   item.append(button,fixBtn);
+  }else item.append(button);
+  items.append(item);
+ }
+ const wordNotices=[...(state.wordExportNotices||[]),...(state.wordImportNotices||[])];
+ $('btn-ack-word-notices').hidden=!(wordNotices.length&&state.documentId!=='new'&&!state.markdownFile&&state.projectPath);
+ for(const notice of wordNotices){
+  const fromEarlierSource=Boolean(notice.source_sha256&&notice.source_sha256!==sourceSha256);
+  const queryResolved=fromEarlierSource&&notice.source==='word-import'?resolveWordNoticeTarget({...notice,line:null}):null;
+  const resolved=fromEarlierSource?(queryResolved?.line?queryResolved:null):resolveWordNoticeTarget(notice);
+  const badgeText=notice.source==='word-export'?(fromEarlierSource?'上次 Word 导出':'Word导出'):(fromEarlierSource?'上次 Word 导入':'Word导入');
+  const locText=fromEarlierSource?(notice.source==='word-export'?'导出快照':(resolved?.line?`导入快照 · 第 ${resolved.line} 行`:'导入快照')):resolved.line?`第 ${resolved.line} 行`:(notice.block||'全篇');
+  const item=document.createElement('li'),button=document.createElement('button');button.type='button';button.className='problem-item';button.dataset.code=notice.code||'WORD_NOTICE';button.dataset.severity='warning';
+  for(const [className,text] of [['problem-severity',badgeText],['problem-line',locText],['problem-message',notice.message]]){const span=document.createElement('span');span.className=className;span.textContent=text;button.append(span);}
+  button.onclick=async()=>{if(!isCurrent())return;try{
+   if(resolved&&resolved.line)await locateRange(resolved.range);
+   if(!button.isConnected||button.disabled||!isCurrent())return;
+   list.querySelectorAll('.problem-item').forEach(el=>el.classList.toggle('selected',el===button));
+   const footer=$('bottom-left');footer.title=footer.textContent=`${locText} · ${notice.code||'WORD'} · ${notice.message}`;
    if(toastOwner===documentCheckNotice)clearToast();
   }catch(error){if(button.isConnected&&isCurrent())toast(error.message);}};
   item.append(button);items.append(item);
  }
- if(!reply.diagnostics.length){const empty=document.createElement('li');empty.className='problem-empty';empty.textContent='结构检查通过，没有发现问题。';items.append(empty);}
+ if(!reply.diagnostics.length&&!wordNotices.length){const empty=document.createElement('li');empty.className='problem-empty';empty.textContent='结构检查通过，没有发现问题。';items.append(empty);}
  const top=list.scrollTop;list.replaceChildren(items);list.scrollTop=top;
 }
 async function refreshDocumentCheck(manual=false){
@@ -3297,12 +3470,17 @@ async function refreshDocumentCheck(manual=false){
  activeCheck=run;
  const isCurrent=()=>session===state.session&&source===state.md&&profile===state.renderProfile;
  try{
-  const reply=await preflightCurrent(source,profile,options);
+  const needSourceSha=state.wordExportNotices.some(notice=>notice.source_sha256)||state.wordImportNotices.some(notice=>notice.source_sha256);
+  const [reply,sourceSha256]=await Promise.all([
+   preflightCurrent(source,profile,options),
+   needSourceSha?ReportExportArchive.hash(new TextEncoder().encode(source)):null,
+  ]);
   if(activeCheck!==run||!isCurrent())return;
   clearCheckTimer();
   const errors=reply.diagnostics.filter(item=>item.severity==='error'),warnings=reply.diagnostics.length-errors.length;
-  paintDocumentCheck(reply,isCurrent);
-  $('problems-summary').textContent=`${errors.length} 个错误 · ${warnings} 个提醒`;
+  const wordCount=(state.wordExportNotices?.length||0)+(state.wordImportNotices?.length||0);
+  paintDocumentCheck(reply,isCurrent,sourceSha256);
+  $('problems-summary').textContent=`${errors.length} 个错误 · ${warnings} 个提醒`+(wordCount?` · ${wordCount} 项 Word 告警`:'');
   if(manual){
    const text=reply.valid?`结构检查通过：${reply.object_count} 个对象，${warnings} 条提醒`:
     '结构检查失败：'+errors.slice(0,2).map(item=>`第${item.line}行 ${item.message}`).join('；');
@@ -3487,8 +3665,14 @@ function init(){
   commitSource();commitFocusedVisual();
   try{
    if(!await ensureProjectForExport())return;
+   const exportSession=state.session;
    await ReportWordExport.open({api,modal,toast,validate:validateCurrent,getRequest:()=>{
     commitSource();commitFocusedVisual();return exportRequest(state.md);
+   },onExportNotices:notices=>{
+    if(exportSession!==state.session)return;
+    state.wordExportNotices=Array.isArray(notices)?notices:[];
+    if(state.wordExportNotices.length){$('problems-panel').hidden=false;markCheckPending();refreshDocumentCheck(false);}
+    else if(!$('problems-panel').hidden)refreshDocumentCheck(false);
    }});
   }catch(error){toast('Word 导出失败：'+error.message);}
  });
@@ -3517,6 +3701,7 @@ function init(){
   if(typeof ResizeObserver==='function')new ResizeObserver(updateToolsScroll).observe(toolsGroup);
   updateToolsScroll();
  }
+ $('btn-ack-word-notices').addEventListener('click',acknowledgeWordNotices);
  $('btn-problems-close').addEventListener('click',closeDocumentCheck);
  $('btn-import').addEventListener('click',importLocalFile);
  $('btn-import-word').addEventListener('click',importWordFile);
@@ -3601,7 +3786,7 @@ function init(){
   let busy=false;
   window.ReportStudioProgrammatic=Object.freeze({
    schema:'hrs-programmatic-v1',
-   check:async({renderProfile=state.renderProfile,renderOptions=state.renderOptions,expectSourceSha256}={})=>{await ready;if(busy||workspaceBusy||operations.editing)throw Error('Programmatic operation in progress');busy=true;try{const source=state.md;if(expectSourceSha256&&expectSourceSha256!==await ReportExportArchive.hash(new TextEncoder().encode(source)))throw Error('STALE_SNAPSHOT');return await preflightCurrent(source,renderProfile,renderOptions);}finally{busy=false;}},
+   check:async({renderProfile=state.renderProfile,renderOptions=state.renderOptions,acceptNumberedHeadings=false,expectSourceSha256}={})=>{await ready;if(busy||workspaceBusy||operations.editing)throw Error('Programmatic operation in progress');busy=true;try{const source=state.md;if(expectSourceSha256&&expectSourceSha256!==await ReportExportArchive.hash(new TextEncoder().encode(source)))throw Error('STALE_SNAPSHOT');return await preflightCurrent(source,renderProfile,{...renderOptions,acceptNumberedHeadings:Boolean(acceptNumberedHeadings||renderOptions?.acceptNumberedHeadings)});}finally{busy=false;}},
    topics:async()=>{await ready;if(busy||workspaceBusy||operations.editing)throw Error('工作页正在切换，请稍候');const source=state.md,model=documentModel(source),documentId=state.documentId,revision=state.revision;return {documentId,revision,sourceSha256:await ReportExportArchive.hash(new TextEncoder().encode(source)),topics:model.notebook.topics.map(t=>({...t}))};},
    exportModules:async(keys,preferences={quality:'original'})=>{await ready;if(busy||workspaceBusy||operations.editing)throw Error('Programmatic operation in progress');busy=true;try{if(preferences.expectSourceSha256!==await ReportExportArchive.hash(new TextEncoder().encode(state.md)))throw Error('专题源快照已变化，请重新取得专题列表');return await exportModules(keys,preferences);}finally{busy=false;}},
    ready:()=>ready,
